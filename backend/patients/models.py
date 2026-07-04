@@ -1,6 +1,7 @@
 from django.db import models
 from accounts.models import CustomUser
 
+
 class PatientProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     full_name = models.CharField(max_length=100)
@@ -12,8 +13,9 @@ class PatientProfile(models.Model):
 
     def __str__(self):
         return self.full_name
-    
-    class FamilyMember(models.Model):
+
+
+class FamilyMember(models.Model):
     patient = models.ForeignKey(PatientProfile, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     relation = models.CharField(max_length=50)
