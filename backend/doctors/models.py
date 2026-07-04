@@ -23,7 +23,6 @@ class Doctor(models.Model):
         return self.user.username
     
     
-    
 class DoctorSchedule(models.Model):
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
     day = models.CharField(max_length=20)
@@ -32,3 +31,12 @@ class DoctorSchedule(models.Model):
 
     def __str__(self):
         return f"{self.doctor.user.username} - {self.day}"
+    
+    
+class TimeSlot(models.Model):
+    schedule = models.ForeignKey(DoctorSchedule, on_delete=models.CASCADE)
+    slot_time = models.TimeField()
+    is_booked = models.BooleanField(default=False)
+
+    def __str__(self):
+        return str(self.slot_time)
