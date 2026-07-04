@@ -12,3 +12,13 @@ class PatientProfile(models.Model):
 
     def __str__(self):
         return self.full_name
+    
+    class FamilyMember(models.Model):
+    patient = models.ForeignKey(PatientProfile, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    relation = models.CharField(max_length=50)
+    age = models.IntegerField()
+    gender = models.CharField(max_length=20)
+
+    def __str__(self):
+        return self.name
