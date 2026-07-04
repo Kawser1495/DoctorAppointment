@@ -31,6 +31,17 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+  INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    'rest_framework',
+    'corsheaders',
+
     'accounts',
     'patients',
     'doctors',
@@ -40,8 +51,7 @@ INSTALLED_APPS = [
     'reports',
     'notifications',
     'dashboard',
-    'rest_framework',
-    'corsheaders',
+]
 ]
 
 MIDDLEWARE = [
