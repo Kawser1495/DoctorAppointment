@@ -1,3 +1,7 @@
-from django.shortcuts import render
+from rest_framework import generics
+from .models import TestBooking
+from .serializers import TestBookingSerializer
 
-# Create your views here.
+class TestBookingCreateView(generics.CreateAPIView):
+    queryset = TestBooking.objects.all()
+    serializer_class = TestBookingSerializer
