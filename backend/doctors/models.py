@@ -1,14 +1,16 @@
 from django.db import models
 from accounts.models import CustomUser
 
+
 class Department(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
 
     def __str__(self):
         return self.name
-    
-    class Doctor(models.Model):
+
+
+class Doctor(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     specialization = models.CharField(max_length=100)
