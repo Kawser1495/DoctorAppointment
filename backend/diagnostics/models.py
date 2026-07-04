@@ -16,3 +16,13 @@ class DiagnosticTest(models.Model):
 
     def __str__(self):
         return self.test_name
+    
+    
+class TestBooking(models.Model):
+    patient = models.ForeignKey(PatientProfile, on_delete=models.CASCADE)
+    diagnostic_test = models.ForeignKey(DiagnosticTest, on_delete=models.CASCADE)
+    booking_date = models.DateField()
+    status = models.CharField(max_length=20, default='pending')
+
+    def __str__(self):
+        return f"{self.patient.full_name} - {self.diagnostic_test.test_name}"
