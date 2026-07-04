@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import TestCategory, DiagnosticTest, TestBooking
 
-# Register your models here.
+admin.site.register(TestCategory)
+admin.site.register(DiagnosticTest)
+admin.site.register(TestBooking)
