@@ -20,7 +20,7 @@ class TestCategory(models.Model):
         return self.name
     
     
-    class DiagnosticTest(models.Model):
+class DiagnosticTest(models.Model):
 
     category = models.ForeignKey(
         TestCategory,
@@ -56,7 +56,7 @@ class TestCategory(models.Model):
         return self.name
     
     
-    class TestBooking(models.Model):
+class TestBooking(models.Model):
 
     STATUS = [
 
