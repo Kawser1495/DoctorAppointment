@@ -1,8 +1,63 @@
 from django.urls import path
-from .views import AppointmentCreateView, AppointmentListView, AppointmentCancelView
+
+from .views import *
 
 urlpatterns = [
-    path('book/', AppointmentCreateView.as_view(), name='book-appointment'),
-    path('list/', AppointmentListView.as_view(), name='appointment-list'),
-    path('cancel/<int:pk>/', AppointmentCancelView.as_view(), name='cancel-appointment'),
+
+    path(
+
+        "book/",
+
+        AppointmentCreateView.as_view()
+
+    ),
+
+    path(
+
+        "list/",
+
+        PatientAppointmentListView.as_view()
+
+    ),
+
+    path(
+
+        "details/<int:pk>/",
+
+        AppointmentDetailView.as_view()
+
+    ),
+
+    path(
+
+        "update/<int:pk>/",
+
+        AppointmentUpdateView.as_view()
+
+    ),
+
+    path(
+
+        "cancel/<int:pk>/",
+
+        AppointmentCancelView.as_view()
+
+    ),
+
+    path(
+
+        "doctor/",
+
+        DoctorAppointmentView.as_view()
+
+    ),
+
+    path(
+
+        "admin/",
+
+        AdminAppointmentView.as_view()
+
+    ),
+
 ]
