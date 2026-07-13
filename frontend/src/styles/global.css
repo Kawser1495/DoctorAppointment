@@ -1,0 +1,14 @@
+body{
+    margin:0;
+    padding:0;
+    background:#f4f8fb;
+    font-family:Poppins,sans-serif;
+}
+
+a{
+    text-decoration:none;
+}
+
+button{
+    border:none;
+}
