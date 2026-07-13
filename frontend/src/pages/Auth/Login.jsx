@@ -1,7 +1,13 @@
-export default function Login() {
-  return (
-    <div>
-      <h1>Login Page</h1>
-    </div>
-  );
+export default function Login(){
+
+    return(
+
+        <div className="container mt-5">
+
+            <h2>Doctor Appointment Login</h2>
+
+        </div>
+
+    )
+
 }
