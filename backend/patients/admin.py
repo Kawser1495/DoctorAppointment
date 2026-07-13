@@ -3,19 +3,19 @@ from .models import PatientProfile, FamilyMember
 
 
 @admin.register(PatientProfile)
-class PatientAdmin(admin.ModelAdmin):
+class PatientProfileAdmin(admin.ModelAdmin):
 
     list_display = (
         "id",
         "full_name",
-        "phone",
         "gender",
         "blood_group",
+        "emergency_contact",
     )
 
     search_fields = (
         "full_name",
-        "phone",
+        "blood_group",
     )
 
     list_filter = (
@@ -28,12 +28,19 @@ class PatientAdmin(admin.ModelAdmin):
 class FamilyMemberAdmin(admin.ModelAdmin):
 
     list_display = (
+        "id",
         "patient",
-        "full_name",
-        "relationship",
-        "phone",
+        "name",
+        "relation",
+        "age",
+        "gender",
     )
 
     search_fields = (
-        "full_name",
+        "name",
+    )
+
+    list_filter = (
+        "relation",
+        "gender",
     )

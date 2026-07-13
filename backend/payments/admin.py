@@ -6,14 +6,20 @@ from .models import Payment
 class PaymentAdmin(admin.ModelAdmin):
 
     list_display = (
+        "id",
         "patient",
         "amount",
         "payment_method",
-        "status",
+        "payment_status",
+        "transaction_id",
         "payment_date",
     )
 
     list_filter = (
-        "status",
         "payment_method",
+        "payment_status",
+    )
+
+    search_fields = (
+        "transaction_id",
     )
