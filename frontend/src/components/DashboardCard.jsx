@@ -1,73 +1,74 @@
 import React from "react";
-
 import "./DashboardCard.css";
 
 function DashboardCard({
-
     title,
-
     value,
-
-    color,
-
-    icon
-
-}){
-
-    return(
-
+    icon,
+    color = "#0D6EFD",
+    subtitle = "",
+    trend = "",
+}) {
+    return (
         <div
-
             className="dashboard-card"
-
             style={{
-
-                borderLeft:`6px solid ${color}`
-
+                borderTop: `5px solid ${color}`,
             }}
-
         >
+            {/* Card Header */}
+            <div className="card-header">
 
-            <div className="card-top">
+                <div className="card-title-section">
 
-                <div>
-
-                    <h5>
-
+                    <h5 className="card-title">
                         {title}
-
                     </h5>
 
-                    <h2>
-
-                        {value}
-
-                    </h2>
+                    {subtitle && (
+                        <p className="card-subtitle">
+                            {subtitle}
+                        </p>
+                    )}
 
                 </div>
 
                 <div
-
                     className="card-icon"
-
                     style={{
-
-                        color:color
-
+                        backgroundColor: `${color}15`,
+                        color: color,
                     }}
-
                 >
-
                     {icon}
-
                 </div>
 
             </div>
 
+            {/* Card Body */}
+
+            <div className="card-body">
+
+                <h2 className="card-value">
+                    {value}
+                </h2>
+
+            </div>
+
+            {/* Card Footer */}
+
+            {trend && (
+                <div className="card-footer">
+
+                    <span className="trend">
+                        {trend}
+                    </span>
+
+                </div>
+            )}
+
         </div>
-
-    )
-
+    );
 }
 
 export default DashboardCard;
