@@ -1,21 +1,28 @@
-export default function Navbar(){
+import React from "react";
 
-    return(
+function Navbar() {
+    return (
+        <nav
+            style={{
+                height: "70px",
+                background: "#0d6efd",
+                color: "white",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "0 30px",
+            }}
+        >
+            <h3>Doctor Appointment System</h3>
 
-        <nav className="navbar bg-primary">
+            <div>
 
-            <div className="container">
-
-                <span className="navbar-brand text-white">
-
-                    Doctor Appointment System
-
-                </span>
+                Welcome, Patient
 
             </div>
 
         </nav>
-
-    )
-
+    );
 }
+
+export default Navbar;
