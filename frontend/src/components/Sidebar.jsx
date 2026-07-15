@@ -40,6 +40,11 @@ function Sidebar() {
             icon: <FaUserMd />,
         },
         {
+            name: "AI Assistant",
+            path: "/ai",
+            icon: <FaRobot />,
+        },
+        {
             name: "Diagnostic Tests",
             path: "/tests",
             icon: <FaFlask />,
