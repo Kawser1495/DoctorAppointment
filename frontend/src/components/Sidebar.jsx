@@ -1,36 +1,122 @@
 import React from "react";
+import { NavLink } from "react-router-dom";
+
+import {
+    FaHome,
+    FaCalendarCheck,
+    FaUserMd,
+    FaFlask,
+    FaFileMedical,
+    FaMoneyBillWave,
+    FaUsers,
+    FaBell,
+    FaCog,
+    FaSignOutAlt,
+} from "react-icons/fa";
+
+import "./Sidebar.css";
 
 function Sidebar() {
 
+    const menuItems = [
+        {
+            name: "Dashboard",
+            path: "/dashboard",
+            icon: <FaHome />,
+        },
+        {
+            name: "Book Appointment",
+            path: "/appointments/book",
+            icon: <FaCalendarCheck />,
+        },
+        {
+            name: "My Appointments",
+            path: "/appointments",
+            icon: <FaCalendarCheck />,
+        },
+        {
+            name: "Doctors",
+            path: "/doctors",
+            icon: <FaUserMd />,
+        },
+        {
+            name: "Diagnostic Tests",
+            path: "/tests",
+            icon: <FaFlask />,
+        },
+        {
+            name: "Medical Reports",
+            path: "/reports",
+            icon: <FaFileMedical />,
+        },
+        {
+            name: "Payments",
+            path: "/payments",
+            icon: <FaMoneyBillWave />,
+        },
+        {
+            name: "Family Members",
+            path: "/family",
+            icon: <FaUsers />,
+        },
+        {
+            name: "Notifications",
+            path: "/notifications",
+            icon: <FaBell />,
+        },
+        {
+            name: "Settings",
+            path: "/settings",
+            icon: <FaCog />,
+        },
+        {
+            name: "Logout",
+            path: "/logout",
+            icon: <FaSignOutAlt />,
+        },
+    ];
+
     return (
 
-        <div
-            style={{
-                width: "250px",
-                height: "100vh",
-                background: "#1f2937",
-                color: "white",
-                padding: "20px",
-            }}
-        >
+        <div className="sidebar">
 
-            <h2>Menu</h2>
+            <h2 className="logo">
 
-            <hr />
+                Doctor Appointment
 
-            <p>Dashboard</p>
+            </h2>
 
-            <p>Book Appointment</p>
+            <div className="menu">
 
-            <p>My Appointments</p>
+                {menuItems.map((item, index) => (
 
-            <p>Doctors</p>
+                    <NavLink
 
-            <p>Medical Reports</p>
+                        key={index}
 
-            <p>Payments</p>
+                        to={item.path}
 
-            <p>Logout</p>
+                        className={({ isActive }) =>
+                            isActive
+                                ? "menu-item active"
+                                : "menu-item"
+                        }
+
+                    >
+
+                        <span className="icon">
+
+                            {item.icon}
+
+                        </span>
+
+                        {item.name}
+
+                    </NavLink>
+
+                ))}
+
+            </div>
 
         </div>
 
