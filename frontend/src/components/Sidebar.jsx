@@ -12,6 +12,7 @@ import {
     FaBell,
     FaCog,
     FaSignOutAlt,
+    FaRobot,
 } from "react-icons/fa";
 
 import "./Sidebar.css";
@@ -38,11 +39,6 @@ function Sidebar() {
             name: "Doctors",
             path: "/doctors",
             icon: <FaUserMd />,
-        },
-        {
-            name: "AI Assistant",
-            path: "/ai",
-            icon: <FaRobot />,
         },
         {
             name: "Diagnostic Tests",
