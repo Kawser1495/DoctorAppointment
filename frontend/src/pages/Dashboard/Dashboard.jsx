@@ -1,33 +1,58 @@
+import Navbar from "../../components/Navbar";
+import Sidebar from "../../components/Sidebar";
+import WelcomeBanner from "../../components/WelcomeBanner";
+import DashboardCard from "../../components/DashboardCard";
+
 import "../../styles/dashboard.css";
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
-export default function Dashboard(){
+function Dashboard() {
 
-    const navigate = useNavigate();
+    return (
 
-    useEffect(() => {
+        <>
 
-        const token = localStorage.getItem("access");
+            <Navbar />
 
-        if(!token){
+            <div className="dashboard-container">
 
-            navigate("/");
+                <Sidebar />
 
-        }
+                <div className="dashboard-content">
 
-    }, []);
+                    <WelcomeBanner />
 
-    return(
+                    <div className="card-container">
 
-        <div className="container mt-5">
+                        <DashboardCard
+                            title="Appointments"
+                            value="10"
+                        />
 
-            <h2>Dashboard</h2>
+                        <DashboardCard
+                            title="Pending"
+                            value="2"
+                        />
 
-            <h4>Welcome to Doctor Appointment System</h4>
+                        <DashboardCard
+                            title="Completed"
+                            value="8"
+                        />
 
-        </div>
+                        <DashboardCard
+                            title="Reports"
+                            value="5"
+                        />
 
-    )
+                    </div>
+
+                </div>
+
+            </div>
+
+        </>
+
+    );
 
 }
+
+export default Dashboard;
