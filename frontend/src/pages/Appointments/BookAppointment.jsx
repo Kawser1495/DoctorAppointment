@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DepartmentDropdown from "../../components/DepartmentDropdown";
 import "../../styles/appointment.css";
+
 import { bookAppointment } from "../../services/appointmentService";
+import { getTimeSlots } from "../../services/timeSlotService";
 
 function BookAppointment() {
 
-    // =========================
+    // ==========================
     // State Variables
-    // =========================
+    // ==========================
 
     const [department, setDepartment] = useState("");
     const [doctor, setDoctor] = useState("");
@@ -15,16 +17,47 @@ function BookAppointment() {
     const [timeSlot, setTimeSlot] = useState("");
     const [reason, setReason] = useState("");
 
-    // Validation Errors
+    const [timeSlots, setTimeSlots] = useState([]);
+
     const [errors, setErrors] = useState({});
 
-    // =========================
-    // Submit Form
-    // =========================
+    // ==========================
+    // Load Available Time Slots
+    // ==========================
 
-    const handleSubmit = async (event) => {
+    useEffect(() => {
 
-        event.preventDefault();
+        const loadTimeSlots = async () => {
+
+            if (!doctor) return;
+
+            try {
+
+                const response = await getTimeSlots(doctor);
+
+                setTimeSlots(response.data);
+
+            }
+
+            catch (error) {
+
+                console.error("Time Slot Error:", error);
+
+            }
+
+        };
+
+        loadTimeSlots();
+
+    }, [doctor]);
+
+    // ==========================
+    // Submit Appointment
+    // ==========================
+
+    const handleSubmit = async (e) => {
+
+        e.preventDefault();
 
         let validationErrors = {};
 
@@ -35,7 +68,7 @@ function BookAppointment() {
             validationErrors.doctor = "Doctor is required.";
 
         if (!appointmentDate)
-            validationErrors.appointmentDate = "Date is required.";
+            validationErrors.appointmentDate = "Appointment date is required.";
 
         if (!timeSlot)
             validationErrors.timeSlot = "Time slot is required.";
@@ -50,7 +83,7 @@ function BookAppointment() {
 
         const data = {
 
-            patient: 1, // Temporary
+            patient: 1, // Temporary (Later Login User)
 
             doctor: Number(doctor),
 
@@ -68,7 +101,12 @@ function BookAppointment() {
 
             const response = await bookAppointment(data);
 
-            alert(response.data.message || "Appointment booked successfully.");
+            alert(
+                response.data.message ||
+                "Appointment booked successfully."
+            );
+
+            // Reset Form
 
             setDepartment("");
             setDoctor("");
@@ -76,12 +114,13 @@ function BookAppointment() {
             setTimeSlot("");
             setReason("");
             setErrors({});
+            setTimeSlots([]);
 
         }
 
         catch (error) {
 
-            console.log(error);
+            console.error(error);
 
             if (error.response) {
 
@@ -91,7 +130,7 @@ function BookAppointment() {
 
             else {
 
-                alert("Booking Failed");
+                alert("Booking Failed.");
 
             }
 
@@ -113,14 +152,16 @@ function BookAppointment() {
 
                     <DepartmentDropdown
                         selectedDepartment={department}
-                        onDepartmentChange={(event) =>
-                            setDepartment(event.target.value)
+                        onDepartmentChange={(e) =>
+                            setDepartment(e.target.value)
                         }
                     />
 
-                    {errors.department && (
-                        <p className="error-text">{errors.department}</p>
-                    )}
+                    {errors.department &&
+                        <p className="error-text">
+                            {errors.department}
+                        </p>
+                    }
 
                     {/* Doctor */}
 
@@ -130,18 +171,24 @@ function BookAppointment() {
 
                         <select
                             value={doctor}
-                            onChange={(event) =>
-                                setDoctor(event.target.value)
+                            onChange={(e) =>
+                                setDoctor(e.target.value)
                             }
                         >
 
-                            <option value="">Select Doctor</option>
+                            <option value="">
+                                Select Doctor
+                            </option>
+
+                            {/* Day 14 Part 8 */}
 
                         </select>
 
-                        {errors.doctor && (
-                            <p className="error-text">{errors.doctor}</p>
-                        )}
+                        {errors.doctor &&
+                            <p className="error-text">
+                                {errors.doctor}
+                            </p>
+                        }
 
                     </div>
 
@@ -154,16 +201,16 @@ function BookAppointment() {
                         <input
                             type="date"
                             value={appointmentDate}
-                            onChange={(event) =>
-                                setAppointmentDate(event.target.value)
+                            onChange={(e) =>
+                                setAppointmentDate(e.target.value)
                             }
                         />
 
-                        {errors.appointmentDate && (
+                        {errors.appointmentDate &&
                             <p className="error-text">
                                 {errors.appointmentDate}
                             </p>
-                        )}
+                        }
 
                     </div>
 
@@ -175,23 +222,37 @@ function BookAppointment() {
 
                         <select
                             value={timeSlot}
-                            onChange={(event) =>
-                                setTimeSlot(event.target.value)
+                            onChange={(e) =>
+                                setTimeSlot(e.target.value)
                             }
                         >
 
-                            <option value="">Select Time</option>
+                            <option value="">
+                                Select Time
+                            </option>
 
-                            <option value="1">09:00 AM</option>
-                            <option value="2">09:30 AM</option>
-                            <option value="3">10:00 AM</option>
-                            <option value="4">10:30 AM</option>
+                            {timeSlots.map((slot) => (
+
+                                <option
+                                    key={slot.id}
+                                    value={slot.id}
+                                    disabled={slot.is_full}
+                                >
+
+                                    {slot.slot_time}
+                                    {slot.is_full ? " (Full)" : ""}
+
+                                </option>
+
+                            ))}
 
                         </select>
 
-                        {errors.timeSlot && (
-                            <p className="error-text">{errors.timeSlot}</p>
-                        )}
+                        {errors.timeSlot &&
+                            <p className="error-text">
+                                {errors.timeSlot}
+                            </p>
+                        }
 
                     </div>
 
@@ -204,19 +265,19 @@ function BookAppointment() {
                         <textarea
                             rows="5"
                             value={reason}
-                            onChange={(event) =>
-                                setReason(event.target.value)
+                            onChange={(e) =>
+                                setReason(e.target.value)
                             }
                             placeholder="Write your health problem..."
                         />
 
-                        {errors.reason && (
-                            <p className="error-text">{errors.reason}</p>
-                        )}
+                        {errors.reason &&
+                            <p className="error-text">
+                                {errors.reason}
+                            </p>
+                        }
 
                     </div>
-
-                    {/* Submit Button */}
 
                     <button
                         type="submit"
