@@ -1,23 +1,20 @@
 import axios from "axios";
 
+// Axios Instance
 const API = axios.create({
-
-baseURL:"http://127.0.0.1:8000/api"
-
+    baseURL: "http://127.0.0.1:8000/api",
 });
 
-export const getDepartments=()=>
+// =========================
+// Department API
+// =========================
+export const getDepartments = async () => {
+    return await API.get("/departments/");
+};
 
-API.get(
-
-"/departments/"
-
-);
-
-export const getDoctors=(departmentId)=>
-
-API.get(
-
-`/departments/${departmentId}/doctors/`
-
-);
+// =========================
+// Doctor API
+// =========================
+export const getDoctors = async (departmentId) => {
+    return await API.get(`/departments/${departmentId}/doctors/`);
+};
