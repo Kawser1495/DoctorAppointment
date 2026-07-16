@@ -4,9 +4,9 @@ import "../../styles/appointment.css";
 
 function BookAppointment() {
 
-    // ==========================
+    // =========================
     // State Variables
-    // ==========================
+    // =========================
 
     const [department, setDepartment] = useState("");
     const [doctor, setDoctor] = useState("");
@@ -17,9 +17,9 @@ function BookAppointment() {
     // Validation Errors
     const [errors, setErrors] = useState({});
 
-    // ==========================
-    // Form Submit
-    // ==========================
+    // =========================
+    // Submit Form
+    // =========================
 
     const handleSubmit = (event) => {
 
@@ -29,17 +29,21 @@ function BookAppointment() {
 
         // Department Validation
         if (!department) {
+
             validationErrors.department =
                 "Please select a department.";
+
         }
 
         // Doctor Validation
         if (!doctor) {
+
             validationErrors.doctor =
                 "Please select a doctor.";
+
         }
 
-        // Appointment Date Validation
+        // Date Validation
         if (!appointmentDate) {
 
             validationErrors.appointmentDate =
@@ -77,6 +81,7 @@ function BookAppointment() {
                 "Please enter your problem.";
 
         }
+
         else if (reason.trim().length < 10) {
 
             validationErrors.reason =
@@ -87,7 +92,7 @@ function BookAppointment() {
         // Save Errors
         setErrors(validationErrors);
 
-        // If No Error
+        // If no validation error
         if (Object.keys(validationErrors).length === 0) {
 
             alert("Validation Passed!");
@@ -225,7 +230,7 @@ function BookAppointment() {
                             onChange={(event) =>
                                 setReason(event.target.value)
                             }
-                            placeholder="Write your problem..."
+                            placeholder="Write your health problem..."
                         />
 
                         {errors.reason && (
@@ -239,8 +244,8 @@ function BookAppointment() {
                     {/* Submit Button */}
 
                     <button
-                        className="appointment-btn"
                         type="submit"
+                        className="appointment-btn"
                     >
                         Book Appointment
                     </button>
