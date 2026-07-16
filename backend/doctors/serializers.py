@@ -1,6 +1,10 @@
 from rest_framework import serializers
-from .models import Doctor, Department
+from .models import Doctor, Department, TimeSlot
 
+
+# ==========================================
+# Department Serializer
+# ==========================================
 
 class DepartmentSerializer(serializers.ModelSerializer):
 
@@ -12,6 +16,10 @@ class DepartmentSerializer(serializers.ModelSerializer):
             "description"
         ]
 
+
+# ==========================================
+# Doctor Serializer
+# ==========================================
 
 class DoctorSerializer(serializers.ModelSerializer):
 
@@ -40,3 +48,20 @@ class DoctorSerializer(serializers.ModelSerializer):
 
     def get_doctor_name(self, obj):
         return f"Dr. {obj.user.get_full_name()}"
+
+
+# ==========================================
+# Time Slot Serializer
+# ==========================================
+
+class TimeSlotSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = TimeSlot
+        fields = [
+            "id",
+            "slot_time",
+            "booked_count",
+            "max_patient",
+            "is_full",
+        ]
