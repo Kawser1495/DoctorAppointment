@@ -40,6 +40,9 @@ export default function Login() {
         try {
             const response = await loginUser(formData);
 
+
+            console.log(response.data);
+
             // Save JWT Token
             localStorage.setItem("access", response.data.access);
             localStorage.setItem("refresh", response.data.refresh);
