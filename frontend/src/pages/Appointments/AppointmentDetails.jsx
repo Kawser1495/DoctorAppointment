@@ -1,9 +1,19 @@
-function AppointmentDetails() {
-    return (
-        <div>
-            <h1>Appointment Details</h1>
-        </div>
-    );
+function AppointmentSuccess(){
+
+return(
+
+<div>
+
+<h1>
+
+Appointment Successful
+
+</h1>
+
+</div>
+
+)
+
 }
 
-export default AppointmentDetails;
+export default AppointmentSuccess;
