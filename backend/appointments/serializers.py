@@ -43,9 +43,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
         appointment_date = data.get("appointment_date")
         reason = data.get("reason")
 
-        # -------------------------------
+        # =====================================
         # Required Validation
-        # -------------------------------
+        # =====================================
 
         if not patient:
             raise serializers.ValidationError({
@@ -72,9 +72,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 "reason": "Reason is required."
             })
 
-        # -------------------------------
-        # Past Date Check
-        # -------------------------------
+        # =====================================
+        # Past Date Validation
+        # =====================================
 
         if appointment_date < timezone.now().date():
             raise serializers.ValidationError({
@@ -82,9 +82,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 "Past date booking is not allowed."
             })
 
-        # -------------------------------
+        # =====================================
         # Family Member Validation
-        # -------------------------------
+        # =====================================
 
         if family_member:
 
@@ -97,9 +97,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
                 })
 
-        # -------------------------------
+        # =====================================
         # Doctor Availability
-        # -------------------------------
+        # =====================================
 
         if not doctor.is_available:
 
@@ -110,9 +110,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             })
 
-        # -------------------------------
-        # Active Slot Check
-        # -------------------------------
+        # =====================================
+        # Slot Active Validation
+        # =====================================
 
         if not slot.is_active:
 
@@ -123,9 +123,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             })
 
-        # -------------------------------
-        # Slot Capacity Check
-        # -------------------------------
+        # =====================================
+        # Slot Capacity Validation
+        # =====================================
 
         if slot.is_full:
 
@@ -136,9 +136,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             })
 
-        # -------------------------------
-        # Schedule Validation
-        # -------------------------------
+        # =====================================
+        # Doctor Schedule Validation
+        # =====================================
 
         schedule = slot.schedule
 
@@ -153,37 +153,31 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             })
 
-        # -------------------------------
-        # Duplicate Booking Check
-        # -------------------------------
+        # =====================================
+        # Duplicate Appointment Validation
+        # =====================================
 
-        duplicate = Appointment.objects.filter(
-
+        existing = Appointment.objects.filter(
             patient=patient,
-
             doctor=doctor,
-
             appointment_date=appointment_date,
-
-            slot=slot,
-
-            status__in=[
-                "Pending",
-                "Confirmed"
-            ]
-
+        ).exclude(
+            status__in=["Cancelled", "Rejected"]
         )
 
+        # Update-এর সময় নিজের Appointment বাদ দেবে
         if self.instance:
+            existing = existing.exclude(pk=self.instance.pk)
 
-            duplicate = duplicate.exclude(pk=self.instance.pk)
-
-        if duplicate.exists():
+        if existing.exists():
 
             raise serializers.ValidationError({
 
-                "appointment":
-                "You already booked this appointment."
+                "non_field_errors": [
+
+                    "You already have an appointment with this doctor on this date."
+
+                ]
 
             })
 
