@@ -1,61 +1,223 @@
-.dashboard-container {
+/* ===========================
+   Dashboard Layout
+=========================== */
 
-    display: flex;
+.dashboard-container{
 
-    min-height: 100vh;
+display:flex;
 
-    background: #F5F7FB;
+min-height:100vh;
 
-}
-
-.dashboard-content {
-
-    flex: 1;
-
-    padding: 30px;
+background:#F5F7FA;
 
 }
 
-.card-container {
+/* ===========================
+   Content
+=========================== */
 
-    display: grid;
+.dashboard-content{
 
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+flex:1;
 
-    gap: 20px;
+padding:30px;
 
-    margin-top: 25px;
-
-}
-
-@media (max-width: 992px) {
-
-    .card-container {
-
-        grid-template-columns: repeat(2, 1fr);
-
-    }
+overflow-y:auto;
 
 }
 
-@media (max-width: 768px) {
+/* ===========================
+   Welcome Banner
+=========================== */
 
-    .dashboard-container {
+.welcome-banner{
 
-        flex-direction: column;
+background:linear-gradient(135deg,#0D6EFD,#4F8EF7);
 
-    }
+color:white;
 
-    .dashboard-content {
+padding:30px;
 
-        padding: 20px;
+border-radius:15px;
 
-    }
+margin-bottom:30px;
 
-    .card-container {
+box-shadow:0 5px 15px rgba(0,0,0,.15);
 
-        grid-template-columns: 1fr;
+}
 
-    }
+.welcome-banner h2{
+
+font-size:30px;
+
+margin-bottom:10px;
+
+}
+
+.welcome-banner p{
+
+font-size:16px;
+
+}
+
+/* ===========================
+   Cards
+=========================== */
+
+.card-container{
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+
+gap:20px;
+
+margin-bottom:35px;
+
+}
+
+/* ===========================
+   Section Title
+=========================== */
+
+.section-title{
+
+font-size:22px;
+
+font-weight:600;
+
+margin-bottom:20px;
+
+color:#1F2937;
+
+}
+
+/* ===========================
+   Quick Actions
+=========================== */
+
+.quick-actions{
+
+display:grid;
+
+grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+
+gap:20px;
+
+margin-bottom:40px;
+
+}
+
+.action-card{
+
+background:white;
+
+padding:20px;
+
+border-radius:15px;
+
+box-shadow:0 3px 10px rgba(0,0,0,.08);
+
+text-align:center;
+
+cursor:pointer;
+
+transition:.3s;
+
+}
+
+.action-card:hover{
+
+transform:translateY(-5px);
+
+box-shadow:0 6px 18px rgba(0,0,0,.15);
+
+}
+
+.action-card i{
+
+font-size:35px;
+
+color:#0D6EFD;
+
+margin-bottom:10px;
+
+}
+
+.action-card h4{
+
+margin-top:10px;
+
+font-size:18px;
+
+}
+
+/* ===========================
+   Recent Activity
+=========================== */
+
+.activity-box{
+
+background:white;
+
+padding:25px;
+
+border-radius:15px;
+
+box-shadow:0 3px 10px rgba(0,0,0,.08);
+
+}
+
+.activity-item{
+
+display:flex;
+
+justify-content:space-between;
+
+padding:15px 0;
+
+border-bottom:1px solid #E5E7EB;
+
+}
+
+.activity-item:last-child{
+
+border-bottom:none;
+
+}
+
+/* ===========================
+   Responsive
+=========================== */
+
+@media(max-width:992px){
+
+.dashboard-container{
+
+flex-direction:column;
+
+}
+
+}
+
+@media(max-width:768px){
+
+.dashboard-content{
+
+padding:15px;
+
+}
+
+.card-container{
+
+grid-template-columns:1fr;
+
+}
+
+.quick-actions{
+
+grid-template-columns:1fr;
+
+}
 
 }

@@ -1,24 +1,22 @@
 import React from "react";
 
+import "../styles/dashboard.css";
+
 function WelcomeBanner() {
 
     return (
 
-        <div
-            style={{
-                background: "#0d6efd",
-                color: "white",
-                padding: "30px",
-                borderRadius: "15px",
-                marginBottom: "20px",
-            }}
-        >
+        <div className="welcome-banner">
 
-            <h2>Welcome Back 👋</h2>
+            <h2>
+
+                Welcome Back 👋
+
+            </h2>
 
             <p>
 
-                Manage your appointments quickly and easily.
+                Manage appointments, reports, payments and more from your dashboard.
 
             </p>
 
