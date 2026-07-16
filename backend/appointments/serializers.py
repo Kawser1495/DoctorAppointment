@@ -1,30 +1,51 @@
 from rest_framework import serializers
 from django.utils import timezone
+from django.db import transaction
 
 from .models import Appointment
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
 
+    booking_number = serializers.ReadOnlyField()
+    status = serializers.ReadOnlyField()
+
     class Meta:
         model = Appointment
-        fields = "__all__"
+        fields = [
+            "id",
+            "booking_number",
+            "patient",
+            "family_member",
+            "doctor",
+            "slot",
+            "appointment_date",
+            "reason",
+            "symptoms",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
         read_only_fields = (
             "booking_number",
+            "status",
             "created_at",
             "updated_at",
         )
 
     def validate(self, data):
 
-        doctor = data.get("doctor")
         patient = data.get("patient")
+        family_member = data.get("family_member")
+        doctor = data.get("doctor")
         slot = data.get("slot")
         appointment_date = data.get("appointment_date")
+        reason = data.get("reason")
 
-        # ---------------------------------------
-        # Required Field Validation
-        # ---------------------------------------
+        # -------------------------------
+        # Required Validation
+        # -------------------------------
 
         if not patient:
             raise serializers.ValidationError({
@@ -38,7 +59,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         if not slot:
             raise serializers.ValidationError({
-                "slot": "Time slot is required."
+                "slot": "Please select a time slot."
             })
 
         if not appointment_date:
@@ -46,9 +67,14 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 "appointment_date": "Appointment date is required."
             })
 
-        # ---------------------------------------
-        # Past Date Validation
-        # ---------------------------------------
+        if not reason:
+            raise serializers.ValidationError({
+                "reason": "Reason is required."
+            })
+
+        # -------------------------------
+        # Past Date Check
+        # -------------------------------
 
         if appointment_date < timezone.now().date():
             raise serializers.ValidationError({
@@ -56,68 +82,114 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 "Past date booking is not allowed."
             })
 
-        # ---------------------------------------
+        # -------------------------------
+        # Family Member Validation
+        # -------------------------------
+
+        if family_member:
+
+            if family_member.patient != patient:
+
+                raise serializers.ValidationError({
+
+                    "family_member":
+                    "This family member does not belong to this patient."
+
+                })
+
+        # -------------------------------
         # Doctor Availability
-        # ---------------------------------------
+        # -------------------------------
 
         if not doctor.is_available:
+
             raise serializers.ValidationError({
+
                 "doctor":
                 "Doctor is currently unavailable."
+
             })
 
-        # ---------------------------------------
-        # Time Slot Active Check
-        # ---------------------------------------
+        # -------------------------------
+        # Active Slot Check
+        # -------------------------------
 
         if not slot.is_active:
+
             raise serializers.ValidationError({
+
                 "slot":
-                "Selected time slot is inactive."
+                "Selected slot is inactive."
+
             })
 
-        # ---------------------------------------
-        # Slot Capacity Validation
-        # ---------------------------------------
+        # -------------------------------
+        # Slot Capacity Check
+        # -------------------------------
 
-        if slot.booked_count >= slot.max_patient:
+        if slot.is_full:
+
             raise serializers.ValidationError({
+
                 "slot":
-                "Selected time slot is already full."
+                "Selected slot is already full."
+
             })
 
-        # ---------------------------------------
-        # Doctor Schedule Validation
-        # ---------------------------------------
+        # -------------------------------
+        # Schedule Validation
+        # -------------------------------
 
         schedule = slot.schedule
 
         weekday = appointment_date.strftime("%A")
 
         if schedule.day != weekday:
+
             raise serializers.ValidationError({
+
                 "appointment_date":
-                f"This doctor is not available on {weekday}."
+                f"Doctor is unavailable on {weekday}."
+
             })
 
-        # ---------------------------------------
-        # Prevent Same Patient Booking
-        # ---------------------------------------
+        # -------------------------------
+        # Duplicate Booking Check
+        # -------------------------------
 
-        if Appointment.objects.filter(
+        duplicate = Appointment.objects.filter(
+
             patient=patient,
+
             doctor=doctor,
+
             appointment_date=appointment_date,
-            status__in=["Pending", "Confirmed"]
-        ).exists():
+
+            slot=slot,
+
+            status__in=[
+                "Pending",
+                "Confirmed"
+            ]
+
+        )
+
+        if self.instance:
+
+            duplicate = duplicate.exclude(pk=self.instance.pk)
+
+        if duplicate.exists():
 
             raise serializers.ValidationError({
-                "patient":
-                "You already have an active appointment with this doctor on this date."
+
+                "appointment":
+                "You already booked this appointment."
+
             })
 
         return data
 
+    @transaction.atomic
     def create(self, validated_data):
 
         appointment = Appointment.objects.create(
@@ -132,19 +204,29 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         return appointment
 
+    @transaction.atomic
     def update(self, instance, validated_data):
 
         old_slot = instance.slot
 
-        new_slot = validated_data.get("slot", old_slot)
+        new_slot = validated_data.get(
+            "slot",
+            old_slot
+        )
 
         if old_slot != new_slot:
 
             if old_slot.booked_count > 0:
+
                 old_slot.booked_count -= 1
+
                 old_slot.save()
 
             new_slot.booked_count += 1
+
             new_slot.save()
 
-        return super().update(instance, validated_data)
+        return super().update(
+            instance,
+            validated_data
+        )
