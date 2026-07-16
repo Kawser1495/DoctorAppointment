@@ -1,233 +1,263 @@
-/* ===========================================
-   Appointment Page
-=========================================== */
+import { useState } from "react";
+import DepartmentDropdown from "../../components/DepartmentDropdown";
+import "../../styles/appointment.css";
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
+function BookAppointment() {
+
+    // =========================
+    // State Variables
+    // =========================
+
+    const [department, setDepartment] = useState("");
+    const [doctor, setDoctor] = useState("");
+    const [appointmentDate, setAppointmentDate] = useState("");
+    const [timeSlot, setTimeSlot] = useState("");
+    const [reason, setReason] = useState("");
+
+    // Validation Errors
+    const [errors, setErrors] = useState({});
+
+    // =========================
+    // Submit Form
+    // =========================
+
+    const handleSubmit = (event) => {
+
+        event.preventDefault();
+
+        let validationErrors = {};
+
+        // Department Validation
+        if (!department) {
+
+            validationErrors.department =
+                "Please select a department.";
+
+        }
+
+        // Doctor Validation
+        if (!doctor) {
+
+            validationErrors.doctor =
+                "Please select a doctor.";
+
+        }
+
+        // Date Validation
+        if (!appointmentDate) {
+
+            validationErrors.appointmentDate =
+                "Please select appointment date.";
+
+        } else {
+
+            const today = new Date();
+
+            today.setHours(0, 0, 0, 0);
+
+            const selectedDate = new Date(appointmentDate);
+
+            if (selectedDate < today) {
+
+                validationErrors.appointmentDate =
+                    "Past date is not allowed.";
+
+            }
+
+        }
+
+        // Time Slot Validation
+        if (!timeSlot) {
+
+            validationErrors.timeSlot =
+                "Please select a time slot.";
+
+        }
+
+        // Reason Validation
+        if (!reason.trim()) {
+
+            validationErrors.reason =
+                "Please enter your problem.";
+
+        }
+
+        else if (reason.trim().length < 10) {
+
+            validationErrors.reason =
+                "Reason must be at least 10 characters.";
+
+        }
+
+        // Save Errors
+        setErrors(validationErrors);
+
+        // If no validation error
+        if (Object.keys(validationErrors).length === 0) {
+
+            alert("Validation Passed!");
+
+        }
+
+    };
+
+    return (
+
+        <div className="appointment-page">
+
+            <div className="appointment-container">
+
+                <h2>Book Appointment</h2>
+
+                <form onSubmit={handleSubmit}>
+
+                    {/* Department */}
+
+                    <DepartmentDropdown
+                        selectedDepartment={department}
+                        onDepartmentChange={(event) =>
+                            setDepartment(event.target.value)
+                        }
+                    />
+
+                    {errors.department && (
+                        <p className="error-text">
+                            {errors.department}
+                        </p>
+                    )}
+
+                    {/* Doctor */}
+
+                    <div className="form-group">
+
+                        <label>Doctor</label>
+
+                        <select
+                            value={doctor}
+                            onChange={(event) =>
+                                setDoctor(event.target.value)
+                            }
+                        >
+
+                            <option value="">
+                                Select Doctor
+                            </option>
+
+                        </select>
+
+                        {errors.doctor && (
+                            <p className="error-text">
+                                {errors.doctor}
+                            </p>
+                        )}
+
+                    </div>
+
+                    {/* Appointment Date */}
+
+                    <div className="form-group">
+
+                        <label>Appointment Date</label>
+
+                        <input
+                            type="date"
+                            value={appointmentDate}
+                            onChange={(event) =>
+                                setAppointmentDate(event.target.value)
+                            }
+                        />
+
+                        {errors.appointmentDate && (
+                            <p className="error-text">
+                                {errors.appointmentDate}
+                            </p>
+                        )}
+
+                    </div>
+
+                    {/* Time Slot */}
+
+                    <div className="form-group">
+
+                        <label>Time Slot</label>
+
+                        <select
+                            value={timeSlot}
+                            onChange={(event) =>
+                                setTimeSlot(event.target.value)
+                            }
+                        >
+
+                            <option value="">
+                                Select Time
+                            </option>
+
+                            <option value="09:00 AM">
+                                09:00 AM
+                            </option>
+
+                            <option value="09:30 AM">
+                                09:30 AM
+                            </option>
+
+                            <option value="10:00 AM">
+                                10:00 AM
+                            </option>
+
+                            <option value="10:30 AM">
+                                10:30 AM
+                            </option>
+
+                        </select>
+
+                        {errors.timeSlot && (
+                            <p className="error-text">
+                                {errors.timeSlot}
+                            </p>
+                        )}
+
+                    </div>
+
+                    {/* Reason */}
+
+                    <div className="form-group">
+
+                        <label>Reason</label>
+
+                        <textarea
+                            rows="5"
+                            value={reason}
+                            onChange={(event) =>
+                                setReason(event.target.value)
+                            }
+                            placeholder="Write your health problem..."
+                        />
+
+                        {errors.reason && (
+                            <p className="error-text">
+                                {errors.reason}
+                            </p>
+                        )}
+
+                    </div>
+
+                    {/* Submit Button */}
+
+                    <button
+                        type="submit"
+                        className="appointment-btn"
+                    >
+                        Book Appointment
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    );
+
 }
 
-body{
-    font-family:Arial, Helvetica, sans-serif;
-    background:#F4F7FC;
-}
-
-/* ===========================================
-   Page Container
-=========================================== */
-
-.appointment-page{
-    min-height:100vh;
-    padding:40px 20px;
-    background:#F4F7FC;
-}
-
-/* ===========================================
-   Appointment Card
-=========================================== */
-
-.appointment-container{
-    max-width:700px;
-    margin:auto;
-    background:#ffffff;
-    padding:35px;
-    border-radius:15px;
-    box-shadow:0 8px 25px rgba(0,0,0,0.08);
-}
-
-/* ===========================================
-   Heading
-=========================================== */
-
-.appointment-container h2{
-    text-align:center;
-    margin-bottom:30px;
-    color:#0D6EFD;
-    font-size:30px;
-}
-
-/* ===========================================
-   Form Group
-=========================================== */
-
-.form-group{
-    margin-bottom:22px;
-}
-
-.form-group label{
-    display:block;
-    margin-bottom:8px;
-    font-size:16px;
-    font-weight:600;
-    color:#333333;
-}
-
-/* ===========================================
-   Input
-=========================================== */
-
-.form-group input,
-.form-group select,
-.form-group textarea{
-
-    width:100%;
-
-    padding:12px 15px;
-
-    border:1px solid #CED4DA;
-
-    border-radius:8px;
-
-    font-size:16px;
-
-    transition:0.3s;
-}
-
-/* ===========================================
-   Focus Effect
-=========================================== */
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus{
-
-    outline:none;
-
-    border:2px solid #0D6EFD;
-
-    box-shadow:0 0 5px rgba(13,110,253,0.3);
-}
-
-/* ===========================================
-   Textarea
-=========================================== */
-
-.form-group textarea{
-
-    resize:vertical;
-
-    min-height:120px;
-}
-
-/* ===========================================
-   Error Message
-=========================================== */
-
-.error-text{
-
-    color:#DC2626;
-
-    font-size:14px;
-
-    margin-top:6px;
-
-    font-weight:500;
-}
-
-/* ===========================================
-   Button
-=========================================== */
-
-.appointment-btn{
-
-    width:100%;
-
-    padding:14px;
-
-    background:#0D6EFD;
-
-    color:white;
-
-    border:none;
-
-    border-radius:10px;
-
-    font-size:18px;
-
-    font-weight:600;
-
-    cursor:pointer;
-
-    transition:0.3s;
-}
-
-.appointment-btn:hover{
-
-    background:#0B5ED7;
-}
-
-.appointment-btn:active{
-
-    transform:scale(0.98);
-}
-
-/* ===========================================
-   Disabled Button
-=========================================== */
-
-.appointment-btn:disabled{
-
-    background:#94A3B8;
-
-    cursor:not-allowed;
-}
-
-/* ===========================================
-   Placeholder
-=========================================== */
-
-::placeholder{
-
-    color:#9CA3AF;
-}
-
-/* ===========================================
-   Responsive
-=========================================== */
-
-@media(max-width:768px){
-
-    .appointment-container{
-
-        padding:25px;
-
-    }
-
-    .appointment-container h2{
-
-        font-size:24px;
-
-    }
-
-    .appointment-btn{
-
-        font-size:16px;
-
-    }
-
-}
-
-@media(max-width:480px){
-
-    .appointment-page{
-
-        padding:20px 10px;
-
-    }
-
-    .appointment-container{
-
-        padding:20px;
-
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea{
-
-        font-size:15px;
-
-    }
-
-}
+export default BookAppointment;
