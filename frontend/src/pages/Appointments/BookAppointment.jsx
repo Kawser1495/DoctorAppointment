@@ -1,6 +1,7 @@
 import { useState } from "react";
 import DepartmentDropdown from "../../components/DepartmentDropdown";
 import "../../styles/appointment.css";
+import { bookAppointment } from "../../services/appointmentService";
 
 function BookAppointment() {
 
@@ -21,81 +22,78 @@ function BookAppointment() {
     // Submit Form
     // =========================
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
 
         event.preventDefault();
 
         let validationErrors = {};
 
-        // Department Validation
-        if (!department) {
+        if (!department)
+            validationErrors.department = "Department is required.";
 
-            validationErrors.department =
-                "Please select a department.";
+        if (!doctor)
+            validationErrors.doctor = "Doctor is required.";
+
+        if (!appointmentDate)
+            validationErrors.appointmentDate = "Date is required.";
+
+        if (!timeSlot)
+            validationErrors.timeSlot = "Time slot is required.";
+
+        if (!reason.trim())
+            validationErrors.reason = "Reason is required.";
+
+        setErrors(validationErrors);
+
+        if (Object.keys(validationErrors).length > 0)
+            return;
+
+        const data = {
+
+            patient: 1, // Temporary
+
+            doctor: Number(doctor),
+
+            slot: Number(timeSlot),
+
+            appointment_date: appointmentDate,
+
+            reason: reason,
+
+            symptoms: ""
+
+        };
+
+        try {
+
+            const response = await bookAppointment(data);
+
+            alert(response.data.message || "Appointment booked successfully.");
+
+            setDepartment("");
+            setDoctor("");
+            setAppointmentDate("");
+            setTimeSlot("");
+            setReason("");
+            setErrors({});
 
         }
 
-        // Doctor Validation
-        if (!doctor) {
+        catch (error) {
 
-            validationErrors.doctor =
-                "Please select a doctor.";
+            console.log(error);
 
-        }
+            if (error.response) {
 
-        // Date Validation
-        if (!appointmentDate) {
-
-            validationErrors.appointmentDate =
-                "Please select appointment date.";
-
-        } else {
-
-            const today = new Date();
-
-            today.setHours(0, 0, 0, 0);
-
-            const selectedDate = new Date(appointmentDate);
-
-            if (selectedDate < today) {
-
-                validationErrors.appointmentDate =
-                    "Past date is not allowed.";
+                alert(JSON.stringify(error.response.data));
 
             }
 
-        }
+            else {
 
-        // Time Slot Validation
-        if (!timeSlot) {
+                alert("Booking Failed");
 
-            validationErrors.timeSlot =
-                "Please select a time slot.";
-
-        }
-
-        // Reason Validation
-        if (!reason.trim()) {
-
-            validationErrors.reason =
-                "Please enter your problem.";
-
-        }
-
-        else if (reason.trim().length < 10) {
-
-            validationErrors.reason =
-                "Reason must be at least 10 characters.";
-
-        }
-
-        // Save Errors
-        setErrors(validationErrors);
-
-        // If no validation error
-        if (Object.keys(validationErrors).length === 0) {
-
-            alert("Validation Passed!");
+            }
 
         }
 
@@ -121,9 +119,7 @@ function BookAppointment() {
                     />
 
                     {errors.department && (
-                        <p className="error-text">
-                            {errors.department}
-                        </p>
+                        <p className="error-text">{errors.department}</p>
                     )}
 
                     {/* Doctor */}
@@ -139,16 +135,12 @@ function BookAppointment() {
                             }
                         >
 
-                            <option value="">
-                                Select Doctor
-                            </option>
+                            <option value="">Select Doctor</option>
 
                         </select>
 
                         {errors.doctor && (
-                            <p className="error-text">
-                                {errors.doctor}
-                            </p>
+                            <p className="error-text">{errors.doctor}</p>
                         )}
 
                     </div>
@@ -188,32 +180,17 @@ function BookAppointment() {
                             }
                         >
 
-                            <option value="">
-                                Select Time
-                            </option>
+                            <option value="">Select Time</option>
 
-                            <option value="09:00 AM">
-                                09:00 AM
-                            </option>
-
-                            <option value="09:30 AM">
-                                09:30 AM
-                            </option>
-
-                            <option value="10:00 AM">
-                                10:00 AM
-                            </option>
-
-                            <option value="10:30 AM">
-                                10:30 AM
-                            </option>
+                            <option value="1">09:00 AM</option>
+                            <option value="2">09:30 AM</option>
+                            <option value="3">10:00 AM</option>
+                            <option value="4">10:30 AM</option>
 
                         </select>
 
                         {errors.timeSlot && (
-                            <p className="error-text">
-                                {errors.timeSlot}
-                            </p>
+                            <p className="error-text">{errors.timeSlot}</p>
                         )}
 
                     </div>
@@ -234,9 +211,7 @@ function BookAppointment() {
                         />
 
                         {errors.reason && (
-                            <p className="error-text">
-                                {errors.reason}
-                            </p>
+                            <p className="error-text">{errors.reason}</p>
                         )}
 
                     </div>

@@ -1,23 +1,13 @@
-getDepartments()
+import api from "./api";
 
-getDoctors()
+export const bookAppointment = (appointmentData) => {
 
-getAvailableSlots()
+    return api.post(
 
-bookAppointment()
+        "appointments/book/",
 
-getAppointments()
+        appointmentData
 
-cancelAppointment()
+    );
 
-getMyAppointments()
-
-getAppointmentDetails(id)
-
-cancelAppointment(id)
-
-rescheduleAppointment(id)
-
-searchAppointments()
-
-filterAppointments()
+};
