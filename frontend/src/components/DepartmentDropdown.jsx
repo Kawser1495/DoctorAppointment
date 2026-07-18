@@ -1,45 +1,46 @@
 import { useEffect, useState } from "react";
-
 import { getDepartments } from "../api/appointmentApi";
 
-function DepartmentDropdown({ selectedDepartment, onDepartmentChange }) {
+function DepartmentDropdown({
+    selectedDepartment,
+    onDepartmentChange,
+}) {
 
-    // সব Department এখানে থাকবে
     const [departments, setDepartments] = useState([]);
-
-    // Loading দেখানোর জন্য
     const [loading, setLoading] = useState(true);
-
-    // Error হলে দেখানোর জন্য
     const [error, setError] = useState("");
 
     useEffect(() => {
 
+        const loadDepartments = async () => {
+
+            try {
+
+                const response = await getDepartments();
+
+                setDepartments(response.data);
+
+            }
+
+            catch (err) {
+
+                console.error(err);
+
+                setError("Failed to load departments.");
+
+            }
+
+            finally {
+
+                setLoading(false);
+
+            }
+
+        };
+
         loadDepartments();
 
     }, []);
-
-    const loadDepartments = async () => {
-
-        try {
-
-            const response = await getDepartments();
-
-            setDepartments(response.data);
-
-        } catch (err) {
-
-            console.error(err);
-
-            setError("Failed to load departments.");
-
-        } finally {
-
-            setLoading(false);
-
-        }
-
-    };
 
     if (loading) {
 
@@ -55,54 +56,35 @@ function DepartmentDropdown({ selectedDepartment, onDepartmentChange }) {
 
     return (
 
-        <div>
+        <div className="form-group">
 
-            <label>
-
-                Department
-
-            </label>
+            <label>Department</label>
 
             <select
-
                 value={selectedDepartment}
-
                 onChange={onDepartmentChange}
-
             >
 
                 <option value="">
-
                     Select Department
-
                 </option>
 
-                {
+                {departments.map((department) => (
 
-                    departments.map((department) => (
+                    <option
+                        key={department.id}
+                        value={department.id}
+                    >
+                        {department.name}
+                    </option>
 
-                        <option
-
-                            key={department.id}
-
-                            value={department.id}
-
-                        >
-
-                            {department.name}
-
-                        </option>
-
-                    ))
-
-                }
+                ))}
 
             </select>
 
         </div>
 
     );
-
 }
 
 export default DepartmentDropdown;
