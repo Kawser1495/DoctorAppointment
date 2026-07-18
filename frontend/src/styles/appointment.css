@@ -376,3 +376,187 @@ body {
         font-size: 12px;
     }
 }
+
+
+/* ==========================================
+   Appointment History Page
+========================================== */
+
+.appointment-history {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 25px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.history-header {
+    margin-bottom: 25px;
+}
+
+.history-header h2 {
+    font-size: 28px;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+.history-header p {
+    color: #64748b;
+    font-size: 15px;
+}
+
+.appointment-loading,
+.empty-history {
+    text-align: center;
+    padding: 50px;
+    font-size: 18px;
+    color: #64748b;
+}
+
+/* ==========================================
+   Table
+========================================== */
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+.history-table thead {
+    background: #2563eb;
+    color: white;
+}
+
+.history-table th {
+    padding: 16px;
+    text-align: left;
+    font-size: 15px;
+}
+
+.history-table td {
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 15px;
+}
+
+.history-table tbody tr:hover {
+    background: #f8fafc;
+    transition: 0.3s;
+}
+
+/* ==========================================
+   Status Badge
+========================================== */
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 25px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.status-badge.pending {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.status-badge.confirmed {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.status-badge.completed {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.status-badge.cancelled {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.status-badge.rejected {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.status-badge.no-show {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* ==========================================
+   Cancel Button
+========================================== */
+
+.cancel-btn {
+    border: none;
+    background: #ef4444;
+    color: white;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+.cancel-btn:hover {
+    background: #dc2626;
+}
+
+/* ==========================================
+   Responsive
+========================================== */
+
+@media (max-width: 992px) {
+
+    .history-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .appointment-history {
+        padding: 20px;
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .history-header h2 {
+        font-size: 24px;
+    }
+
+    .history-table th,
+    .history-table td {
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    .cancel-btn {
+        padding: 6px 14px;
+        font-size: 13px;
+    }
+
+}
+
+@media (max-width: 480px) {
+
+    .appointment-history {
+        padding: 15px;
+    }
+
+    .history-header h2 {
+        font-size: 22px;
+    }
+
+    .history-header p {
+        font-size: 14px;
+    }
+
+}
