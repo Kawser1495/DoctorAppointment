@@ -5,15 +5,10 @@ import api from "./api";
 // ===========================================
 
 export const bookAppointment = async (data) => {
-
     return await api.post(
-
         "appointments/book/",
-
         data
-
     );
-
 };
 
 // ===========================================
@@ -21,13 +16,9 @@ export const bookAppointment = async (data) => {
 // ===========================================
 
 export const getMyAppointments = async () => {
-
     return await api.get(
-
-        "appointments/list/"
-
+        "appointments/patient/"
     );
-
 };
 
 // ===========================================
@@ -35,13 +26,9 @@ export const getMyAppointments = async () => {
 // ===========================================
 
 export const getAppointmentDetails = async (id) => {
-
     return await api.get(
-
-        `appointments/details/${id}/`
-
+        `appointments/${id}/`
     );
-
 };
 
 // ===========================================
@@ -49,15 +36,10 @@ export const getAppointmentDetails = async (id) => {
 // ===========================================
 
 export const updateAppointment = async (id, data) => {
-
     return await api.put(
-
-        `appointments/update/${id}/`,
-
+        `appointments/${id}/update/`,
         data
-
     );
-
 };
 
 // ===========================================
@@ -65,13 +47,9 @@ export const updateAppointment = async (id, data) => {
 // ===========================================
 
 export const cancelAppointment = async (id) => {
-
     return await api.patch(
-
-        `appointments/cancel/${id}/`
-
+        `appointments/${id}/cancel/`
     );
-
 };
 
 // ===========================================
@@ -79,13 +57,9 @@ export const cancelAppointment = async (id) => {
 // ===========================================
 
 export const getDoctorAppointments = async () => {
-
     return await api.get(
-
         "appointments/doctor/"
-
     );
-
 };
 
 // ===========================================
@@ -93,13 +67,9 @@ export const getDoctorAppointments = async () => {
 // ===========================================
 
 export const getAdminAppointments = async () => {
-
     return await api.get(
-
         "appointments/admin/"
-
     );
-
 };
 
 // ===========================================
@@ -107,15 +77,10 @@ export const getAdminAppointments = async () => {
 // ===========================================
 
 export const updateAppointmentStatus = async (id, status) => {
-
     return await api.patch(
-
-        `appointments/status/${id}/`,
-
+        `appointments/${id}/status/`,
         {
-            status: status
+            status,
         }
-
     );
-
 };
