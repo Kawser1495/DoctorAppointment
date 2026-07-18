@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     getMyAppointments,
     cancelAppointment,
@@ -11,69 +11,64 @@ function MyAppointments() {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // ==========================================
-    // Load Appointments
-    // ==========================================
+    useEffect(() => {
 
-    const loadAppointments = useCallback(async () => {
+        const fetchAppointments = async () => {
 
-        try {
+            try {
 
-            setLoading(true);
+                const response = await getMyAppointments();
 
-            const response = await getMyAppointments();
+                const data = response.data.data || response.data;
 
-            setAppointments(response.data);
+                setAppointments(data);
 
-        } catch (error) {
+            } catch (error) {
 
-            console.error(error);
+                console.error(error);
 
-            alert("Failed to load appointments.");
+            } finally {
 
-        } finally {
+                setLoading(false);
 
-            setLoading(false);
+            }
 
-        }
+        };
+
+        fetchAppointments();
 
     }, []);
 
-    // ==========================================
-    // Load Data on Page Load
-    // ==========================================
-
-    useEffect(() => {
-
-        loadAppointments();
-
-    }, [loadAppointments]);
-
-    // ==========================================
-    // Cancel Appointment
-    // ==========================================
-
     const handleCancel = async (id) => {
 
-        const confirmCancel = window.confirm(
+        const confirm = window.confirm(
             "Are you sure you want to cancel this appointment?"
         );
 
-        if (!confirmCancel) return;
+        if (!confirm) return;
 
         try {
 
             await cancelAppointment(id);
 
-            alert("Appointment cancelled successfully.");
+            setAppointments((previous) =>
+                previous.map((appointment) =>
+                    appointment.id === id
+                        ? {
+                              ...appointment,
+                              status: "Cancelled",
+                          }
+                        : appointment
+                )
+            );
 
-            await loadAppointments();
+            alert("Appointment cancelled successfully.");
 
         } catch (error) {
 
             console.error(error);
 
-            alert("Cancellation failed.");
+            alert("Failed to cancel appointment.");
 
         }
 
@@ -81,100 +76,128 @@ function MyAppointments() {
 
     if (loading) {
 
-        return <h2>Loading...</h2>;
+        return (
+
+            <div className="appointment-loading">
+
+                Loading Appointment History...
+
+            </div>
+
+        );
 
     }
 
     return (
 
-        <div className="appointment-page">
+        <div className="appointment-history">
 
-            <div className="appointment-container">
+            <div className="history-header">
 
-                <h2>My Appointments</h2>
+                <h2>My Appointment History</h2>
 
-                {appointments.length === 0 ? (
-
-                    <p>No appointment found.</p>
-
-                ) : (
-
-                    <table className="appointment-table">
-
-                        <thead>
-
-                            <tr>
-                                <th>Booking No</th>
-                                <th>Doctor</th>
-                                <th>Department</th>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-
-                        </thead>
-
-                        <tbody>
-
-                            {appointments.map((appointment) => (
-
-                                <tr key={appointment.id}>
-
-                                    <td>{appointment.booking_number}</td>
-
-                                    <td>{appointment.doctor_name}</td>
-
-                                    <td>{appointment.department}</td>
-
-                                    <td>{appointment.appointment_date}</td>
-
-                                    <td>{appointment.slot_time}</td>
-
-                                    <td>
-
-                                        <span
-                                            className={`status ${appointment.status
-                                                .toLowerCase()
-                                                .replace(/\s+/g, "-")}`}
-                                        >
-                                            {appointment.status}
-                                        </span>
-
-                                    </td>
-
-                                    <td>
-
-                                        {appointment.status === "Pending" ? (
-
-                                            <button
-                                                className="cancel-btn"
-                                                onClick={() =>
-                                                    handleCancel(appointment.id)
-                                                }
-                                            >
-                                                Cancel
-                                            </button>
-
-                                        ) : (
-
-                                            "-"
-
-                                        )}
-
-                                    </td>
-
-                                </tr>
-
-                            ))}
-
-                        </tbody>
-
-                    </table>
-
-                )}
+                <p>
+                    View all your booked appointments.
+                </p>
 
             </div>
+
+            {appointments.length === 0 ? (
+
+                <div className="empty-history">
+
+                    No Appointment Found
+
+                </div>
+
+            ) : (
+
+                <table className="history-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Booking</th>
+                            <th>Doctor</th>
+                            <th>Department</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Action</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {appointments.map((appointment) => (
+
+                            <tr key={appointment.id}>
+
+                                <td>
+                                    {appointment.booking_number}
+                                </td>
+
+                                <td>
+                                    {appointment.doctor_name}
+                                </td>
+
+                                <td>
+                                    {appointment.department}
+                                </td>
+
+                                <td>
+                                    {appointment.appointment_date}
+                                </td>
+
+                                <td>
+                                    {appointment.slot_time}
+                                </td>
+
+                                <td>
+
+                                    <span
+                                        className={`status-badge ${appointment.status.toLowerCase().replace(/\s+/g, "-")}`}
+                                    >
+                                        {appointment.status}
+                                    </span>
+
+                                </td>
+
+                                <td>
+
+                                    {appointment.status === "Pending" ? (
+
+                                        <button
+                                            className="cancel-btn"
+                                            onClick={() =>
+                                                handleCancel(
+                                                    appointment.id
+                                                )
+                                            }
+                                        >
+                                            Cancel
+                                        </button>
+
+                                    ) : (
+
+                                        "-"
+
+                                    )}
+
+                                </td>
+
+                            </tr>
+
+                        ))}
+
+                    </tbody>
+
+                </table>
+
+            )}
 
         </div>
 
