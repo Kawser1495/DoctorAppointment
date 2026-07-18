@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     getMyAppointments,
     cancelAppointment,
@@ -15,9 +15,11 @@ function MyAppointments() {
     // Load Appointments
     // ==========================================
 
-    const loadAppointments = async () => {
+    const loadAppointments = useCallback(async () => {
 
         try {
+
+            setLoading(true);
 
             const response = await getMyAppointments();
 
@@ -35,7 +37,7 @@ function MyAppointments() {
 
         }
 
-    };
+    }, []);
 
     // ==========================================
     // Load Data on Page Load
@@ -45,7 +47,7 @@ function MyAppointments() {
 
         loadAppointments();
 
-    }, []);
+    }, [loadAppointments]);
 
     // ==========================================
     // Cancel Appointment
@@ -65,7 +67,7 @@ function MyAppointments() {
 
             alert("Appointment cancelled successfully.");
 
-            loadAppointments();
+            await loadAppointments();
 
         } catch (error) {
 
@@ -102,7 +104,6 @@ function MyAppointments() {
                         <thead>
 
                             <tr>
-
                                 <th>Booking No</th>
                                 <th>Doctor</th>
                                 <th>Department</th>
@@ -110,7 +111,6 @@ function MyAppointments() {
                                 <th>Time</th>
                                 <th>Status</th>
                                 <th>Action</th>
-
                             </tr>
 
                         </thead>
@@ -150,9 +150,7 @@ function MyAppointments() {
                                             <button
                                                 className="cancel-btn"
                                                 onClick={() =>
-                                                    handleCancel(
-                                                        appointment.id
-                                                    )
+                                                    handleCancel(appointment.id)
                                                 }
                                             >
                                                 Cancel
@@ -161,6 +159,7 @@ function MyAppointments() {
                                         ) : (
 
                                             "-"
+
                                         )}
 
                                     </td>
