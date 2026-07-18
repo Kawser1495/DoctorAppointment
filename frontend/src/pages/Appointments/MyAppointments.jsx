@@ -11,9 +11,9 @@ function MyAppointments() {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadAppointments();
-    }, []);
+    // ==========================================
+    // Load Appointments
+    // ==========================================
 
     const loadAppointments = async () => {
 
@@ -25,7 +25,7 @@ function MyAppointments() {
 
         } catch (error) {
 
-            console.log(error);
+            console.error(error);
 
             alert("Failed to load appointments.");
 
@@ -36,6 +36,20 @@ function MyAppointments() {
         }
 
     };
+
+    // ==========================================
+    // Load Data on Page Load
+    // ==========================================
+
+    useEffect(() => {
+
+        loadAppointments();
+
+    }, []);
+
+    // ==========================================
+    // Cancel Appointment
+    // ==========================================
 
     const handleCancel = async (id) => {
 
@@ -55,7 +69,7 @@ function MyAppointments() {
 
         } catch (error) {
 
-            console.log(error);
+            console.error(error);
 
             alert("Cancellation failed.");
 
@@ -77,108 +91,89 @@ function MyAppointments() {
 
                 <h2>My Appointments</h2>
 
-                {
-                    appointments.length === 0 ? (
+                {appointments.length === 0 ? (
 
-                        <p>No appointment found.</p>
+                    <p>No appointment found.</p>
 
-                    ) : (
+                ) : (
 
-                        <table className="appointment-table">
+                    <table className="appointment-table">
 
-                            <thead>
+                        <thead>
 
-                                <tr>
+                            <tr>
 
-                                    <th>Booking</th>
+                                <th>Booking No</th>
+                                <th>Doctor</th>
+                                <th>Department</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Action</th>
 
-                                    <th>Doctor</th>
+                            </tr>
 
-                                    <th>Department</th>
+                        </thead>
 
-                                    <th>Date</th>
+                        <tbody>
 
-                                    <th>Time</th>
+                            {appointments.map((appointment) => (
 
-                                    <th>Status</th>
+                                <tr key={appointment.id}>
 
-                                    <th>Action</th>
+                                    <td>{appointment.booking_number}</td>
+
+                                    <td>{appointment.doctor_name}</td>
+
+                                    <td>{appointment.department}</td>
+
+                                    <td>{appointment.appointment_date}</td>
+
+                                    <td>{appointment.slot_time}</td>
+
+                                    <td>
+
+                                        <span
+                                            className={`status ${appointment.status
+                                                .toLowerCase()
+                                                .replace(/\s+/g, "-")}`}
+                                        >
+                                            {appointment.status}
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        {appointment.status === "Pending" ? (
+
+                                            <button
+                                                className="cancel-btn"
+                                                onClick={() =>
+                                                    handleCancel(
+                                                        appointment.id
+                                                    )
+                                                }
+                                            >
+                                                Cancel
+                                            </button>
+
+                                        ) : (
+
+                                            "-"
+                                        )}
+
+                                    </td>
 
                                 </tr>
 
-                            </thead>
+                            ))}
 
-                            <tbody>
+                        </tbody>
 
-                                {
-                                    appointments.map((appointment) => (
+                    </table>
 
-                                        <tr key={appointment.id}>
-
-                                            <td>
-                                                {appointment.booking_number}
-                                            </td>
-
-                                            <td>
-                                                {appointment.doctor_name}
-                                            </td>
-
-                                            <td>
-                                                {appointment.department}
-                                            </td>
-
-                                            <td>
-                                                {appointment.appointment_date}
-                                            </td>
-
-                                            <td>
-                                                {appointment.slot_time}
-                                            </td>
-
-                                            <td>
-
-                                                <span
-                                                    className={`status ${appointment.status.toLowerCase()}`}
-                                                >
-
-                                                    {appointment.status}
-
-                                                </span>
-
-                                            </td>
-
-                                            <td>
-
-                                                {
-                                                    appointment.status === "Pending" && (
-
-                                                        <button
-                                                            className="cancel-btn"
-                                                            onClick={() =>
-                                                                handleCancel(
-                                                                    appointment.id
-                                                                )
-                                                            }
-                                                        >
-                                                            Cancel
-                                                        </button>
-
-                                                    )
-                                                }
-
-                                            </td>
-
-                                        </tr>
-
-                                    ))
-                                }
-
-                            </tbody>
-
-                        </table>
-
-                    )
-                }
+                )}
 
             </div>
 
