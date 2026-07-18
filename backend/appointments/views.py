@@ -39,7 +39,7 @@ class AppointmentCreateView(generics.CreateAPIView):
 
 
 # ==========================================================
-# Patient Appointment List
+# Patient Appointment History
 # ==========================================================
 
 class PatientAppointmentListView(generics.ListAPIView):
@@ -49,18 +49,28 @@ class PatientAppointmentListView(generics.ListAPIView):
 
     def get_queryset(self):
 
-        if hasattr(self.request.user, "patientprofile"):
+        user = self.request.user
 
-            return Appointment.objects.select_related(
+        if not hasattr(user, "patientprofile"):
+            return Appointment.objects.none()
+
+        return (
+            Appointment.objects
+            .select_related(
                 "doctor",
+                "doctor__user",
                 "patient",
                 "family_member",
-                "slot"
-            ).filter(
-                patient=self.request.user.patientprofile
+                "slot",
             )
-
-        return Appointment.objects.none()
+            .filter(
+                patient=user.patientprofile
+            )
+            .order_by(
+                "-appointment_date",
+                "-created_at"
+            )
+        )
 
 
 # ==========================================================
@@ -69,17 +79,19 @@ class PatientAppointmentListView(generics.ListAPIView):
 
 class AppointmentDetailView(generics.RetrieveAPIView):
 
-    queryset = Appointment.objects.select_related(
-        "doctor",
-        "patient",
-        "family_member",
-        "slot"
-    )
-
     serializer_class = AppointmentSerializer
     permission_classes = [IsAuthenticated]
 
-
+    queryset = (
+        Appointment.objects
+        .select_related(
+            "doctor",
+            "doctor__user",
+            "patient",
+            "family_member",
+            "slot",
+        )
+    )
 # ==========================================================
 # Update Appointment
 # ==========================================================
@@ -87,14 +99,11 @@ class AppointmentDetailView(generics.RetrieveAPIView):
 class AppointmentUpdateView(generics.UpdateAPIView):
 
     queryset = Appointment.objects.all()
-
     serializer_class = AppointmentSerializer
-
     permission_classes = [IsAuthenticated]
 
     @transaction.atomic
     def perform_update(self, serializer):
-
         serializer.save()
 
     def update(self, request, *args, **kwargs):
@@ -127,6 +136,19 @@ class AppointmentCancelView(APIView):
             pk=pk
         )
 
+        # Only patient can cancel own appointment
+        if (
+            hasattr(request.user, "patientprofile")
+            and appointment.patient != request.user.patientprofile
+        ):
+            return Response(
+                {
+                    "success": False,
+                    "message": "Permission denied."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         if appointment.status == "Cancelled":
 
             return Response(
@@ -142,11 +164,9 @@ class AppointmentCancelView(APIView):
         if slot.booked_count > 0:
 
             slot.booked_count -= 1
-
             slot.save(update_fields=["booked_count"])
 
         appointment.status = "Cancelled"
-
         appointment.save(update_fields=["status"])
 
         return Response(
@@ -169,13 +189,22 @@ class DoctorAppointmentView(generics.ListAPIView):
 
     def get_queryset(self):
 
-        return Appointment.objects.select_related(
-            "patient",
-            "family_member",
-            "doctor",
-            "slot"
-        ).filter(
-            doctor__user=self.request.user
+        return (
+            Appointment.objects
+            .select_related(
+                "doctor",
+                "doctor__user",
+                "patient",
+                "family_member",
+                "slot",
+            )
+            .filter(
+                doctor__user=self.request.user
+            )
+            .order_by(
+                "-appointment_date",
+                "-created_at"
+            )
         )
 
 
@@ -185,19 +214,27 @@ class DoctorAppointmentView(generics.ListAPIView):
 
 class AdminAppointmentView(generics.ListAPIView):
 
-    queryset = Appointment.objects.select_related(
-        "doctor",
-        "patient",
-        "family_member",
-        "slot"
-    ).all()
-
     serializer_class = AppointmentSerializer
     permission_classes = [IsAuthenticated]
 
+    queryset = (
+        Appointment.objects
+        .select_related(
+            "doctor",
+            "doctor__user",
+            "patient",
+            "family_member",
+            "slot",
+        )
+        .order_by(
+            "-appointment_date",
+            "-created_at"
+        )
+    )
+
 
 # ==========================================================
-# Appointment Status Update (Admin / Doctor)
+# Appointment Status Update
 # ==========================================================
 
 class AppointmentStatusUpdateView(APIView):
@@ -207,15 +244,10 @@ class AppointmentStatusUpdateView(APIView):
     VALID_STATUS = [
 
         "Pending",
-
         "Confirmed",
-
         "Completed",
-
         "Cancelled",
-
         "Rejected",
-
         "No Show"
 
     ]
@@ -233,12 +265,10 @@ class AppointmentStatusUpdateView(APIView):
         if new_status not in self.VALID_STATUS:
 
             return Response(
-
                 {
                     "success": False,
                     "message": "Invalid appointment status."
                 },
-
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -247,12 +277,10 @@ class AppointmentStatusUpdateView(APIView):
         appointment.save(update_fields=["status"])
 
         return Response(
-
             {
                 "success": True,
                 "message": "Appointment status updated successfully.",
                 "status": appointment.status
             },
-
             status=status.HTTP_200_OK
         )
