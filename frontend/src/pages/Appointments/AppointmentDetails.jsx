@@ -1,19 +1,73 @@
-function AppointmentSuccess(){
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 
-return(
+import { getAppointmentDetails } from "../../services/appointmentService";
+import AppointmentCard from "../../components/Cards/AppointmentCard";
 
-<div>
+function AppointmentDetails() {
 
-<h1>
+    const { id } = useParams();
 
-Appointment Successful
+    const [appointment, setAppointment] = useState(null);
 
-</h1>
+    const [loading, setLoading] = useState(true);
 
-</div>
+    useEffect(() => {
 
-)
+        const fetchAppointment = async () => {
+
+            try {
+
+                const response =
+                    await getAppointmentDetails(id);
+
+                const data =
+                    response.data.data || response.data;
+
+                setAppointment(data);
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert("Failed to load appointment details.");
+
+            } finally {
+
+                setLoading(false);
+
+            }
+
+        };
+
+        fetchAppointment();
+
+    }, [id]);
+
+    if (loading) {
+
+        return <h2>Loading Appointment...</h2>;
+
+    }
+
+    if (!appointment) {
+
+        return <h2>Appointment Not Found</h2>;
+
+    }
+
+    return (
+
+        <div className="appointment-page">
+
+            <AppointmentCard
+                appointment={appointment}
+            />
+
+        </div>
+
+    );
 
 }
 
-export default AppointmentSuccess;
+export default AppointmentDetails;
