@@ -215,3 +215,165 @@ body {
     }
 
 }
+
+
+/* ==========================================================
+   My Appointments Page
+========================================================== */
+
+.appointment-page {
+    width: 100%;
+    min-height: 100vh;
+    background: #f4f7fb;
+    padding: 40px 20px;
+}
+
+.appointment-container {
+    max-width: 1200px;
+    margin: auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+}
+
+.appointment-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #1f2937;
+}
+
+/* ==========================================================
+   Table
+========================================================== */
+
+.appointment-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+}
+
+.appointment-table thead {
+    background: #2563eb;
+    color: white;
+}
+
+.appointment-table th {
+    padding: 15px;
+    text-align: left;
+    font-size: 15px;
+}
+
+.appointment-table td {
+    padding: 15px;
+    border-bottom: 1px solid #eeeeee;
+    font-size: 14px;
+}
+
+.appointment-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+/* ==========================================================
+   Status Badge
+========================================================== */
+
+.status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status.pending {
+    background: #f59e0b;
+}
+
+.status.confirmed {
+    background: #2563eb;
+}
+
+.status.completed {
+    background: #16a34a;
+}
+
+.status.cancelled {
+    background: #dc2626;
+}
+
+.status.rejected {
+    background: #7c3aed;
+}
+
+.status.no.show,
+.status.no-show {
+    background: #6b7280;
+}
+
+/* ==========================================================
+   Buttons
+========================================================== */
+
+.cancel-btn {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+    font-size: 14px;
+}
+
+.cancel-btn:hover {
+    background: #b91c1c;
+}
+
+/* ==========================================================
+   Empty Message
+========================================================== */
+
+.appointment-container p {
+    text-align: center;
+    color: #6b7280;
+    font-size: 16px;
+}
+
+/* ==========================================================
+   Responsive
+========================================================== */
+
+@media (max-width: 992px) {
+
+    .appointment-container {
+        overflow-x: auto;
+    }
+
+    .appointment-table {
+        min-width: 900px;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .appointment-page {
+        padding: 20px 10px;
+    }
+
+    .appointment-container {
+        padding: 20px;
+    }
+
+    .appointment-table th,
+    .appointment-table td {
+        padding: 10px;
+        font-size: 13px;
+    }
+
+    .cancel-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
