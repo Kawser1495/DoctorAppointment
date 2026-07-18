@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     getMyAppointments,
     cancelAppointment,
@@ -27,6 +28,8 @@ function MyAppointments() {
 
                 console.error(error);
 
+                alert("Failed to load appointments.");
+
             } finally {
 
                 setLoading(false);
@@ -41,23 +44,23 @@ function MyAppointments() {
 
     const handleCancel = async (id) => {
 
-        const confirm = window.confirm(
+        const confirmCancel = window.confirm(
             "Are you sure you want to cancel this appointment?"
         );
 
-        if (!confirm) return;
+        if (!confirmCancel) return;
 
         try {
 
             await cancelAppointment(id);
 
-            setAppointments((previous) =>
-                previous.map((appointment) =>
+            setAppointments((previousAppointments) =>
+                previousAppointments.map((appointment) =>
                     appointment.id === id
                         ? {
-                              ...appointment,
-                              status: "Cancelled",
-                          }
+                            ...appointment,
+                            status: "Cancelled",
+                        }
                         : appointment
                 )
             );
@@ -68,7 +71,7 @@ function MyAppointments() {
 
             console.error(error);
 
-            alert("Failed to cancel appointment.");
+            alert("Cancellation failed.");
 
         }
 
@@ -97,7 +100,9 @@ function MyAppointments() {
                 <h2>My Appointment History</h2>
 
                 <p>
+
                     View all your booked appointments.
+
                 </p>
 
             </div>
@@ -159,7 +164,9 @@ function MyAppointments() {
                                 <td>
 
                                     <span
-                                        className={`status-badge ${appointment.status.toLowerCase().replace(/\s+/g, "-")}`}
+                                        className={`status-badge ${appointment.status
+                                            .toLowerCase()
+                                            .replace(/\s+/g, "-")}`}
                                     >
                                         {appointment.status}
                                     </span>
@@ -168,7 +175,16 @@ function MyAppointments() {
 
                                 <td>
 
-                                    {appointment.status === "Pending" ? (
+                                    <Link
+                                        to={`/appointments/${appointment.id}`}
+                                        className="view-btn"
+                                    >
+                                        View
+                                    </Link>
+
+                                    {" "}
+
+                                    {appointment.status === "Pending" && (
 
                                         <button
                                             className="cancel-btn"
@@ -180,10 +196,6 @@ function MyAppointments() {
                                         >
                                             Cancel
                                         </button>
-
-                                    ) : (
-
-                                        "-"
 
                                     )}
 
