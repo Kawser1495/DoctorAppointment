@@ -7,32 +7,98 @@ from .models import Appointment
 
 class AppointmentSerializer(serializers.ModelSerializer):
 
+    # ==========================
+    # Read Only Fields
+    # ==========================
+
     booking_number = serializers.ReadOnlyField()
+
     status = serializers.ReadOnlyField()
 
+    doctor_name = serializers.CharField(
+        source="doctor.user.get_full_name",
+        read_only=True
+    )
+
+    department = serializers.CharField(
+        source="doctor.department.name",
+        read_only=True
+    )
+
+    slot_time = serializers.TimeField(
+        source="slot.slot_time",
+        read_only=True
+    )
+
+    patient_name = serializers.SerializerMethodField()
+
     class Meta:
+
         model = Appointment
+
         fields = [
+
             "id",
+
             "booking_number",
+
             "patient",
+
             "family_member",
+
+            "patient_name",
+
             "doctor",
+
+            "doctor_name",
+
+            "department",
+
             "slot",
+
+            "slot_time",
+
             "appointment_date",
+
             "reason",
+
             "symptoms",
+
             "status",
+
             "created_at",
+
             "updated_at",
+
         ]
 
         read_only_fields = (
+
             "booking_number",
+
             "status",
+
             "created_at",
+
             "updated_at",
+
         )
+
+    # =====================================
+    # Patient Name
+    # =====================================
+
+    def get_patient_name(self, obj):
+
+        if obj.family_member:
+
+            return obj.family_member.name
+
+        return obj.patient.full_name
+
+    # =====================================
+    # Validation
+    # =====================================
 
     def validate(self, data):
 
@@ -43,48 +109,48 @@ class AppointmentSerializer(serializers.ModelSerializer):
         appointment_date = data.get("appointment_date")
         reason = data.get("reason")
 
-        # =====================================
         # Required Validation
-        # =====================================
 
         if not patient:
+
             raise serializers.ValidationError({
                 "patient": "Patient is required."
             })
 
         if not doctor:
+
             raise serializers.ValidationError({
                 "doctor": "Doctor is required."
             })
 
         if not slot:
+
             raise serializers.ValidationError({
                 "slot": "Please select a time slot."
             })
 
         if not appointment_date:
+
             raise serializers.ValidationError({
                 "appointment_date": "Appointment date is required."
             })
 
         if not reason:
+
             raise serializers.ValidationError({
                 "reason": "Reason is required."
             })
 
-        # =====================================
         # Past Date Validation
-        # =====================================
 
         if appointment_date < timezone.now().date():
+
             raise serializers.ValidationError({
                 "appointment_date":
                 "Past date booking is not allowed."
             })
 
-        # =====================================
         # Family Member Validation
-        # =====================================
 
         if family_member:
 
@@ -97,9 +163,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
                 })
 
-        # =====================================
         # Doctor Availability
-        # =====================================
 
         if not doctor.is_available:
 
@@ -110,9 +174,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             })
 
-        # =====================================
         # Slot Active Validation
-        # =====================================
 
         if not slot.is_active:
 
@@ -123,9 +185,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             })
 
-        # =====================================
         # Slot Capacity Validation
-        # =====================================
 
         if slot.is_full:
 
@@ -136,9 +196,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             })
 
-        # =====================================
         # Doctor Schedule Validation
-        # =====================================
 
         schedule = slot.schedule
 
@@ -153,9 +211,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             })
 
-        # =====================================
         # Duplicate Appointment Validation
-        # =====================================
 
         existing = Appointment.objects.filter(
             patient=patient,
@@ -165,8 +221,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
             status__in=["Cancelled", "Rejected"]
         )
 
-        # Update-এর সময় নিজের Appointment বাদ দেবে
         if self.instance:
+
             existing = existing.exclude(pk=self.instance.pk)
 
         if existing.exists():
@@ -183,6 +239,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         return data
 
+    # =====================================
+    # Create Appointment
+    # =====================================
+
     @transaction.atomic
     def create(self, validated_data):
 
@@ -194,9 +254,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         slot.booked_count += 1
 
-        slot.save()
+        slot.save(update_fields=["booked_count"])
 
         return appointment
+
+    # =====================================
+    # Update Appointment
+    # =====================================
 
     @transaction.atomic
     def update(self, instance, validated_data):
@@ -214,11 +278,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
                 old_slot.booked_count -= 1
 
-                old_slot.save()
+                old_slot.save(update_fields=["booked_count"])
 
             new_slot.booked_count += 1
 
-            new_slot.save()
+            new_slot.save(update_fields=["booked_count"])
 
         return super().update(
             instance,
