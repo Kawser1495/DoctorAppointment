@@ -32,6 +32,8 @@ class DepartmentListView(generics.ListAPIView):
     queryset = Department.objects.all()
 
     serializer_class = DepartmentSerializer
+    
+    permission_classes = [AllowAny]
 
 
 # ==========================================
@@ -60,6 +62,8 @@ class DoctorSearchView(generics.ListAPIView):
 class DoctorByDepartmentView(generics.ListAPIView):
 
     serializer_class = DoctorSerializer
+    
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
 

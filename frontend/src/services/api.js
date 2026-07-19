@@ -12,6 +12,10 @@ const api = axios.create({
 
 });
 
+// ======================================
+// Attach JWT Token Automatically
+// ======================================
+
 api.interceptors.request.use(
 
     (config) => {
@@ -28,7 +32,38 @@ api.interceptors.request.use(
 
     },
 
-    (error) => Promise.reject(error)
+    (error) => {
+
+        return Promise.reject(error);
+
+    }
+
+);
+
+// ======================================
+// Optional: Handle Unauthorized Response
+// ======================================
+
+api.interceptors.response.use(
+
+    (response) => response,
+
+    (error) => {
+
+        if (error.response?.status === 401) {
+
+            console.error("Unauthorized! Please login again.");
+
+            // Optional:
+            // localStorage.removeItem("access");
+            // localStorage.removeItem("refresh");
+            // window.location.href = "/login";
+
+        }
+
+        return Promise.reject(error);
+
+    }
 
 );
 
