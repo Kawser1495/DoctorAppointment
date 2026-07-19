@@ -12,9 +12,14 @@ function MyAppointments() {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Search & Filter State
+    // Search & Filter
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
+
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const appointmentsPerPage = 5;
 
     // ==========================================
     // Load Appointments
@@ -49,6 +54,16 @@ function MyAppointments() {
         fetchAppointments();
 
     }, []);
+
+    // ==========================================
+    // Reset Page When Search/Filter Changes
+    // ==========================================
+
+    useEffect(() => {
+
+        setCurrentPage(1);
+
+    }, [search, statusFilter]);
 
     // ==========================================
     // Cancel Appointment
@@ -137,6 +152,27 @@ function MyAppointments() {
 
     });
 
+    // ==========================================
+    // Pagination
+    // ==========================================
+
+    const indexOfLastAppointment =
+        currentPage * appointmentsPerPage;
+
+    const indexOfFirstAppointment =
+        indexOfLastAppointment - appointmentsPerPage;
+
+    const currentAppointments =
+        filteredAppointments.slice(
+            indexOfFirstAppointment,
+            indexOfLastAppointment
+        );
+
+    const totalPages = Math.ceil(
+        filteredAppointments.length /
+        appointmentsPerPage
+    );
+
     return (
 
         <div className="appointment-history">
@@ -215,97 +251,134 @@ function MyAppointments() {
 
             ) : (
 
-                <table className="history-table">
+                <>
 
-                    <thead>
+                    <table className="history-table">
 
-                        <tr>
+                        <thead>
 
-                            <th>Booking</th>
-                            <th>Doctor</th>
-                            <th>Department</th>
-                            <th>Date</th>
-                            <th>Time</th>
-                            <th>Status</th>
-                            <th>Action</th>
+                            <tr>
 
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        {filteredAppointments.map((appointment) => (
-
-                            <tr key={appointment.id}>
-
-                                <td>
-                                    {appointment.booking_number}
-                                </td>
-
-                                <td>
-                                    {appointment.doctor_name}
-                                </td>
-
-                                <td>
-                                    {appointment.department}
-                                </td>
-
-                                <td>
-                                    {appointment.appointment_date}
-                                </td>
-
-                                <td>
-                                    {appointment.slot_time}
-                                </td>
-
-                                <td>
-
-                                    <span
-                                        className={`status-badge ${appointment.status
-                                            .toLowerCase()
-                                            .replace(/\s+/g, "-")}`}
-                                    >
-                                        {appointment.status}
-                                    </span>
-
-                                </td>
-
-                                <td>
-
-                                    <Link
-                                        to={`/appointments/${appointment.id}`}
-                                        className="view-btn"
-                                    >
-                                        View
-                                    </Link>
-
-                                    {" "}
-
-                                    {appointment.status === "Pending" && (
-
-                                        <button
-                                            className="cancel-btn"
-                                            onClick={() =>
-                                                handleCancel(
-                                                    appointment.id
-                                                )
-                                            }
-                                        >
-                                            Cancel
-                                        </button>
-
-                                    )}
-
-                                </td>
+                                <th>Booking</th>
+                                <th>Doctor</th>
+                                <th>Department</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Action</th>
 
                             </tr>
 
-                        ))}
+                        </thead>
 
-                    </tbody>
+                        <tbody>
 
-                </table>
+                            {currentAppointments.map((appointment) => (
+
+                                <tr key={appointment.id}>
+
+                                    <td>
+                                        {appointment.booking_number}
+                                    </td>
+
+                                    <td>
+                                        {appointment.doctor_name}
+                                    </td>
+
+                                    <td>
+                                        {appointment.department}
+                                    </td>
+
+                                    <td>
+                                        {appointment.appointment_date}
+                                    </td>
+
+                                    <td>
+                                        {appointment.slot_time}
+                                    </td>
+
+                                    <td>
+
+                                        <span
+                                            className={`status-badge ${appointment.status
+                                                .toLowerCase()
+                                                .replace(/\s+/g, "-")}`}
+                                        >
+                                            {appointment.status}
+                                        </span>
+
+                                    </td>
+
+                                    <td>
+
+                                        <Link
+                                            to={`/appointments/${appointment.id}`}
+                                            className="view-btn"
+                                        >
+                                            View
+                                        </Link>
+
+                                        {" "}
+
+                                        {appointment.status === "Pending" && (
+
+                                            <button
+                                                className="cancel-btn"
+                                                onClick={() =>
+                                                    handleCancel(
+                                                        appointment.id
+                                                    )
+                                                }
+                                            >
+                                                Cancel
+                                            </button>
+
+                                        )}
+
+                                    </td>
+
+                                </tr>
+
+                            ))}
+
+                        </tbody>
+
+                    </table>
+
+                    {/* Pagination */}
+
+                    <div className="pagination">
+
+                        <button
+                            disabled={currentPage === 1}
+                            onClick={() =>
+                                setCurrentPage(currentPage - 1)
+                            }
+                        >
+                            Previous
+                        </button>
+
+                        <span>
+
+                            Page {currentPage} of {totalPages || 1}
+
+                        </span>
+
+                        <button
+                            disabled={
+                                currentPage === totalPages ||
+                                totalPages === 0
+                            }
+                            onClick={() =>
+                                setCurrentPage(currentPage + 1)
+                            }
+                        >
+                            Next
+                        </button>
+
+                    </div>
+
+                </>
 
             )}
 
