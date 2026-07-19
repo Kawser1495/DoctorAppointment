@@ -577,3 +577,49 @@ body {
 .view-btn:hover {
     background: #1d4ed8;
 }
+
+
+/* ==========================================
+   Appointment Status Badge
+========================================== */
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    color: #fff;
+    min-width: 90px;
+}
+
+/* Pending */
+.status-badge.pending {
+    background: #f39c12;
+}
+
+/* Confirmed */
+.status-badge.confirmed {
+    background: #3498db;
+}
+
+/* Completed */
+.status-badge.completed {
+    background: #27ae60;
+}
+
+/* Cancelled */
+.status-badge.cancelled {
+    background: #e74c3c;
+}
+
+/* Rejected */
+.status-badge.rejected {
+    background: #7f8c8d;
+}
+
+/* No Show */
+.status-badge.no-show {
+    background: #8e44ad;
+}
