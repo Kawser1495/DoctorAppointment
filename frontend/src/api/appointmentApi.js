@@ -9,12 +9,14 @@ const API = axios.create({
 // Department API
 // =========================
 export const getDepartments = async () => {
-    return await API.get("/departments/");
+    return await API.get("/doctors/departments/");
 };
 
 // =========================
 // Doctor API
 // =========================
 export const getDoctors = async (departmentId) => {
-    return await API.get(`/departments/${departmentId}/doctors/`);
+    return await API.get(
+        `/doctors/departments/${departmentId}/doctors/`
+    );
 };

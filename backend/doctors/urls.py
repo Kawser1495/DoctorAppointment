@@ -5,17 +5,17 @@ from .views import (
     DepartmentListView,
     DoctorSearchView,
     DoctorByDepartmentView,
-    DepartmentAPIView,
-    DoctorByDepartmentAPIView,
     AvailableTimeSlotAPIView,
 )
+
+app_name = "doctors"
 
 urlpatterns = [
 
     # ==========================================
     # Doctor List
+    # GET: /api/doctors/doctors/
     # ==========================================
-
     path(
         "doctors/",
         DoctorListView.as_view(),
@@ -24,8 +24,8 @@ urlpatterns = [
 
     # ==========================================
     # Department List
+    # GET: /api/doctors/departments/
     # ==========================================
-
     path(
         "departments/",
         DepartmentListView.as_view(),
@@ -34,8 +34,8 @@ urlpatterns = [
 
     # ==========================================
     # Doctor Search
+    # GET: /api/doctors/search/
     # ==========================================
-
     path(
         "search/",
         DoctorSearchView.as_view(),
@@ -44,38 +44,18 @@ urlpatterns = [
 
     # ==========================================
     # Doctors By Department
+    # GET: /api/doctors/departments/<department_id>/doctors/
     # ==========================================
-
     path(
-        "departments/<int:department_id>/",
+        "departments/<int:department_id>/doctors/",
         DoctorByDepartmentView.as_view(),
         name="doctor-by-department",
     ),
 
     # ==========================================
-    # Department API
+    # Available Time Slots
+    # GET: /api/doctors/time-slots/?doctor=<doctor_id>
     # ==========================================
-
-    path(
-        "api/departments/",
-        DepartmentAPIView.as_view(),
-        name="api-departments",
-    ),
-
-    # ==========================================
-    # Doctor By Department API
-    # ==========================================
-
-    path(
-        "api/departments/<int:department_id>/doctors/",
-        DoctorByDepartmentAPIView.as_view(),
-        name="api-doctors-by-department",
-    ),
-
-    # ==========================================
-    # Available Time Slot API
-    # ==========================================
-
     path(
         "time-slots/",
         AvailableTimeSlotAPIView.as_view(),
