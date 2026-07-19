@@ -12,6 +12,14 @@ function MyAppointments() {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // Search & Filter State
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("All");
+
+    // ==========================================
+    // Load Appointments
+    // ==========================================
+
     useEffect(() => {
 
         const fetchAppointments = async () => {
@@ -41,6 +49,10 @@ function MyAppointments() {
         fetchAppointments();
 
     }, []);
+
+    // ==========================================
+    // Cancel Appointment
+    // ==========================================
 
     const handleCancel = async (id) => {
 
@@ -77,6 +89,10 @@ function MyAppointments() {
 
     };
 
+    // ==========================================
+    // Loading
+    // ==========================================
+
     if (loading) {
 
         return (
@@ -90,6 +106,36 @@ function MyAppointments() {
         );
 
     }
+
+    // ==========================================
+    // Search & Filter
+    // ==========================================
+
+    const filteredAppointments = appointments.filter((appointment) => {
+
+        const matchesSearch =
+
+            appointment.doctor_name
+                ?.toLowerCase()
+                .includes(search.toLowerCase())
+
+            ||
+
+            appointment.booking_number
+                ?.toLowerCase()
+                .includes(search.toLowerCase());
+
+        const matchesStatus =
+
+            statusFilter === "All"
+
+                ? true
+
+                : appointment.status === statusFilter;
+
+        return matchesSearch && matchesStatus;
+
+    });
 
     return (
 
@@ -107,7 +153,59 @@ function MyAppointments() {
 
             </div>
 
-            {appointments.length === 0 ? (
+            {/* Search & Filter */}
+
+            <div className="history-filter">
+
+                <input
+                    type="text"
+                    placeholder="Search by Doctor or Booking No..."
+                    value={search}
+                    onChange={(event) =>
+                        setSearch(event.target.value)
+                    }
+                />
+
+                <select
+                    value={statusFilter}
+                    onChange={(event) =>
+                        setStatusFilter(event.target.value)
+                    }
+                >
+
+                    <option value="All">
+                        All Status
+                    </option>
+
+                    <option value="Pending">
+                        Pending
+                    </option>
+
+                    <option value="Confirmed">
+                        Confirmed
+                    </option>
+
+                    <option value="Completed">
+                        Completed
+                    </option>
+
+                    <option value="Cancelled">
+                        Cancelled
+                    </option>
+
+                    <option value="Rejected">
+                        Rejected
+                    </option>
+
+                    <option value="No Show">
+                        No Show
+                    </option>
+
+                </select>
+
+            </div>
+
+            {filteredAppointments.length === 0 ? (
 
                 <div className="empty-history">
 
@@ -137,7 +235,7 @@ function MyAppointments() {
 
                     <tbody>
 
-                        {appointments.map((appointment) => (
+                        {filteredAppointments.map((appointment) => (
 
                             <tr key={appointment.id}>
 

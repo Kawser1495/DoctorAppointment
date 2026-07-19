@@ -623,3 +623,70 @@ body {
 .status-badge.no-show {
     background: #8e44ad;
 }
+
+
+/* ==========================================
+   Search & Filter
+========================================== */
+
+.history-filter{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    gap:20px;
+
+    margin:25px 0;
+
+    flex-wrap:wrap;
+
+}
+
+.history-filter input{
+
+    flex:1;
+
+    min-width:250px;
+
+    padding:12px;
+
+    border:1px solid #ddd;
+
+    border-radius:8px;
+
+    font-size:15px;
+
+}
+
+.history-filter select{
+
+    width:220px;
+
+    padding:12px;
+
+    border:1px solid #ddd;
+
+    border-radius:8px;
+
+    font-size:15px;
+
+    background:#fff;
+
+}
+
+@media(max-width:768px){
+
+    .history-filter{
+
+        flex-direction:column;
+
+    }
+
+    .history-filter select{
+
+        width:100%;
+
+    }
+
+}
