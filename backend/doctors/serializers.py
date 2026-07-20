@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import Doctor, Department, TimeSlot
 
-
 # ==========================================
 # Department Serializer
 # ==========================================
