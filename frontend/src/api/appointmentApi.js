@@ -1,7 +1,17 @@
 import api from "../services/api";
 
-export const getMyAppointments = () => {
+// =========================
+// Department API
+// =========================
+export const getDepartments = async () => {
+    return await api.get("doctors/departments/");
+};
 
-    return api.get("appointments/patient/");
-
+// =========================
+// Doctor API
+// =========================
+export const getDoctors = async (departmentId) => {
+    return await api.get(
+        `doctors/departments/${departmentId}/doctors/`
+    );
 };

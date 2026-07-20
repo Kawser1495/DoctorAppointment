@@ -4,7 +4,6 @@ import "../../styles/appointment.css";
 
 import { bookAppointment } from "../../services/appointmentService";
 import { getTimeSlots } from "../../services/timeSlotService";
-import { getDoctors } from "../../api/appointmentApi";
 
 function BookAppointment() {
 
@@ -18,61 +17,19 @@ function BookAppointment() {
     const [timeSlot, setTimeSlot] = useState("");
     const [reason, setReason] = useState("");
 
-    const [doctors, setDoctors] = useState([]);
     const [timeSlots, setTimeSlots] = useState([]);
 
     const [errors, setErrors] = useState({});
 
     // ==========================
-    // Load Doctors
-    // ==========================
-
-    useEffect(() => {
-
-        const loadDoctors = async () => {
-
-            if (!department) {
-
-                setDoctors([]);
-                setDoctor("");
-                return;
-
-            }
-
-            try {
-
-                const response = await getDoctors(department);
-
-                setDoctors(response.data);
-
-            } catch (error) {
-
-                console.error("Doctor Load Error:", error);
-
-                setDoctors([]);
-
-            }
-
-        };
-
-        loadDoctors();
-
-    }, [department]);
-
-    // ==========================
-    // Load Time Slots
+    // Load Available Time Slots
     // ==========================
 
     useEffect(() => {
 
         const loadTimeSlots = async () => {
 
-            if (!doctor) {
-
-                setTimeSlots([]);
-                return;
-
-            }
+            if (!doctor) return;
 
             try {
 
@@ -80,7 +37,9 @@ function BookAppointment() {
 
                 setTimeSlots(response.data);
 
-            } catch (error) {
+            }
+
+            catch (error) {
 
                 console.error("Time Slot Error:", error);
 
@@ -109,8 +68,7 @@ function BookAppointment() {
             validationErrors.doctor = "Doctor is required.";
 
         if (!appointmentDate)
-            validationErrors.appointmentDate =
-                "Appointment date is required.";
+            validationErrors.appointmentDate = "Appointment date is required.";
 
         if (!timeSlot)
             validationErrors.timeSlot = "Time slot is required.";
@@ -125,7 +83,7 @@ function BookAppointment() {
 
         const data = {
 
-            patient: 1,
+            patient: 1, // Temporary (Later Login User)
 
             doctor: Number(doctor),
 
@@ -133,7 +91,7 @@ function BookAppointment() {
 
             appointment_date: appointmentDate,
 
-            reason,
+            reason: reason,
 
             symptoms: ""
 
@@ -148,16 +106,19 @@ function BookAppointment() {
                 "Appointment booked successfully."
             );
 
+            // Reset Form
+
             setDepartment("");
             setDoctor("");
             setAppointmentDate("");
             setTimeSlot("");
             setReason("");
-            setDoctors([]);
-            setTimeSlots([]);
             setErrors({});
+            setTimeSlots([]);
 
-        } catch (error) {
+        }
+
+        catch (error) {
 
             console.error(error);
 
@@ -165,7 +126,9 @@ function BookAppointment() {
 
                 alert(JSON.stringify(error.response.data));
 
-            } else {
+            }
+
+            else {
 
                 alert("Booking Failed.");
 
@@ -194,11 +157,11 @@ function BookAppointment() {
                         }
                     />
 
-                    {errors.department && (
+                    {errors.department &&
                         <p className="error-text">
                             {errors.department}
                         </p>
-                    )}
+                    }
 
                     {/* Doctor */}
 
@@ -217,24 +180,15 @@ function BookAppointment() {
                                 Select Doctor
                             </option>
 
-                            {doctors.map((doctor) => (
-
-                                <option
-                                    key={doctor.id}
-                                    value={doctor.id}
-                                >
-                                    {doctor.doctor_name}
-                                </option>
-
-                            ))}
+                            {/* Day 14 Part 8 */}
 
                         </select>
 
-                        {errors.doctor && (
+                        {errors.doctor &&
                             <p className="error-text">
                                 {errors.doctor}
                             </p>
-                        )}
+                        }
 
                     </div>
 
@@ -252,11 +206,11 @@ function BookAppointment() {
                             }
                         />
 
-                        {errors.appointmentDate && (
+                        {errors.appointmentDate &&
                             <p className="error-text">
                                 {errors.appointmentDate}
                             </p>
-                        )}
+                        }
 
                     </div>
 
@@ -294,11 +248,11 @@ function BookAppointment() {
 
                         </select>
 
-                        {errors.timeSlot && (
+                        {errors.timeSlot &&
                             <p className="error-text">
                                 {errors.timeSlot}
                             </p>
-                        )}
+                        }
 
                     </div>
 
@@ -317,11 +271,11 @@ function BookAppointment() {
                             placeholder="Write your health problem..."
                         />
 
-                        {errors.reason && (
+                        {errors.reason &&
                             <p className="error-text">
                                 {errors.reason}
                             </p>
-                        )}
+                        }
 
                     </div>
 
