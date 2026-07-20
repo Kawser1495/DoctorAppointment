@@ -17,14 +17,38 @@ export default function AppRoutes() {
 
             <Routes>
 
-                {/* Authentication */}
-                <Route path="/" element={<Login />} />
-                <Route path="/register" element={<Register />} />
+                {/* ==========================================
+                   Authentication
+                ========================================== */}
 
-                {/* Dashboard */}
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route
+                    path="/"
+                    element={<Login />}
+                />
 
-                {/* Appointment Module */}
+                <Route
+                    path="/login"
+                    element={<Login />}
+                />
+
+                <Route
+                    path="/register"
+                    element={<Register />}
+                />
+
+                {/* ==========================================
+                   Dashboard
+                ========================================== */}
+
+                <Route
+                    path="/dashboard"
+                    element={<Dashboard />}
+                />
+
+                {/* ==========================================
+                   Appointment Module
+                ========================================== */}
+
                 <Route
                     path="/appointments/book"
                     element={<BookAppointment />}
@@ -43,6 +67,24 @@ export default function AppRoutes() {
                 <Route
                     path="/appointments/success"
                     element={<AppointmentSuccess />}
+                />
+
+                {/* ==========================================
+                   404 Page
+                ========================================== */}
+
+                <Route
+                    path="*"
+                    element={
+                        <h2
+                            style={{
+                                textAlign: "center",
+                                marginTop: "100px",
+                            }}
+                        >
+                            404 - Page Not Found
+                        </h2>
+                    }
                 />
 
             </Routes>

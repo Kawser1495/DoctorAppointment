@@ -14,6 +14,8 @@ export default function Register() {
         password: "",
     });
 
+    const [confirmPassword, setConfirmPassword] = useState("");
+
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
@@ -28,6 +30,17 @@ export default function Register() {
     const handleSubmit = async (e) => {
 
         e.preventDefault();
+
+        // Confirm Password Validation
+        if (!confirmPassword) {
+            alert("Confirm Password is required.");
+            return;
+        }
+
+        if (formData.password !== confirmPassword) {
+            alert("Passwords do not match.");
+            return;
+        }
 
         setLoading(true);
 
@@ -185,6 +198,27 @@ export default function Register() {
                                         placeholder="Enter Password"
                                         value={formData.password}
                                         onChange={handleChange}
+                                        required
+                                    />
+
+                                </div>
+
+                                {/* Confirm Password */}
+
+                                <div className="mb-3">
+
+                                    <label className="form-label">
+                                        Confirm Password
+                                    </label>
+
+                                    <input
+                                        type="password"
+                                        className="form-control"
+                                        placeholder="Confirm Password"
+                                        value={confirmPassword}
+                                        onChange={(e) =>
+                                            setConfirmPassword(e.target.value)
+                                        }
                                         required
                                     />
 
