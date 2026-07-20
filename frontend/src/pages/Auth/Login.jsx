@@ -3,70 +3,100 @@ import { useNavigate, Link } from "react-router-dom";
 import { loginUser } from "../../services/authService";
 
 export default function Login() {
+
     const navigate = useNavigate();
 
+    // ======================================
     // Form State
+    // ======================================
+
     const [formData, setFormData] = useState({
         username: "",
         password: "",
     });
 
-    // Password Show/Hide
+    // ======================================
+    // UI State
+    // ======================================
+
     const [showPassword, setShowPassword] = useState(false);
-
-    // Loading
     const [loading, setLoading] = useState(false);
-
-    // Error Message
     const [error, setError] = useState("");
 
-    // Input Change
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+    // ======================================
+    // Handle Input Change
+    // ======================================
+
+    const handleChange = (event) => {
+
+        setFormData((previousData) => ({
+            ...previousData,
+            [event.target.name]: event.target.value,
+        }));
 
         setError("");
+
     };
 
-    // Login Submit
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    // ======================================
+    // Handle Login
+    // ======================================
+
+    const handleSubmit = async (event) => {
+
+        event.preventDefault();
 
         setLoading(true);
         setError("");
 
         try {
+
             const response = await loginUser(formData);
 
+            const { access, refresh } = response.data;
 
-            console.log(response.data);
+            // Save JWT Tokens
+            localStorage.setItem("access", access);
+            localStorage.setItem("refresh", refresh);
 
-            // Save JWT Token
-            localStorage.setItem("access", response.data.access);
-            localStorage.setItem("refresh", response.data.refresh);
-
-            alert("Login Successful");
+            console.log("Login Successful");
 
             navigate("/dashboard");
-        } catch (err) {
-            if (err.response) {
-                setError(err.response.data.detail || "Login Failed");
+
+        } catch (error) {
+
+            console.error(error);
+
+            if (error.response) {
+
+                setError(
+                    error.response.data.detail ||
+                    "Invalid username or password."
+                );
+
             } else {
-                setError("Server Error");
+
+                setError(
+                    "Cannot connect to the server. Please try again later."
+                );
+
             }
+
         } finally {
+
             setLoading(false);
+
         }
+
     };
 
     return (
+
         <div className="container mt-5">
 
             <div className="row justify-content-center">
 
-                <div className="col-md-5">
+                <div className="col-lg-5 col-md-7">
 
                     <div className="card shadow-lg border-0">
 
@@ -74,16 +104,22 @@ export default function Login() {
 
                             <h3>Doctor Appointment System</h3>
 
-                            <p className="mb-0">Login to Continue</p>
+                            <p className="mb-0">
+                                Login to Continue
+                            </p>
 
                         </div>
 
                         <div className="card-body">
 
                             {error && (
+
                                 <div className="alert alert-danger">
+
                                     {error}
+
                                 </div>
+
                             )}
 
                             <form onSubmit={handleSubmit}>
@@ -91,7 +127,9 @@ export default function Login() {
                                 <div className="mb-3">
 
                                     <label className="form-label">
+
                                         Username
+
                                     </label>
 
                                     <input
@@ -109,7 +147,9 @@ export default function Login() {
                                 <div className="mb-3">
 
                                     <label className="form-label">
+
                                         Password
+
                                     </label>
 
                                     <div className="input-group">
@@ -165,14 +205,16 @@ export default function Login() {
                                     </div>
 
                                     <Link to="#">
+
                                         Forgot Password?
+
                                     </Link>
 
                                 </div>
 
                                 <button
-                                    className="btn btn-primary w-100"
                                     type="submit"
+                                    className="btn btn-primary w-100"
                                     disabled={loading}
                                 >
                                     {loading
@@ -186,13 +228,15 @@ export default function Login() {
 
                             <div className="text-center">
 
-                                Don't have an account?
+                                <p>
 
-                                <br />
+                                    Don't have an account?
+
+                                </p>
 
                                 <Link
                                     to="/register"
-                                    className="btn btn-success mt-2"
+                                    className="btn btn-success"
                                 >
                                     Create Account
                                 </Link>
@@ -208,5 +252,7 @@ export default function Login() {
             </div>
 
         </div>
+
     );
+
 }

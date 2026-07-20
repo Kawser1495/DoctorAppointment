@@ -1,13 +1,21 @@
-import axios from "axios";
+import api from "./api";
 
-const API = "http://127.0.0.1:8000/api/accounts/";
-
+// ======================================
 // Register User
-export const registerUser = (data) => {
-    return axios.post(API + "register/", data);
+// ======================================
+
+export const registerUser = async (data) => {
+
+    return await api.post("accounts/register/", data);
+
 };
 
+// ======================================
 // Login User
-export const loginUser = (data) => {
-    return axios.post(API + "login/", data);
+// ======================================
+
+export const loginUser = async (data) => {
+
+    return await api.post("accounts/login/", data);
+
 };

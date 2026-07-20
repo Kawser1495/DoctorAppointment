@@ -1,25 +1,11 @@
-import axios from "axios";
+import api from "../services/api";
 
-const API = axios.create({
-    baseURL: "http://127.0.0.1:8000/api",
-});
+// ======================================
+// Dashboard API
+// ======================================
 
-// প্রতিটি Request-এর সাথে JWT Token পাঠাবে
-API.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem("access");
+export const getDashboardData = async () => {
 
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+    return await api.get("dashboard/");
 
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
-
-export const getDashboardData = () => API.get("/dashboard/");
-
-export default API;
+};

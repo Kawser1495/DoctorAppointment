@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -22,7 +22,10 @@ import "../../styles/dashboard.css";
 
 function Dashboard() {
 
+    // ==========================================
     // Dashboard State
+    // ==========================================
+
     const [dashboardData, setDashboardData] = useState({
         total_appointments: 0,
         pending_appointments: 0,
@@ -34,50 +37,82 @@ function Dashboard() {
         notifications: 0,
     });
 
-    // Load Dashboard Data
-    useEffect(() => {
-        loadDashboard();
-    }, []);
+    const [loading, setLoading] = useState(true);
 
-    // API Call
-    const loadDashboard = async () => {
+    // ==========================================
+    // Load Dashboard Data
+    // ==========================================
+
+    const loadDashboard = useCallback(async () => {
 
         try {
 
             const response = await getDashboardData();
 
-            setDashboardData(response.data);
+            const data = response.data.data || response.data;
 
-            console.log("Dashboard Data:", response.data);
+            setDashboardData(data);
+
+            console.log("Dashboard Data:", data);
 
         } catch (error) {
 
             console.error("Dashboard API Error:", error);
 
+        } finally {
+
+            setLoading(false);
+
         }
 
-    };
+    }, []);
+
+    // ==========================================
+    // Load On Component Mount
+    // ==========================================
+
+    useEffect(() => {
+
+        loadDashboard();
+
+    }, [loadDashboard]);
+
+    // ==========================================
+    // Loading
+    // ==========================================
+
+    if (loading) {
+
+        return (
+
+            <div className="text-center mt-5">
+
+                <h4>Loading Dashboard...</h4>
+
+            </div>
+
+        );
+
+    }
+
+    // ==========================================
+    // UI
+    // ==========================================
 
     return (
 
         <>
 
-            {/* Navbar */}
             <Navbar />
 
-            {/* Dashboard Layout */}
             <div className="dashboard-container">
 
-                {/* Sidebar */}
                 <Sidebar />
 
-                {/* Main Content */}
                 <div className="dashboard-content">
 
-                    {/* Welcome Banner */}
                     <WelcomeBanner />
 
-                    {/* Dashboard Cards */}
                     <div className="card-container">
 
                         <DashboardCard
