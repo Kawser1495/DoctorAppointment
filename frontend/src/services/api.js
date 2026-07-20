@@ -1,9 +1,5 @@
 import axios from "axios";
 
-// ======================================
-// Axios Instance
-// ======================================
-
 const api = axios.create({
 
     baseURL: "http://127.0.0.1:8000/api/",
@@ -17,8 +13,7 @@ const api = axios.create({
 });
 
 // ======================================
-// Request Interceptor
-// Automatically Attach JWT Token
+// Attach JWT Token Automatically
 // ======================================
 
 api.interceptors.request.use(
@@ -37,13 +32,16 @@ api.interceptors.request.use(
 
     },
 
-    (error) => Promise.reject(error)
+    (error) => {
+
+        return Promise.reject(error);
+
+    }
 
 );
 
 // ======================================
-// Response Interceptor
-// Handle Unauthorized Requests
+// Optional: Handle Unauthorized Response
 // ======================================
 
 api.interceptors.response.use(
@@ -54,15 +52,12 @@ api.interceptors.response.use(
 
         if (error.response?.status === 401) {
 
-            console.error("Session expired. Please login again.");
+            console.error("Unauthorized! Please login again.");
 
-            // Uncomment if you want automatic logout
-
-            /*
-            localStorage.removeItem("access");
-            localStorage.removeItem("refresh");
-            window.location.href = "/";
-            */
+            // Optional:
+            // localStorage.removeItem("access");
+            // localStorage.removeItem("refresh");
+            // window.location.href = "/login";
 
         }
 
