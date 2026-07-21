@@ -26,6 +26,7 @@ api.interceptors.request.use(
     (config) => {
 
         const token = localStorage.getItem("access");
+        console.log("Interceptor Token:", token);
 
         if (token) {
 

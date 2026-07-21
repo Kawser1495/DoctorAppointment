@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { loginUser } from "../../services/authService";
-
 export default function Login() {
 
     const navigate = useNavigate();
@@ -60,6 +59,7 @@ export default function Login() {
             localStorage.setItem("refresh", refresh);
 
             console.log("Login Successful");
+            console.log(localStorage.getItem("access"));
 
             navigate("/dashboard");
 
