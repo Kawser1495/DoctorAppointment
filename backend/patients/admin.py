@@ -1,20 +1,30 @@
 from django.contrib import admin
+
 from .models import PatientProfile, FamilyMember
 
+
+# ==========================================
+# Patient Profile Admin
+# ==========================================
 
 @admin.register(PatientProfile)
 class PatientProfileAdmin(admin.ModelAdmin):
 
     list_display = (
         "id",
-        "full_name",
+        "user",
+        "phone_number",
         "gender",
         "blood_group",
         "emergency_contact",
+        "created_at",
     )
 
     search_fields = (
-        "full_name",
+        "user__first_name",
+        "user__last_name",
+        "user__username",
+        "phone_number",
         "blood_group",
     )
 
@@ -23,6 +33,14 @@ class PatientProfileAdmin(admin.ModelAdmin):
         "blood_group",
     )
 
+    ordering = (
+        "user__first_name",
+    )
+
+
+# ==========================================
+# Family Member Admin
+# ==========================================
 
 @admin.register(FamilyMember)
 class FamilyMemberAdmin(admin.ModelAdmin):
@@ -34,13 +52,21 @@ class FamilyMemberAdmin(admin.ModelAdmin):
         "relation",
         "age",
         "gender",
+        "phone_number",
+        "created_at",
     )
 
     search_fields = (
         "name",
+        "patient__user__first_name",
+        "patient__user__last_name",
     )
 
     list_filter = (
         "relation",
         "gender",
+    )
+
+    ordering = (
+        "name",
     )

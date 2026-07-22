@@ -1,3 +1,4 @@
+from patients.models import PatientProfile
 from django.core.management.base import BaseCommand
 
 from accounts.models import CustomUser
@@ -7,6 +8,7 @@ from doctors.models import (
     Doctor,
     DoctorSchedule,
     TimeSlot,
+    
 )
 
 
@@ -195,6 +197,136 @@ class Command(BaseCommand):
             self.style.SUCCESS(
 
                 "Doctors Seeded Successfully"
+
+            )
+
+        )
+        
+        
+        # ==========================================
+        # Patient Data
+        # ==========================================
+
+        patient_data = [
+
+            {
+                "username": "patient1",
+                "first_name": "Kawser",
+                "last_name": "Talukder",
+                "email": "patient1@example.com",
+                "phone": "01711111111",
+                "gender": "Male",
+                "dob": "2001-01-15",
+                "blood_group": "B+",
+                "address": "Dhaka",
+                "emergency_contact": "01811111111",
+                
+            },
+
+            {
+                "username": "patient2",
+                "first_name": "Rahim",
+                "last_name": "Uddin",
+                "email": "patient2@example.com",
+                "phone": "01722222222",
+                "gender": "Male",
+                "dob": "1999-05-20",
+                "blood_group": "A+",
+                "address": "Tangail",
+                "emergency_contact": "01822222222",
+            },
+
+            {
+                "username": "patient3",
+                "first_name": "Karim",
+                "last_name": "Hasan",
+                "email": "patient3@example.com",
+                "phone": "01733333333",
+                "gender": "Male",
+                "dob": "2000-03-12",
+                "blood_group": "O+",
+                "address": "Gazipur",
+                "emergency_contact": "01833333333",
+            },
+
+            {
+                "username": "patient4",
+                "first_name": "Fatema",
+                "last_name": "Akter",
+                "email": "patient4@example.com",
+                "phone": "01744444444",
+                "gender": "Female",
+                "dob": "2002-09-18",
+                "blood_group": "AB+",
+                "address": "Dhaka",
+                "emergency_contact": "01844444444",
+            },
+
+            {
+                "username": "patient5",
+                "first_name": "Nusrat",
+                "last_name": "Jahan",
+                "email": "patient5@example.com",
+                "phone": "01755555555",
+                "gender": "Female",
+                "dob": "2001-12-10",
+                "blood_group": "A-",
+                "address": "Mymensingh",
+                "emergency_contact": "01855555555",
+            },
+
+        ]
+
+        for patient in patient_data:
+
+            user, created = CustomUser.objects.get_or_create(
+
+                username=patient["username"],
+
+                defaults={
+
+                    "first_name": patient["first_name"],
+
+                    "last_name": patient["last_name"],
+
+                    "email": patient["email"],
+
+                    "role": "Patient",
+
+                }
+
+            )
+
+            if created:
+
+                user.set_password("Patient@123")
+
+                user.save()
+
+            PatientProfile.objects.get_or_create(
+
+                user=user,
+
+                defaults={
+
+                    "phone_number": patient["phone"],
+
+                    "gender": patient["gender"],
+                    "date_of_birth": patient["dob"],
+                    "blood_group": patient["blood_group"],
+                    "address": patient["address"],
+                    "emergency_contact": patient["emergency_contact"],
+
+
+                }
+
+            )
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                "Patients Seeded Successfully"
 
             )
 
