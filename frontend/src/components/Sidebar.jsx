@@ -12,7 +12,6 @@ import {
     FaBell,
     FaCog,
     FaSignOutAlt,
-    FaRobot,
 } from "react-icons/fa";
 
 import "./Sidebar.css";
