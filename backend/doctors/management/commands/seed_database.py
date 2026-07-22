@@ -6,6 +6,7 @@ from doctors.models import (
     Department,
     Doctor,
     DoctorSchedule,
+    TimeSlot,
 )
 
 
@@ -131,7 +132,7 @@ class Command(BaseCommand):
                 "qualification": "MBBS, FCPS",
                 "experience": 11,
                 "fee": 1200,
-            }
+            },
 
         ]
 
@@ -244,6 +245,65 @@ class Command(BaseCommand):
             self.style.SUCCESS(
 
                 "Doctor Schedules Seeded Successfully"
+
+            )
+
+        )
+
+        # ==========================================
+        # Time Slot Seeder
+        # ==========================================
+
+        slot_times = [
+
+            "09:00",
+            "09:30",
+            "10:00",
+            "10:30",
+            "11:00",
+            "11:30",
+
+            "12:00",
+            "12:30",
+
+            "14:00",
+            "14:30",
+
+            "15:00",
+            "15:30",
+
+            "16:00",
+            "16:30",
+
+        ]
+
+        for schedule in DoctorSchedule.objects.all():
+
+            for slot in slot_times:
+
+                TimeSlot.objects.get_or_create(
+
+                    schedule=schedule,
+
+                    slot_time=slot,
+
+                    defaults={
+
+                        "max_patient": 5,
+
+                        "booked_count": 0,
+
+                        "is_active": True,
+
+                    }
+
+                )
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                "Time Slots Seeded Successfully"
 
             )
 
