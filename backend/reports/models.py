@@ -26,7 +26,9 @@ class MedicalReport(models.Model):
     )
 
     report_file = models.FileField(
-        upload_to="medical_reports/"
+        upload_to="medical_reports/",
+        blank=True,
+        null=True,
     )
 
     prescription = models.TextField(

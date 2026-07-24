@@ -1,18 +1,21 @@
-from patients.models import Patient
-from appointments.models import Appointment
-from patients.models import PatientProfile
 from django.core.management.base import BaseCommand
-
+from datetime import date
+from notifications.models import Notification
 
 from accounts.models import CustomUser
+
+from patients.models import PatientProfile
 
 from doctors.models import (
     Department,
     Doctor,
     DoctorSchedule,
     TimeSlot,
-    
 )
+
+from appointments.models import Appointment
+from payments.models import Payment
+from reports.models import MedicalReport
 
 
 class Command(BaseCommand):
@@ -449,7 +452,7 @@ class Command(BaseCommand):
 
         from datetime import date, timedelta
 
-        patients = list(Patient.objects.all())
+        patients = list(PatientProfile.objects.all())
 
         doctors = list(Doctor.objects.all())
 
@@ -521,6 +524,182 @@ class Command(BaseCommand):
                 self.style.SUCCESS(
 
                     "Appointments Seeded Successfully"
+
+                )
+
+            )
+            
+            
+            # ==========================================
+            # Payment Seeder
+            # ==========================================
+
+            payment_methods = [
+
+                "Cash",
+
+                "Bkash",
+
+                "Nagad",
+
+                "Rocket",
+
+            ]
+
+            payment_status = [
+
+                "Paid",
+
+                "Pending",
+
+            ]
+
+            appointments = Appointment.objects.all()
+
+            for index, appointment in enumerate(appointments):
+
+                Payment.objects.get_or_create(
+
+                    appointment=appointment,
+
+                    defaults={
+
+                        "amount": appointment.doctor.consultation_fee,
+
+                        "payment_method": payment_methods[
+                            index % len(payment_methods)
+                        ],
+
+                        "payment_status": payment_status[
+                            index % len(payment_status)
+                        ],
+
+                        "transaction_id": f"TXN-{100000 + index}",
+
+                    }
+
+                )
+                
+                
+                self.stdout.write(
+
+                    self.style.SUCCESS(
+
+                         "Payments Seeded Successfully"
+
+                )
+
+                )
+                
+                
+                
+                
+                
+            # ==========================================
+            # Medical Report Seeder
+            # ==========================================
+
+            report_data = [
+
+                (
+                    "Blood Test",
+                    "Blood Sugar Normal.",
+                    "blood_report.pdf",
+                ),
+
+                (
+                    "X-Ray",
+                    "No Bone Fracture Detected.",
+                    "xray_report.pdf",
+                ),
+
+                (
+                    "ECG",
+                    "Heart Rhythm Normal.",
+                    "ecg_report.pdf",
+                ),
+
+                (
+                    "MRI",
+                    "Brain Scan Normal.",
+                    "mri_report.pdf",
+                ),
+
+                (
+                    "Ultrasound",
+                    "No Significant Findings.",
+                    "ultrasound_report.pdf",
+                ),
+
+            ]
+
+            appointments = Appointment.objects.all()
+
+            for index, appointment in enumerate(appointments):
+
+                report_type, remarks, file_name = report_data[
+                    index % len(report_data)
+                ]
+
+                MedicalReport.objects.get_or_create(
+
+                    appointment=appointment,
+
+                    defaults={
+
+                        "report_type": report_type,
+
+                        "remarks": remarks,
+
+                        "report_file": file_name,
+
+                    }
+
+                )
+                
+                
+                self.stdout.write(
+
+                    self.style.SUCCESS(
+
+                        "Medical Reports Seeded Successfully"
+
+                    )
+
+               )
+                
+                
+            # ==========================================
+            # Notification Seeder
+            # ==========================================
+
+            for user in CustomUser.objects.all():
+
+                Notification.objects.get_or_create(
+
+                    user=user,
+
+                    title="Welcome to Doctor Appointment System",
+
+                    defaults={
+
+                        "message": (
+                            "Your account has been created successfully. "
+                            "You can now book appointments, view reports "
+                            "and manage your healthcare services."
+                        ),
+
+                        "is_read": False,
+
+                    }
+
+                )
+
+            self.stdout.write(
+
+                self.style.SUCCESS(
+
+                    "Notifications Seeded Successfully"
 
                 )
 
