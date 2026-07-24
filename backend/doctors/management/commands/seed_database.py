@@ -1,5 +1,8 @@
+from patients.models import Patient
+from appointments.models import Appointment
 from patients.models import PatientProfile
 from django.core.management.base import BaseCommand
+
 
 from accounts.models import CustomUser
 
@@ -440,3 +443,85 @@ class Command(BaseCommand):
             )
 
         )
+        # ==========================================
+        # Appointment Seeder
+        # ==========================================
+
+        from datetime import date, timedelta
+
+        patients = list(Patient.objects.all())
+
+        doctors = list(Doctor.objects.all())
+
+        slots = list(TimeSlot.objects.all())
+
+        statuses = [
+
+            "Pending",
+            "Confirmed",
+            "Completed",
+            "Cancelled",
+
+        ]
+
+        appointment_date = date.today()
+
+        appointment_number = 1000
+
+        for i in range(20):
+
+            patient = patients[i % len(patients)]
+
+            doctor = doctors[i % len(doctors)]
+
+            slot = slots[i % len(slots)]
+
+            Appointment.objects.get_or_create(
+
+                appointment_number=f"APT-{appointment_number+i}",
+
+                defaults={
+
+                    "patient": patient,
+
+                    "doctor": doctor,
+
+                    "appointment_date": appointment_date + timedelta(days=i),
+
+                    "time_slot": slot,
+
+                    "status": statuses[i % len(statuses)],
+
+                }
+
+            )
+            # ==========================================
+            # Update Slot Booking Count
+            # ==========================================
+
+            for slot in TimeSlot.objects.all():
+
+                count = Appointment.objects.filter(
+
+                    time_slot=slot
+
+                ).exclude(
+
+                    status="Cancelled"
+
+                ).count()
+
+                slot.booked_count = count
+
+                slot.save()
+                
+                
+            self.stdout.write(
+
+                self.style.SUCCESS(
+
+                    "Appointments Seeded Successfully"
+
+                )
+
+            )
