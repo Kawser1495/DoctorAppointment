@@ -12,6 +12,7 @@ from diagnostics.models import (
 
 from random import choice
 from datetime import date, timedelta
+from appointments.models import Appointment
 
 from doctors.models import (
     Department,
@@ -451,5 +452,74 @@ class Command(BaseCommand):
                 "Time Slots Seeded Successfully"
             )
         )
+        
+        
+        # ==========================================
+        # Appointment Seeder
+        # ==========================================
+
+        patients = list(PatientProfile.objects.all())
+
+        doctors = list(Doctor.objects.all())
+
+        statuses = [
+            "Pending",
+            "Confirmed",
+            "Completed",
+        ]
+
+        if patients and doctors:
+
+            for i in range(20):
+
+                patient = choice(patients)
+
+                doctor = choice(doctors)
+
+                slot = TimeSlot.objects.filter(
+                    schedule__doctor=doctor,
+                    is_active=True,
+                ).first()
+
+                if not slot:
+                    continue
+
+                Appointment.objects.get_or_create(
+
+                    patient=patient,
+
+                    doctor=doctor,
+
+                    slot=slot,
+
+                    appointment_date=date.today() + timedelta(days=i % 7),
+
+                    defaults={
+
+                        "reason": "General Health Checkup",
+
+                        "symptoms": "Fever and headache",
+
+                        "status": choice(statuses),
+
+                    }
+
+                )
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                "Appointments Seeded Successfully"
+
+            )
+
+        )
+        
+        
+        
+        
+        
+        
                 
                 
