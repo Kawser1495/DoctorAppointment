@@ -16,7 +16,7 @@ import uuid
 
 from payments.models import Payment
 from django.db import models
-from datetime import date, timedelta
+from datetime import date, timedelta, time
 from appointments.models import Appointment
 
 from doctors.models import (
@@ -594,7 +594,7 @@ class Command(BaseCommand):
 
         )
         
-        
+                
         # ==========================================
         # Payment Seeder
         # ==========================================
@@ -609,14 +609,36 @@ class Command(BaseCommand):
             "Cash",
         ]
 
-        payment_statuses = [
-            "Pending",
-            "Paid",
-            "Failed",
-            "Refunded",
-        ]
-
         for appointment in appointments:
+
+            # ==========================================
+            # Payment Status Mapping
+            # ==========================================
+
+            if appointment.status == "Pending":
+
+                payment_status = "Pending"
+
+            elif appointment.status in [
+
+                "Confirmed",
+                "Completed",
+
+            ]:
+
+                payment_status = "Paid"
+
+            elif appointment.status == "Cancelled":
+
+                payment_status = "Failed"
+
+            elif appointment.status == "Rejected":
+
+                payment_status = "Failed"
+
+            else:
+
+                payment_status = "Refunded"
 
             Payment.objects.get_or_create(
 
@@ -636,9 +658,7 @@ class Command(BaseCommand):
                         f"TXN-{uuid.uuid4().hex[:10].upper()}"
                     ),
 
-                    "payment_status": choice(
-                        payment_statuses
-                    ),
+                    "payment_status": payment_status,
 
                 }
 
@@ -649,6 +669,338 @@ class Command(BaseCommand):
             self.style.SUCCESS(
 
                 "Payments Seeded Successfully"
+
+            )
+
+        )
+        
+                
+        # ==========================================
+        # Diagnostic Category Seeder
+        # ==========================================
+
+        categories = [
+
+            (
+                "Blood Test",
+                "Blood related laboratory tests"
+            ),
+
+            (
+                "Urine Test",
+                "Urine analysis tests"
+            ),
+
+            (
+                "Imaging",
+                "Radiology and imaging tests"
+            ),
+
+            (
+                "Heart Checkup",
+                "Cardiology diagnostic tests"
+            ),
+
+            (
+                "Diabetes",
+                "Diabetes screening tests"
+            ),
+
+            (
+                "Hormone",
+                "Hormone related tests"
+            ),
+
+            (
+                "Liver Function",
+                "Liver function tests"
+            ),
+
+            (
+                "Kidney Function",
+                "Kidney function tests"
+            ),
+
+        ]
+
+        for name, description in categories:
+
+            TestCategory.objects.get_or_create(
+
+                name=name,
+
+                defaults={
+
+                    "description": description,
+
+                }
+
+            )
+            
+            
+        self.stdout.write(
+
+             self.style.SUCCESS(
+
+                "Diagnostic Categories Seeded Successfully"
+
+            )
+
+        )
+        
+        
+        # ==========================================
+        # Diagnostic Test Seeder
+        # ==========================================
+
+        test_data = [
+
+            # Blood Test
+            {
+                "category": "Blood Test",
+                "name": "Complete Blood Count (CBC)",
+                "description": "Measures blood cells",
+                "price": 600,
+                "duration": "6 Hours",
+            },
+
+            {
+                "category": "Blood Test",
+                "name": "Blood Group",
+                "description": "Blood grouping test",
+                "price": 300,
+                "duration": "2 Hours",
+            },
+
+            {
+                "category": "Blood Test",
+                "name": "Hemoglobin",
+                "description": "Hemoglobin level",
+                "price": 250,
+                "duration": "2 Hours",
+            },
+
+            # Urine Test
+            {
+                "category": "Urine Test",
+                "name": "Urine R/E",
+                "description": "Routine urine examination",
+                "price": 350,
+                "duration": "4 Hours",
+            },
+
+            {
+                "category": "Urine Test",
+                "name": "Urine Culture",
+                "description": "Urine infection test",
+                "price": 800,
+                "duration": "24 Hours",
+            },
+
+            # Imaging
+            {
+                "category": "Imaging",
+                "name": "X-Ray Chest",
+                "description": "Chest X-Ray",
+                "price": 1000,
+                "duration": "30 Minutes",
+            },
+
+            {
+                "category": "Imaging",
+                "name": "MRI Brain",
+                "description": "Brain MRI Scan",
+                "price": 6500,
+                "duration": "2 Hours",
+            },
+
+            {
+                "category": "Imaging",
+                "name": "CT Scan",
+                "description": "CT Scan",
+                "price": 5000,
+                "duration": "2 Hours",
+            },
+
+            # Heart Checkup
+            {
+                "category": "Heart Checkup",
+                "name": "ECG",
+                "description": "Electrocardiogram",
+                "price": 700,
+                "duration": "20 Minutes",
+            },
+
+            {
+                "category": "Heart Checkup",
+                "name": "Echocardiogram",
+                "description": "Heart Ultrasound",
+                "price": 2500,
+                "duration": "45 Minutes",
+            },
+
+            # Diabetes
+            {
+                "category": "Diabetes",
+                "name": "Blood Sugar",
+                "description": "Random Blood Sugar",
+                "price": 300,
+                "duration": "1 Hour",
+            },
+
+            {
+                "category": "Diabetes",
+                "name": "HbA1c",
+                "description": "Average Blood Sugar (3 Months)",
+                "price": 900,
+                "duration": "6 Hours",
+            },
+
+            # Hormone
+            {
+                "category": "Hormone",
+                "name": "TSH",
+                "description": "Thyroid Stimulating Hormone",
+                "price": 900,
+                "duration": "6 Hours",
+            },
+
+            # Liver Function
+            {
+                "category": "Liver Function",
+                "name": "LFT",
+                "description": "Liver Function Test",
+                "price": 1200,
+                "duration": "6 Hours",
+            },
+
+            # Kidney Function
+            {
+                "category": "Kidney Function",
+                "name": "KFT",
+                "description": "Kidney Function Test",
+                "price": 1100,
+                "duration": "6 Hours",
+            },
+
+        ]
+
+        for test in test_data:
+
+            category = TestCategory.objects.get(
+                name=test["category"]
+            )
+
+            DiagnosticTest.objects.get_or_create(
+
+                name=test["name"],
+
+                defaults={
+
+                    "category": category,
+
+                    "description": test["description"],
+
+                    "price": test["price"],
+
+                    "duration": test["duration"],
+
+                    "is_available": True,
+
+                }
+
+            )
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                "Diagnostic Tests Seeded Successfully"
+
+            )
+
+        )
+        
+                
+        # ==========================================
+        # Test Booking Seeder
+        # ==========================================
+
+        patients = list(PatientProfile.objects.all())
+
+        tests = list(DiagnosticTest.objects.all())
+
+        booking_statuses = [
+
+            "Pending",
+
+            "Confirmed",
+
+            "Completed",
+
+            "Cancelled",
+
+        ]
+
+        booking_times = [
+
+            time(9, 0),
+
+            time(9, 30),
+
+            time(10, 0),
+
+            time(10, 30),
+
+            time(11, 0),
+
+            time(11, 30),
+
+            time(12, 0),
+
+            time(14, 0),
+
+            time(15, 0),
+
+            time(16, 0),
+
+        ]
+
+        if patients and tests:
+
+            for i in range(20):
+
+                patient = choice(patients)
+
+                test = choice(tests)
+
+                booking_date = date.today() + timedelta(days=i % 7)
+
+                TestBooking.objects.get_or_create(
+
+                    booking_number=f"TEST-{uuid.uuid4().hex[:8].upper()}",
+
+                    defaults={
+
+                        "patient": patient,
+
+                        "diagnostic_test": test,
+
+                        "booking_date": booking_date,
+
+                        "booking_time": choice(booking_times),
+
+                        "status": choice(booking_statuses),
+
+                    }
+
+                )
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                "Test Bookings Seeded Successfully"
 
             )
 
