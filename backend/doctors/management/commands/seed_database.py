@@ -11,6 +11,11 @@ from diagnostics.models import (
 )
 
 from random import choice
+from decimal import Decimal
+import uuid
+
+from payments.models import Payment
+from django.db import models
 from datetime import date, timedelta
 from appointments.models import Appointment
 
@@ -460,14 +465,40 @@ class Command(BaseCommand):
 
         patients = list(PatientProfile.objects.all())
 
-        doctors = list(Doctor.objects.all())
-
-        statuses = [
+        appointment_status = [
             "Pending",
             "Confirmed",
             "Completed",
             "Cancelled",
         ]
+
+        appointment_reasons = [
+            "General Health Checkup",
+            "Fever",
+            "Headache",
+            "Chest Pain",
+            "Skin Allergy",
+            "Diabetes Follow-up",
+            "Blood Pressure Check",
+            "Eye Problem",
+            "Dental Pain",
+            "Pregnancy Consultation",
+        ]
+
+        appointment_symptoms = [
+            "Fever and headache",
+            "Body pain",
+            "Chest discomfort",
+            "High blood pressure",
+            "Skin itching",
+            "Tooth pain",
+            "Blurred vision",
+            "Back pain",
+            "Weakness",
+            "Routine Checkup",
+        ]
+
+        doctors = list(Doctor.objects.filter(is_available=True))
 
         if patients and doctors:
 
@@ -477,37 +508,81 @@ class Command(BaseCommand):
 
                 doctor = choice(doctors)
 
-                slot = TimeSlot.objects.filter(
+                # ==========================
+                # Random Available Slot
+                # ==========================
+
+                available_slots = TimeSlot.objects.filter(
+
                     schedule__doctor=doctor,
+
                     is_active=True,
-                ).first()
+
+                    booked_count__lt=models.F("max_patient"),
+
+                ).order_by("?")
+
+                slot = available_slots.first()
 
                 if not slot:
                     continue
 
-        appointment_date = date.today() + timedelta(days=i % 7)
+                # ==========================
+                # Future Appointment Date
+                # ==========================
 
-        appointment, created = Appointment.objects.get_or_create(
+                appointment_date = date.today() + timedelta(
+                    days=choice([1, 2, 3, 4, 5, 6, 7])
+                )
 
-            patient=patient,
+                # ==========================
+                # Duplicate Booking Check
+                # ==========================
 
-            doctor=doctor,
+                exists = Appointment.objects.filter(
 
-            slot=slot,
+                    patient=patient,
 
-            appointment_date=appointment_date,
+                    doctor=doctor,
 
-            defaults={
+                    slot=slot,
 
-                "reason": "General Health Checkup",
+                    appointment_date=appointment_date,
 
-                "symptoms": "Fever and headache",
+                ).exists()
 
-                "status": choice(statuses),
+                if exists:
+                    continue
 
-            }
+                # ==========================
+                # Create Appointment
+                # ==========================
 
-        )
+                Appointment.objects.create(
+
+                    patient=patient,
+
+                    doctor=doctor,
+
+                    slot=slot,
+
+                    appointment_date=appointment_date,
+
+                    reason=choice(appointment_reasons),
+
+                    symptoms=choice(appointment_symptoms),
+
+                    status=choice(appointment_status),
+
+                )
+
+                # ==========================
+                # Update Slot Count
+                # ==========================
+
+                slot.booked_count += 1
+
+                slot.save(update_fields=["booked_count"])
 
         self.stdout.write(
 
@@ -520,9 +595,61 @@ class Command(BaseCommand):
         )
         
         
-        
-        
-        
-        
-                
-                
+        # ==========================================
+        # Payment Seeder
+        # ==========================================
+
+        appointments = list(Appointment.objects.all())
+
+        payment_methods = [
+            "Bkash",
+            "Nagad",
+            "Rocket",
+            "Card",
+            "Cash",
+        ]
+
+        payment_statuses = [
+            "Pending",
+            "Paid",
+            "Failed",
+            "Refunded",
+        ]
+
+        for appointment in appointments:
+
+            Payment.objects.get_or_create(
+
+                appointment=appointment,
+
+                defaults={
+
+                    "patient": appointment.patient,
+
+                    "amount": Decimal(
+                        appointment.doctor.consultation_fee
+                    ),
+
+                    "payment_method": choice(payment_methods),
+
+                    "transaction_id": (
+                        f"TXN-{uuid.uuid4().hex[:10].upper()}"
+                    ),
+
+                    "payment_status": choice(
+                        payment_statuses
+                    ),
+
+                }
+
+            )
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                "Payments Seeded Successfully"
+
+            )
+
+        )
