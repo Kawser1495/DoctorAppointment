@@ -90,14 +90,14 @@ class Appointment(models.Model):
         verbose_name_plural = "Appointments"
 
     def __str__(self):
-        patient_name = (
-            self.family_member.full_name
-            if self.family_member
-            else self.patient.full_name
-        )
+
+        if self.family_member:
+            patient_name = self.family_member.name
+        else:
+            patient_name = self.patient.user.get_full_name()
 
         return (
             f"{self.booking_number} | "
             f"{patient_name} | "
             f"Dr. {self.doctor.user.get_full_name()}"
-        )
+    )

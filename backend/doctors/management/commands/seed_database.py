@@ -466,6 +466,7 @@ class Command(BaseCommand):
             "Pending",
             "Confirmed",
             "Completed",
+            "Cancelled",
         ]
 
         if patients and doctors:
@@ -484,27 +485,29 @@ class Command(BaseCommand):
                 if not slot:
                     continue
 
-                Appointment.objects.get_or_create(
+        appointment_date = date.today() + timedelta(days=i % 7)
 
-                    patient=patient,
+        appointment, created = Appointment.objects.get_or_create(
 
-                    doctor=doctor,
+            patient=patient,
 
-                    slot=slot,
+            doctor=doctor,
 
-                    appointment_date=date.today() + timedelta(days=i % 7),
+            slot=slot,
 
-                    defaults={
+            appointment_date=appointment_date,
 
-                        "reason": "General Health Checkup",
+            defaults={
 
-                        "symptoms": "Fever and headache",
+                "reason": "General Health Checkup",
 
-                        "status": choice(statuses),
+                "symptoms": "Fever and headache",
 
-                    }
+                "status": choice(statuses),
 
-                )
+            }
+
+        )
 
         self.stdout.write(
 

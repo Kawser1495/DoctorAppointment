@@ -202,4 +202,13 @@ class FamilyMember(models.Model):
 
     def __str__(self):
 
-        return f"{self.name} ({self.relation})"
+        if self.family_member:
+            patient_name = self.family_member.name
+        else:
+            patient_name = self.patient.user.get_full_name()
+
+        return (
+            f"{self.booking_number} | "
+            f"{patient_name} | "
+            f"Dr. {self.doctor.user.get_full_name()}"
+    )
