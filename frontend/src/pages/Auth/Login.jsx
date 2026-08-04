@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+
 import { loginUser } from "../../services/authService";
+import useAuth from "../../context/useAuth";
+
 export default function Login() {
 
     const navigate = useNavigate();
+
+    const { login } = useAuth();
 
     // ======================================
     // Form State
@@ -54,12 +59,10 @@ export default function Login() {
 
             const { access, refresh } = response.data;
 
-            // Save JWT Tokens
-            localStorage.setItem("access", access);
-            localStorage.setItem("refresh", refresh);
+            // Login using Auth Context
+            login(access, refresh);
 
             console.log("Login Successful");
-            console.log(localStorage.getItem("access"));
 
             navigate("/dashboard");
 
@@ -172,14 +175,10 @@ export default function Login() {
                                             type="button"
                                             className="btn btn-outline-secondary"
                                             onClick={() =>
-                                                setShowPassword(
-                                                    !showPassword
-                                                )
+                                                setShowPassword(!showPassword)
                                             }
                                         >
-                                            {showPassword
-                                                ? "Hide"
-                                                : "Show"}
+                                            {showPassword ? "Hide" : "Show"}
                                         </button>
 
                                     </div>
