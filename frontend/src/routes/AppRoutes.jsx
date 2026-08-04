@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "./ProtectedRoute";
 
 // ==========================================
 // Authentication
@@ -97,7 +98,11 @@ export default function AppRoutes() {
 
                 <Route
                     path="/dashboard"
-                    element={<Dashboard />}
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
                 />
 
                 {/* ==========================================
@@ -106,22 +111,42 @@ export default function AppRoutes() {
 
                 <Route
                     path="/appointments/book"
-                    element={<BookAppointment />}
+                    element={
+
+                        <ProtectedRoute>
+
+                            <BookAppointment />
+
+                        </ProtectedRoute>
+
+                    }
                 />
 
                 <Route
                     path="/appointments"
-                    element={<MyAppointments />}
+                    element={
+                        <ProtectedRoute>
+                            <MyAppointments />
+                        </ProtectedRoute>
+                    }
                 />
 
                 <Route
                     path="/appointments/details/:id"
-                    element={<AppointmentDetails />}
+                    element={
+                        <ProtectedRoute>
+                            <AppointmentDetails />
+                        </ProtectedRoute>
+                    }
                 />
 
                 <Route
                     path="/appointments/success"
-                    element={<AppointmentSuccess />}
+                    element={
+                        <ProtectedRoute>
+                            <AppointmentSuccess />
+                        </ProtectedRoute>
+                    }
                 />
 
                 {/* ==========================================
@@ -130,7 +155,11 @@ export default function AppRoutes() {
 
                 <Route
                     path="/doctors"
-                    element={<DoctorList />}
+                    element={
+                        <ProtectedRoute>
+                            <DoctorList />
+                        </ProtectedRoute>
+                    }
                 />
 
                 {/* ==========================================
@@ -139,7 +168,11 @@ export default function AppRoutes() {
 
                 <Route
                     path="/tests"
-                    element={<DiagnosticTests />}
+                    element={
+                        <ProtectedRoute>
+                            <DiagnosticTests />
+                        </ProtectedRoute>
+                    }
                 />
 
                 {/* ==========================================
@@ -148,7 +181,11 @@ export default function AppRoutes() {
 
                 <Route
                     path="/reports"
-                    element={<MedicalReports />}
+                    element={
+                        <ProtectedRoute>
+                            <MedicalReports />
+                        </ProtectedRoute>
+                    }
                 />
 
                 {/* ==========================================
@@ -157,7 +194,11 @@ export default function AppRoutes() {
 
                 <Route
                     path="/payments"
-                    element={<Payments />}
+                    element={
+                        <ProtectedRoute>
+                            <Payments />
+                        </ProtectedRoute>
+                    }
                 />
 
                 {/* ==========================================
@@ -166,7 +207,11 @@ export default function AppRoutes() {
 
                 <Route
                     path="/family"
-                    element={<FamilyMembers />}
+                    element={
+                        <ProtectedRoute>
+                            <FamilyMembers />
+                        </ProtectedRoute>
+                    }
                 />
 
                 {/* ==========================================
@@ -175,7 +220,11 @@ export default function AppRoutes() {
 
                 <Route
                     path="/notifications"
-                    element={<Notifications />}
+                    element={
+                        <ProtectedRoute>
+                            <Notifications />
+                        </ProtectedRoute>
+                    }
                 />
 
                 {/* ==========================================
@@ -184,7 +233,11 @@ export default function AppRoutes() {
 
                 <Route
                     path="/settings"
-                    element={<Settings />}
+                    element={
+                        <ProtectedRoute>
+                            <Settings />
+                        </ProtectedRoute>
+                    }
                 />
 
                 {/* ==========================================
