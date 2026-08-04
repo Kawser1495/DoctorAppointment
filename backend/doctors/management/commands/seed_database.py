@@ -29,6 +29,7 @@ from doctors.models import (
 from appointments.models import Appointment
 from payments.models import Payment
 from reports.models import MedicalReport
+from notifications.models import Notification
 
 
 class Command(BaseCommand):
@@ -1001,6 +1002,210 @@ class Command(BaseCommand):
             self.style.SUCCESS(
 
                 "Test Bookings Seeded Successfully"
+
+            )
+
+        )
+        
+        
+        # ==========================================
+        # Medical Report Seeder
+        # ==========================================
+
+        appointments = Appointment.objects.filter(
+
+            status="Completed"
+
+        )
+
+        report_titles = [
+
+            "General Health Report",
+
+            "Follow-up Report",
+
+            "Medical Examination Report",
+
+            "Consultation Report",
+
+            "Health Assessment",
+
+        ]
+
+        prescriptions = [
+
+            "Paracetamol 500mg twice daily for 5 days.",
+
+            "Vitamin D once daily for 30 days.",
+
+            "Complete the prescribed antibiotic course.",
+
+            "Drink plenty of water and take adequate rest.",
+
+            "Maintain a healthy diet and regular exercise.",
+
+        ]
+
+        remarks = [
+
+            "Patient condition is stable.",
+
+            "Follow-up after two weeks.",
+
+            "Further laboratory tests recommended.",
+
+            "Blood pressure should be monitored regularly.",
+
+            "Recovery is progressing well.",
+
+        ]
+
+        for appointment in appointments:
+
+            MedicalReport.objects.get_or_create(
+
+                appointment=appointment,
+
+                defaults={
+
+                    "patient": appointment.patient,
+
+                    "doctor": appointment.doctor,
+
+                    "report_title": choice(report_titles),
+
+                    "prescription": choice(prescriptions),
+
+                    "remarks": choice(remarks),
+
+                }
+
+            )
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                "Medical Reports Seeded Successfully"
+
+            )
+
+        )
+        
+        
+        # ==========================================
+        # Notification Seeder
+        # ==========================================
+
+        appointments = Appointment.objects.all()
+
+        for appointment in appointments:
+
+            Notification.objects.get_or_create(
+
+                user=appointment.patient.user,
+
+                title=f"Appointment {appointment.status}",
+
+                message=(
+
+                    f"Your appointment with "
+                    f"Dr. {appointment.doctor.user.get_full_name()} "
+                    f"has been {appointment.status.lower()}."
+
+                ),
+
+                defaults={
+
+                    "is_read": choice([True, False])
+
+                }
+
+            )
+
+        payments = Payment.objects.all()
+
+        for payment in payments:
+
+            Notification.objects.get_or_create(
+
+                user=payment.patient.user,
+
+                title="Payment Update",
+
+                message=(
+
+                    f"Your payment "
+                    f"({payment.transaction_id}) "
+                    f"is {payment.payment_status.lower()}."
+
+                ),
+
+                defaults={
+
+                    "is_read": choice([True, False])
+
+                }
+
+            )
+
+        test_bookings = TestBooking.objects.all()
+
+        for booking in test_bookings:
+
+            Notification.objects.get_or_create(
+
+                user=booking.patient.user,
+
+                title="Diagnostic Test Booking",
+
+                message=(
+
+                    f"Your diagnostic test "
+                    f"{booking.diagnostic_test.name} "
+                    f"is {booking.status.lower()}."
+
+                ),
+
+                defaults={
+
+                    "is_read": choice([True, False])
+
+                }
+
+            )
+
+        reports = MedicalReport.objects.all()
+
+        for report in reports:
+
+            Notification.objects.get_or_create(
+
+                user=report.patient.user,
+
+                title="Medical Report Uploaded",
+
+                message=(
+
+                    f"Your medical report "
+                    f"'{report.report_title}' "
+                    f"has been uploaded."
+
+                ),
+
+                defaults={
+
+                    "is_read": choice([True, False])
+
+                }
+
+            )
+
+        self.stdout.write(
+
+            self.style.SUCCESS(
+
+                "Notifications Seeded Successfully"
 
             )
 
