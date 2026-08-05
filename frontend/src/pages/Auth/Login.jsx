@@ -26,6 +26,7 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [rememberMe, setRememberMe] = useState(false);
 
     // ======================================
     // Handle Input Change
@@ -59,7 +60,25 @@ export default function Login() {
 
             const { access, refresh } = response.data;
 
+            // Remember Me
+
+            if (rememberMe) {
+
+                localStorage.setItem(
+                    "rememberMe",
+                    "true"
+                );
+
+            } else {
+
+                localStorage.removeItem(
+                    "rememberMe"
+                );
+
+            }
+
             // Login using Auth Context
+
             login(access, refresh);
 
             console.log("Login Successful");
@@ -192,6 +211,10 @@ export default function Login() {
                                         <input
                                             type="checkbox"
                                             id="remember"
+                                            checked={rememberMe}
+                                            onChange={(e) =>
+                                                setRememberMe(e.target.checked)
+                                            }
                                         />
 
                                         <label
