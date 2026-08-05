@@ -17,7 +17,9 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
 
-        const token = localStorage.getItem("access");
+        const token =
+            localStorage.getItem("access") ||
+            sessionStorage.getItem("access");
 
         if (token) {
             setIsAuthenticated(true);
@@ -51,6 +53,10 @@ export function AuthProvider({ children }) {
         localStorage.removeItem("access");
         localStorage.removeItem("refresh");
 
+        sessionStorage.removeItem("access");
+        sessionStorage.removeItem("refresh");
+
+        localStorage.removeItem("rememberMe");
         setIsAuthenticated(false);
 
     };

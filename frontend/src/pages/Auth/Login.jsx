@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 import { loginUser } from "../../services/authService";
@@ -27,6 +27,23 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [rememberMe, setRememberMe] = useState(false);
+
+    // ======================================
+    // Load Remember Me
+    // ======================================
+
+    useEffect(() => {
+
+        const savedRemember =
+            localStorage.getItem("rememberMe");
+
+        if (savedRemember === "true") {
+
+            setRememberMe(true);
+
+        }
+
+    }, []);
 
     // ======================================
     // Handle Input Change
@@ -60,8 +77,6 @@ export default function Login() {
 
             const { access, refresh } = response.data;
 
-            // Remember Me
-
             if (rememberMe) {
 
                 localStorage.setItem(
@@ -76,8 +91,6 @@ export default function Login() {
                 );
 
             }
-
-            // Login using Auth Context
 
             login(access, refresh);
 
@@ -144,7 +157,10 @@ export default function Login() {
 
                             )}
 
-                            <form onSubmit={handleSubmit}>
+                            <form
+                                onSubmit={handleSubmit}
+                                autoComplete="on"
+                            >
 
                                 <div className="mb-3">
 
@@ -161,6 +177,7 @@ export default function Login() {
                                         value={formData.username}
                                         onChange={handleChange}
                                         placeholder="Enter Username"
+                                        autoComplete="username"
                                         required
                                     />
 
@@ -187,6 +204,7 @@ export default function Login() {
                                             value={formData.password}
                                             onChange={handleChange}
                                             placeholder="Enter Password"
+                                            autoComplete="current-password"
                                             required
                                         />
 
@@ -197,7 +215,9 @@ export default function Login() {
                                                 setShowPassword(!showPassword)
                                             }
                                         >
-                                            {showPassword ? "Hide" : "Show"}
+                                            {showPassword
+                                                ? "Hide"
+                                                : "Show"}
                                         </button>
 
                                     </div>
