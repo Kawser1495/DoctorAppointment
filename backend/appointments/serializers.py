@@ -74,6 +74,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         read_only_fields = (
 
+            "patient",
+
             "booking_number",
 
             "status",
@@ -102,7 +104,19 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
 
-        patient = data.get("patient")
+        request = self.context["request"]
+
+        if not hasattr(request.user, "patient_profile"):
+
+            raise serializers.ValidationError({
+
+                "patient":
+                "Patient profile not found."
+
+            })
+
+        patient = request.user.patient_profile
+
         family_member = data.get("family_member")
         doctor = data.get("doctor")
         slot = data.get("slot")
@@ -110,12 +124,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
         reason = data.get("reason")
 
         # Required Validation
-
-        if not patient:
-
-            raise serializers.ValidationError({
-                "patient": "Patient is required."
-            })
 
         if not doctor:
 
@@ -132,7 +140,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if not appointment_date:
 
             raise serializers.ValidationError({
-                "appointment_date": "Appointment date is required."
+                "appointment_date":
+                "Appointment date is required."
             })
 
         if not reason:
@@ -146,8 +155,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if appointment_date < timezone.now().date():
 
             raise serializers.ValidationError({
+
                 "appointment_date":
                 "Past date booking is not allowed."
+
             })
 
         # Family Member Validation
@@ -245,6 +256,12 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
+
+        request = self.context["request"]
+
+        validated_data["patient"] = (
+            request.user.patient_profile
+        )
 
         appointment = Appointment.objects.create(
             **validated_data
