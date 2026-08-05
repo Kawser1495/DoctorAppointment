@@ -7,6 +7,7 @@ import ProtectedRoute from "./ProtectedRoute";
 
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
+import Logout from "../pages/Auth/Logout";
 
 // ==========================================
 // Dashboard
@@ -90,6 +91,10 @@ export default function AppRoutes() {
                 <Route
                     path="/register"
                     element={<Register />}
+                />
+                <Route
+                    path="/logout"
+                    element={<Logout />}
                 />
 
                 {/* ==========================================
