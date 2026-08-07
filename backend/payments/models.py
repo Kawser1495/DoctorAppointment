@@ -7,73 +7,65 @@ from diagnostics.models import TestBooking
 class Payment(models.Model):
 
     METHODS = [
-
-        ('Bkash', 'Bkash'),
-
-        ('Nagad', 'Nagad'),
-
-        ('Rocket', 'Rocket'),
-
-        ('Card', 'Card'),
-
-        ('Cash', 'Cash')
-
+        ("Bkash", "Bkash"),
+        ("Nagad", "Nagad"),
+        ("Rocket", "Rocket"),
+        ("Card", "Card"),
+        ("Cash", "Cash"),
     ]
 
     STATUS = [
-
-        ('Pending', 'Pending'),
-
-        ('Paid', 'Paid'),
-
-        ('Failed', 'Failed'),
-
-        ('Refunded', 'Refunded')
-
+        ("Pending", "Pending"),
+        ("Paid", "Paid"),
+        ("Failed", "Failed"),
+        ("Refunded", "Refunded"),
     ]
 
     patient = models.ForeignKey(
         PatientProfile,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="payments",
     )
 
     appointment = models.ForeignKey(
         Appointment,
         on_delete=models.SET_NULL,
         null=True,
-        blank=True
+        blank=True,
+        related_name="payments",
     )
 
     test_booking = models.ForeignKey(
         TestBooking,
         on_delete=models.SET_NULL,
         null=True,
-        blank=True
+        blank=True,
+        related_name="payments",
     )
 
     amount = models.DecimalField(
         max_digits=10,
-        decimal_places=2
+        decimal_places=2,
     )
 
     payment_method = models.CharField(
         max_length=20,
-        choices=METHODS
+        choices=METHODS,
     )
 
     transaction_id = models.CharField(
         max_length=100,
-        unique=True
+        unique=True,
     )
 
     payment_status = models.CharField(
         max_length=20,
         choices=STATUS,
-        default='Pending'
+        default="Pending",
     )
 
     payment_date = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     def __str__(self):

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from django.db import transaction
+from payments.models import Payment
 
 from .models import Appointment
 
@@ -10,6 +11,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
     # ==========================
     # Read Only Fields
     # ==========================
+    payment_status = serializers.SerializerMethodField()
+
+    payment_amount = serializers.SerializerMethodField()
+
+    payment_method = serializers.SerializerMethodField()
+
+    transaction_id = serializers.SerializerMethodField()
 
     booking_number = serializers.ReadOnlyField()
 
@@ -69,6 +77,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "created_at",
 
             "updated_at",
+            "payment_status",
+
+            "payment_amount",
+
+            "payment_method",
+
+            "transaction_id",
 
         ]
 
@@ -307,3 +322,67 @@ class AppointmentSerializer(serializers.ModelSerializer):
             instance,
             validated_data
         )
+        
+        
+        # =====================================
+        # Payment Status
+        # =====================================
+
+        def get_payment_status(self, obj):
+
+            payment = Payment.objects.filter(
+                appointment=obj
+            ).first()
+
+            if payment:
+                return payment.payment_status
+
+            return "Pending"
+
+
+        # =====================================
+        # Payment Amount
+        # =====================================
+
+        def get_payment_amount(self, obj):
+
+            payment = Payment.objects.filter(
+                appointment=obj
+            ).first()
+
+            if payment:
+                return payment.amount
+
+            return None
+
+
+        # =====================================
+        # Payment Method
+        # =====================================
+
+        def get_payment_method(self, obj):
+
+            payment = Payment.objects.filter(
+                appointment=obj
+            ).first()
+
+            if payment:
+                return payment.payment_method
+
+            return None
+
+
+        # =====================================
+        # Transaction ID
+        # =====================================
+
+        def get_transaction_id(self, obj):
+
+            payment = Payment.objects.filter(
+                appointment=obj
+            ).first()
+
+            if payment:
+                return payment.transaction_id
+
+            return None

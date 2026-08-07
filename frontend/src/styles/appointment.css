@@ -749,3 +749,33 @@ body {
     font-size:15px;
 
 }
+
+
+.success-page{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:80vh;
+}
+
+.success-card{
+    width:600px;
+    padding:40px;
+    background:white;
+    border-radius:12px;
+    box-shadow:0 5px 20px rgba(0,0,0,.1);
+    text-align:center;
+}
+
+.success-icon{
+    font-size:70px;
+    color:#28a745;
+    margin-bottom:20px;
+}
+
+.success-buttons{
+    margin-top:30px;
+    display:flex;
+    justify-content:center;
+    gap:20px;
+}
