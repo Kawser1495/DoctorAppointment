@@ -257,10 +257,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
 
-        request = self.context["request"]
-
         validated_data["patient"] = (
-            request.user.patient_profile
+            self.context["request"]
+            .user
+            .patient_profile
         )
 
         appointment = Appointment.objects.create(
@@ -271,7 +271,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         slot.booked_count += 1
 
-        slot.save(update_fields=["booked_count"])
+        slot.save(
+            update_fields=["booked_count"]
+        )
 
         return appointment
 

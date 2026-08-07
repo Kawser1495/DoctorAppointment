@@ -6,6 +6,7 @@ from .models import Appointment
 class AppointmentAdmin(admin.ModelAdmin):
 
     list_display = (
+        "booking_number",
         "patient",
         "doctor",
         "appointment_date",
@@ -18,6 +19,11 @@ class AppointmentAdmin(admin.ModelAdmin):
     )
 
     search_fields = (
-        "patient__full_name",
+        "booking_number",
+        "patient__user__username",
+        "patient__user__first_name",
+        "patient__user__last_name",
         "doctor__user__username",
+        "doctor__user__first_name",
+        "doctor__user__last_name",
     )

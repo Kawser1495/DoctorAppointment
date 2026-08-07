@@ -83,8 +83,6 @@ function BookAppointment() {
 
         const data = {
 
-            patient: 1, // Temporary (Later Login User)
-
             doctor: Number(doctor),
 
             slot: Number(timeSlot),
@@ -98,7 +96,7 @@ function BookAppointment() {
         };
 
         try {
-
+            console.log("Appointment Payload:", data);
             const response = await bookAppointment(data);
 
             alert(
