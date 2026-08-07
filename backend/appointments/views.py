@@ -51,7 +51,7 @@ class PatientAppointmentListView(generics.ListAPIView):
 
         user = self.request.user
 
-        if not hasattr(user, "patientprofile"):
+        if not hasattr(user, "patient_profile"):
             return Appointment.objects.none()
 
         return (
@@ -64,7 +64,7 @@ class PatientAppointmentListView(generics.ListAPIView):
                 "slot",
             )
             .filter(
-                patient=user.patientprofile
+                patient=user.patient_profile
             )
             .order_by(
                 "-appointment_date",
@@ -138,7 +138,7 @@ class AppointmentCancelView(APIView):
 
         # Only patient can cancel own appointment
         if (
-            hasattr(request.user, "patientprofile")
+            hasattr(request.user, "patient_profile")
             and appointment.patient != request.user.patientprofile
         ):
             return Response(

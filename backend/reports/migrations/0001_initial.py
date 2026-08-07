@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
                 ('appointment', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='appointments.appointment')),
                 ('doctor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='doctors.doctor')),
-                ('patient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='patients.patientprofile')),
+                ('patient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='patients.patient_profile')),
             ],
         ),
     ]

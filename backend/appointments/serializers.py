@@ -96,7 +96,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             return obj.family_member.name
 
-        return obj.patient.full_name
+        return obj.patient.user.get_full_name()
 
     # =====================================
     # Validation
@@ -260,7 +260,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         validated_data["patient"] = (
             self.context["request"]
             .user
-            .patient_profile
+            .patientprofile
         )
 
         appointment = Appointment.objects.create(

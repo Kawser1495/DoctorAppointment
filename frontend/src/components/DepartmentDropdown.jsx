@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getDepartments } from "../api/departmentApi";
+import { getDepartments } from "../services/departmentService";
 
 function DepartmentDropdown({
     selectedDepartment,
@@ -24,12 +24,18 @@ function DepartmentDropdown({
                 console.log("Response Headers:", response.headers);
                 console.log("Response Data:", response.data);
 
-                if (Array.isArray(response.data)) {
-                    setDepartments(response.data);
+                if (Array.isArray(response.data.results)) {
+
+                    setDepartments(response.data.results);
+
                 } else {
+
                     console.error("Unexpected API Response:", response.data);
+
                     setDepartments([]);
+
                     setError("Invalid department data received.");
+
                 }
             } catch (err) {
                 console.error("Department Error:", err);

@@ -33,9 +33,9 @@ function MyAppointments() {
 
                 const response = await getMyAppointments();
 
-                const data = response.data.data || response.data;
+                console.log("Appointments Response:", response.data);
 
-                setAppointments(data);
+                setAppointments(response.data.results || []);
 
             } catch (error) {
 

@@ -1,9 +1,16 @@
 import { useState, useEffect } from "react";
+
 import DepartmentDropdown from "../../components/DepartmentDropdown";
 import "../../styles/appointment.css";
 
 import { bookAppointment } from "../../services/appointmentService";
-import { getTimeSlots } from "../../services/timeSlotService";
+import { useNavigate } from "react-router-dom";
+
+import {
+    getAvailableTimeSlots,
+    getDoctorsByDepartment,
+} from "../../services/doctorService";
+
 
 function BookAppointment() {
 
@@ -11,15 +18,71 @@ function BookAppointment() {
     // State Variables
     // ==========================
 
-    const [department, setDepartment] = useState("");
-    const [doctor, setDoctor] = useState("");
-    const [appointmentDate, setAppointmentDate] = useState("");
-    const [timeSlot, setTimeSlot] = useState("");
-    const [reason, setReason] = useState("");
+    // ==========================
+// State Variables
+// ==========================
 
-    const [timeSlots, setTimeSlots] = useState([]);
+        const [department, setDepartment] = useState("");
 
-    const [errors, setErrors] = useState({});
+        const [doctors, setDoctors] = useState([]);
+
+        const [doctor, setDoctor] = useState("");
+
+        const [appointmentDate, setAppointmentDate] = useState("");
+
+        const [timeSlot, setTimeSlot] = useState("");
+
+        const [timeSlots, setTimeSlots] = useState([]);
+
+        const [reason, setReason] = useState("");
+
+        const [errors, setErrors] = useState({});
+        const navigate = useNavigate();
+
+
+    // ==========================
+    // Load Doctors By Department
+    // ==========================
+
+    useEffect(() => {
+
+        if (!department) {
+
+            setDoctors([]);
+
+            setDoctor("");
+
+            return;
+
+        }
+
+        const loadDoctors = async () => {
+
+            try {
+
+                const response =
+                    await getDoctorsByDepartment(
+                        department
+                    );
+
+                setDoctors(response.data.results);
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Doctor Load Error:",
+                    error
+                );
+
+            }
+
+        };
+
+        loadDoctors();
+
+    }, [department]);
 
     // ==========================
     // Load Available Time Slots
@@ -29,13 +92,19 @@ function BookAppointment() {
 
         const loadTimeSlots = async () => {
 
-            if (!doctor) return;
+            if (!doctor) {
+
+            setTimeSlots([]);
+
+            return;
+
+           }
 
             try {
 
-                const response = await getTimeSlots(doctor);
+                const response = await getAvailableTimeSlots(doctor);
 
-                setTimeSlots(response.data);
+                setTimeSlots(response.data.results);
 
             }
 
@@ -89,7 +158,7 @@ function BookAppointment() {
 
             appointment_date: appointmentDate,
 
-            reason: reason,
+            reason,
 
             symptoms: ""
 
@@ -104,15 +173,17 @@ function BookAppointment() {
                 "Appointment booked successfully."
             );
 
+            navigate("/my-appointments");
             // Reset Form
 
             setDepartment("");
+            setDoctors([]);
             setDoctor("");
             setAppointmentDate("");
             setTimeSlot("");
+            setTimeSlots([]);
             setReason("");
             setErrors({});
-            setTimeSlots([]);
 
         }
 
@@ -166,7 +237,6 @@ function BookAppointment() {
                     <div className="form-group">
 
                         <label>Doctor</label>
-
                         <select
                             value={doctor}
                             onChange={(e) =>
@@ -178,7 +248,18 @@ function BookAppointment() {
                                 Select Doctor
                             </option>
 
-                            {/* Day 14 Part 8 */}
+                            {doctors.map((doctor) => (
+
+                                <option
+                                    key={doctor.id}
+                                    value={doctor.id}
+                                >
+
+                                    {doctor.doctor_name}
+
+                                </option>
+
+                            ))}
 
                         </select>
 
@@ -199,6 +280,7 @@ function BookAppointment() {
                         <input
                             type="date"
                             value={appointmentDate}
+                            min={new Date().toISOString().split("T")[0]}
                             onChange={(e) =>
                                 setAppointmentDate(e.target.value)
                             }
