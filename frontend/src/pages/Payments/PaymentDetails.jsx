@@ -402,13 +402,20 @@ function PaymentDetails() {
                 Bottom Actions
             ================================================== */}
 
-            <div className="mt-4">
+            <div className="mt-4 d-flex gap-2">
 
                 <Link
                     to="/payments"
                     className="btn btn-primary"
                 >
                     Back to Payment History
+                </Link>
+
+                <Link
+                    to={`/payments/${payment.id}/receipt`}
+                    className="btn btn-success"
+                >
+                    🧾 View Receipt
                 </Link>
 
             </div>
