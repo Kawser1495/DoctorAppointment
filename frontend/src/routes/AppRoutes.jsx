@@ -9,6 +9,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import PaymentPage from "../pages/Payments/PaymentPage";
 import PaymentSuccess from "../pages/Payments/PaymentSuccess";
 import PaymentHistory from "../pages/Payments/PaymentHistory";
+import PaymentDetails from "../pages/Payments/PaymentDetails";
 
 // ==========================================
 // Authentication
@@ -213,6 +214,16 @@ export default function AppRoutes() {
                     element={
                         <ProtectedRoute>
                             <PaymentPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+
+                <Route
+                    path="/payments/:id"
+                    element={
+                        <ProtectedRoute>
+                            <PaymentDetails />
                         </ProtectedRoute>
                     }
                 />
