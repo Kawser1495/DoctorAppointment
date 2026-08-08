@@ -417,6 +417,14 @@ function PaymentDetails() {
                 >
                     🧾 View Receipt
                 </Link>
+                <Link
+                    to={`/payments/${payment.id}/invoice`}
+                    className="btn btn-warning"
+                >
+                    📄 View Invoice
+                </Link>
+
+
 
             </div>
 

@@ -69,7 +69,6 @@ class PaymentSerializer(serializers.ModelSerializer):
             "doctor_name",
 
             "payment_status",
-
             "payment_date",
 
         )
@@ -103,14 +102,10 @@ class PaymentSerializer(serializers.ModelSerializer):
         # Check Logged-in Patient
         # ==========================================
 
-        if request and hasattr(
+        if not request or not hasattr(
             request.user,
             "patient_profile"
         ):
-
-            patient = request.user.patient_profile
-
-        else:
 
             raise serializers.ValidationError({
 
@@ -118,6 +113,8 @@ class PaymentSerializer(serializers.ModelSerializer):
                 "Patient profile not found."
 
             })
+
+        patient = request.user.patient_profile
 
         # ==========================================
         # Appointment Ownership Check
@@ -141,9 +138,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         if appointment:
 
             existing_payment = Payment.objects.filter(
-
                 appointment=appointment
-
             ).exists()
 
             if existing_payment:

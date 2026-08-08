@@ -11,6 +11,8 @@ import PaymentSuccess from "../pages/Payments/PaymentSuccess";
 import PaymentHistory from "../pages/Payments/PaymentHistory";
 import PaymentDetails from "../pages/Payments/PaymentDetails";
 import PaymentReceipt from "../pages/Payments/PaymentReceipt";
+import PaymentInvoice from "../pages/Payments/PaymentInvoice";
+import AdminPayments from "../pages/Admin/AdminPayments";
 
 // ==========================================
 // Authentication
@@ -239,6 +241,16 @@ export default function AppRoutes() {
                     }
                 />
 
+
+                <Route
+                    path="/payments/:id/invoice"
+                    element={
+                        <ProtectedRoute>
+                            <PaymentInvoice />
+                        </ProtectedRoute>
+                    }
+                />
+
                 <Route
                     path="/payment-success"
                     element={
@@ -253,6 +265,14 @@ export default function AppRoutes() {
                     element={
                         <ProtectedRoute>
                             <PaymentHistory />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/admin/payments"
+                    element={
+                        <ProtectedRoute>
+                            <AdminPayments />
                         </ProtectedRoute>
                     }
                 />

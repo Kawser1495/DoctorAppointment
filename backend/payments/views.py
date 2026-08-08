@@ -27,7 +27,11 @@ class PaymentCreateView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
 
-        response = super().create(request, *args, **kwargs)
+        response = super().create(
+            request,
+            *args,
+            **kwargs
+        )
 
         return Response(
             {
@@ -74,6 +78,27 @@ class PaymentDetailView(generics.RetrieveAPIView):
 
 
 # ==========================================================
+# Admin Payment Management
+# GET: /api/payments/admin/
+# ==========================================================
+
+class AdminPaymentListView(generics.ListAPIView):
+
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+
+        if not self.request.user.is_staff:
+
+            return Payment.objects.none()
+
+        return Payment.objects.all().order_by(
+            "-payment_date"
+        )
+
+
+# ==========================================================
 # Payment Status Update
 # PATCH: /api/payments/<id>/status/
 # ==========================================================
@@ -91,16 +116,42 @@ class PaymentStatusUpdateView(APIView):
 
     def patch(self, request, pk):
 
+        # ------------------------------------------
+        # Admin / Staff Permission
+        # ------------------------------------------
+
+        if not request.user.is_staff:
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "Admin access required."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # ------------------------------------------
+        # Get Payment
+        # ------------------------------------------
+
         payment = get_object_or_404(
             Payment,
             pk=pk
         )
 
-        payment_status = request.data.get(
+        # ------------------------------------------
+        # Get New Status
+        # ------------------------------------------
+
+        new_status = request.data.get(
             "payment_status"
         )
 
-        if payment_status not in self.VALID_STATUS:
+        # ------------------------------------------
+        # Validate Status
+        # ------------------------------------------
+
+        if new_status not in self.VALID_STATUS:
 
             return Response(
                 {
@@ -110,11 +161,21 @@ class PaymentStatusUpdateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        payment.payment_status = payment_status
+        # ------------------------------------------
+        # Update Payment
+        # ------------------------------------------
+
+        payment.payment_status = new_status
 
         payment.save(
-            update_fields=["payment_status"]
+            update_fields=[
+                "payment_status"
+            ]
         )
+
+        # ------------------------------------------
+        # Success Response
+        # ------------------------------------------
 
         return Response(
             {

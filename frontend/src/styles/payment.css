@@ -79,3 +79,39 @@
     background:#157347;
 
 }
+
+
+/* ==========================================
+   Payment Receipt
+========================================== */
+
+@media print {
+
+    body {
+        background: white !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    #payment-receipt {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+    }
+
+    #payment-receipt .card-header {
+        background: white !important;
+        color: black !important;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+}

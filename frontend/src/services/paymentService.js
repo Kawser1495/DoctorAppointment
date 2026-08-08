@@ -1,6 +1,5 @@
 import api from "./api";
 
-
 // ==========================================================
 // Create Payment
 // POST: /api/payments/create/
@@ -45,7 +44,21 @@ export const getPaymentDetails = async (id) => {
 
 
 // ==========================================================
-// Update Payment Status
+// Admin Payment Management
+// GET: /api/payments/admin/
+// ==========================================================
+
+export const getAdminPayments = async () => {
+
+    return await api.get(
+        "payments/admin/"
+    );
+
+};
+
+
+// ==========================================================
+// Admin Update Payment Status
 // PATCH: /api/payments/:id/status/
 // ==========================================================
 
