@@ -32,6 +32,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
         source="doctor.department.name",
         read_only=True
     )
+    
+    consultation_fee = serializers.DecimalField(
+    source="doctor.consultation_fee",
+    max_digits=10,
+    decimal_places=2,
+    read_only=True
+    )
 
     slot_time = serializers.TimeField(
         source="slot.slot_time",
@@ -61,6 +68,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "doctor_name",
 
             "department",
+            
+            "consultation_fee",
 
             "slot",
 
@@ -324,65 +333,65 @@ class AppointmentSerializer(serializers.ModelSerializer):
         )
         
         
-        # =====================================
-        # Payment Status
-        # =====================================
+    # =====================================
+    # Payment Status
+    # =====================================
 
-        def get_payment_status(self, obj):
+    def get_payment_status(self, obj):
 
-            payment = Payment.objects.filter(
-                appointment=obj
-            ).first()
+        payment = Payment.objects.filter(
+            appointment=obj
+        ).first()
 
-            if payment:
-                return payment.payment_status
+        if payment:
+            return payment.payment_status
 
-            return "Pending"
-
-
-        # =====================================
-        # Payment Amount
-        # =====================================
-
-        def get_payment_amount(self, obj):
-
-            payment = Payment.objects.filter(
-                appointment=obj
-            ).first()
-
-            if payment:
-                return payment.amount
-
-            return None
+        return "Pending"
 
 
-        # =====================================
-        # Payment Method
-        # =====================================
+    # =====================================
+    # Payment Amount
+    # =====================================
 
-        def get_payment_method(self, obj):
+    def get_payment_amount(self, obj):
 
-            payment = Payment.objects.filter(
-                appointment=obj
-            ).first()
+        payment = Payment.objects.filter(
+            appointment=obj
+        ).first()
 
-            if payment:
-                return payment.payment_method
+        if payment:
+            return payment.amount
+        
+        return None
 
-            return None
+
+    # =====================================
+    # Payment Method
+    # =====================================
+
+    def get_payment_method(self, obj):
+
+        payment = Payment.objects.filter(
+            appointment=obj
+        ).first()
+
+        if payment:
+            return payment.payment_method
+
+        return None
 
 
-        # =====================================
-        # Transaction ID
-        # =====================================
+    # =====================================
+    # Transaction ID
+    # =====================================
 
-        def get_transaction_id(self, obj):
+    def get_transaction_id(self, obj):
 
-            payment = Payment.objects.filter(
-                appointment=obj
-            ).first()
+        payment = Payment.objects.filter(
+            appointment=obj
+        ).first()
 
-            if payment:
-                return payment.transaction_id
+        if payment:
+            return payment.transaction_id
 
-            return None
+        return None

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 import { getAppointmentDetails } from "../../services/appointmentService";
 import AppointmentCard from "../../components/Cards/AppointmentCard";
@@ -7,6 +7,8 @@ import AppointmentCard from "../../components/Cards/AppointmentCard";
 function AppointmentDetails() {
 
     const { id } = useParams();
+
+    const navigate = useNavigate();
 
     const [appointment, setAppointment] = useState(null);
 
@@ -26,13 +28,17 @@ function AppointmentDetails() {
 
                 setAppointment(data);
 
-            } catch (error) {
+            }
+
+            catch (error) {
 
                 console.error(error);
 
                 alert("Failed to load appointment details.");
 
-            } finally {
+            }
+
+            finally {
 
                 setLoading(false);
 
@@ -63,6 +69,34 @@ function AppointmentDetails() {
             <AppointmentCard
                 appointment={appointment}
             />
+
+            {/* ==========================
+                Payment Button
+            ========================== */}
+
+            {appointment.status === "Pending" && (
+
+                <div
+                    style={{
+                        marginTop: "20px",
+                        textAlign: "center",
+                    }}
+                >
+
+                    <button
+                        className="btn btn-success"
+                        onClick={() =>
+                            navigate("/payment", {
+                                state: appointment,
+                            })
+                        }
+                    >
+                        Pay Now
+                    </button>
+
+                </div>
+
+            )}
 
         </div>
 

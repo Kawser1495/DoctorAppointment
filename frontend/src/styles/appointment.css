@@ -779,3 +779,28 @@ body {
     justify-content:center;
     gap:20px;
 }
+
+
+.pay-btn {
+
+    background: #198754;
+
+    color: white;
+
+    border: none;
+
+    padding: 8px 14px;
+
+    border-radius: 6px;
+
+    cursor: pointer;
+
+    margin-right: 8px;
+
+}
+
+.pay-btn:hover {
+
+    background: #157347;
+
+}

@@ -1,6 +1,15 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 
+
+// ==========================================
+// Payment Module
+// ==========================================
+
+import PaymentPage from "../pages/Payments/PaymentPage";
+import PaymentSuccess from "../pages/Payments/PaymentSuccess";
+import PaymentHistory from "../pages/Payments/PaymentHistory";
+
 // ==========================================
 // Authentication
 // ==========================================
@@ -45,8 +54,6 @@ import MedicalReports from "../pages/Reports/MedicalReports";
 // ==========================================
 // Payment Module
 // ==========================================
-
-import Payments from "../pages/Payments/Payments";
 
 // ==========================================
 // Family Module
@@ -197,11 +204,33 @@ export default function AppRoutes() {
                     Payments
                 ========================================== */}
 
+                {/* ==========================================
+                    Payment Module
+                ========================================== */}
+
+                <Route
+                    path="/payment"
+                    element={
+                        <ProtectedRoute>
+                            <PaymentPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/payment-success"
+                    element={
+                        <ProtectedRoute>
+                            <PaymentSuccess />
+                        </ProtectedRoute>
+                    }
+                />
+
                 <Route
                     path="/payments"
                     element={
                         <ProtectedRoute>
-                            <Payments />
+                            <PaymentHistory />
                         </ProtectedRoute>
                     }
                 />

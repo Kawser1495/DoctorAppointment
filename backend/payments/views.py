@@ -41,7 +41,7 @@ class PaymentCreateView(generics.CreateAPIView):
 
 # ==========================================================
 # My Payment History
-# GET: /api/payments/my/
+# GET: /api/payments/
 # ==========================================================
 
 class PaymentListView(generics.ListAPIView):
@@ -120,6 +120,7 @@ class PaymentStatusUpdateView(APIView):
             {
                 "success": True,
                 "message": "Payment status updated successfully.",
+                "payment_id": payment.id,
                 "payment_status": payment.payment_status
             },
             status=status.HTTP_200_OK

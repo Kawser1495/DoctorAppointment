@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     getMyAppointments,
     cancelAppointment,
@@ -8,6 +8,7 @@ import {
 import "../../styles/appointment.css";
 
 function MyAppointments() {
+    const navigate = useNavigate();
 
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -308,11 +309,11 @@ function MyAppointments() {
                                         </span>
 
                                     </td>
-
+                                    
                                     <td>
 
                                         <Link
-                                            to={`/appointments/${appointment.id}`}
+                                            to={`/appointments/details/${appointment.id}`}
                                             className="view-btn"
                                         >
                                             View
@@ -322,16 +323,29 @@ function MyAppointments() {
 
                                         {appointment.status === "Pending" && (
 
-                                            <button
-                                                className="cancel-btn"
-                                                onClick={() =>
-                                                    handleCancel(
-                                                        appointment.id
-                                                    )
-                                                }
-                                            >
-                                                Cancel
-                                            </button>
+                                            <>
+                                                <button
+                                                    className="pay-btn"
+                                                    onClick={() =>
+                                                        navigate("/payment", {
+                                                            state: appointment,
+                                                        })
+                                                    }
+                                                >
+                                                    Pay Now
+                                                </button>
+
+                                                {" "}
+
+                                                <button
+                                                    className="cancel-btn"
+                                                    onClick={() =>
+                                                        handleCancel(appointment.id)
+                                                    }
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </>
 
                                         )}
 
