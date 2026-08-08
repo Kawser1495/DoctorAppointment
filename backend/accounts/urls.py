@@ -1,13 +1,47 @@
 from django.urls import path
-from .views import RegisterView, LoginView, RefreshTokenView
+
+from .views import (
+    RegisterView,
+    LoginView,
+    RefreshTokenView,
+)
+
+
+app_name = "accounts"
+
 
 urlpatterns = [
-    # Register API
-    path("register/", RegisterView.as_view(), name="register"),
 
-    # Login API
-    path("login/", LoginView.as_view(), name="login"),
+    # ======================================================
+    # Register
+    # POST: /api/accounts/register/
+    # ======================================================
 
-    # Refresh Token API
-    path("refresh/", RefreshTokenView.as_view(), name="refresh"),
+    path(
+        "register/",
+        RegisterView.as_view(),
+        name="register",
+    ),
+
+    # ======================================================
+    # Login
+    # POST: /api/accounts/login/
+    # ======================================================
+
+    path(
+        "login/",
+        LoginView.as_view(),
+        name="login",
+    ),
+
+    # ======================================================
+    # Refresh Token
+    # POST: /api/accounts/refresh/
+    # ======================================================
+
+    path(
+        "refresh/",
+        RefreshTokenView.as_view(),
+        name="refresh",
+    ),
 ]

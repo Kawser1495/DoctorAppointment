@@ -14,7 +14,10 @@ SECRET_KEY = 'django-insecure-kho9$8f1%ypi4$3e_*9!q=#8d*g9q(tw03g=g3$_cm8b#du54)
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+]
 
 # ===========================
 # Installed Apps
@@ -247,7 +250,10 @@ SIMPLE_JWT = {
 # CORS
 # ===========================
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 # ===========================
 # File Upload
