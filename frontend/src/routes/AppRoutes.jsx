@@ -1,10 +1,56 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+    BrowserRouter,
+    Routes,
+    Route,
+} from "react-router-dom";
+
 import ProtectedRoute from "./ProtectedRoute";
+import GuestRoute from "./GuestRoute";
 
+// ==========================================================
+// Authentication
+// ==========================================================
 
-// ==========================================
-// Payment Module
-// ==========================================
+import Login from "../pages/Auth/Login";
+import Register from "../pages/Auth/Register";
+import Logout from "../pages/Auth/Logout";
+
+// ==========================================================
+// Dashboard
+// ==========================================================
+
+import Dashboard from "../pages/Dashboard/Dashboard";
+
+// ==========================================================
+// Appointments
+// ==========================================================
+
+import BookAppointment from "../pages/Appointments/BookAppointment";
+import MyAppointments from "../pages/Appointments/MyAppointments";
+import AppointmentDetails from "../pages/Appointments/AppointmentDetails";
+import AppointmentSuccess from "../pages/Appointments/AppointmentSuccess";
+
+// ==========================================================
+// Doctors
+// ==========================================================
+
+import DoctorList from "../pages/Doctors/DoctorList";
+
+// ==========================================================
+// Diagnostics
+// ==========================================================
+
+import DiagnosticTests from "../pages/Diagnostics/DiagnosticTests";
+
+// ==========================================================
+// Reports
+// ==========================================================
+
+import MedicalReports from "../pages/Reports/MedicalReports";
+
+// ==========================================================
+// Payments
+// ==========================================================
 
 import PaymentPage from "../pages/Payments/PaymentPage";
 import PaymentSuccess from "../pages/Payments/PaymentSuccess";
@@ -12,105 +58,85 @@ import PaymentHistory from "../pages/Payments/PaymentHistory";
 import PaymentDetails from "../pages/Payments/PaymentDetails";
 import PaymentReceipt from "../pages/Payments/PaymentReceipt";
 import PaymentInvoice from "../pages/Payments/PaymentInvoice";
+
+// ==========================================================
+// Admin
+// ==========================================================
+
 import AdminPayments from "../pages/Admin/AdminPayments";
 
-// ==========================================
-// Authentication
-// ==========================================
-
-import Login from "../pages/Auth/Login";
-import Register from "../pages/Auth/Register";
-import Logout from "../pages/Auth/Logout";
-
-// ==========================================
-// Dashboard
-// ==========================================
-
-import Dashboard from "../pages/Dashboard/Dashboard";
-
-// ==========================================
-// Appointment Module
-// ==========================================
-
-import BookAppointment from "../pages/Appointments/BookAppointment";
-import MyAppointments from "../pages/Appointments/MyAppointments";
-import AppointmentDetails from "../pages/Appointments/AppointmentDetails";
-import AppointmentSuccess from "../pages/Appointments/AppointmentSuccess";
-
-// ==========================================
-// Doctor Module
-// ==========================================
-
-import DoctorList from "../pages/Doctors/DoctorList";
-
-// ==========================================
-// Diagnostic Module
-// ==========================================
-
-import DiagnosticTests from "../pages/Diagnostics/DiagnosticTests";
-
-// ==========================================
-// Report Module
-// ==========================================
-
-import MedicalReports from "../pages/Reports/MedicalReports";
-
-// ==========================================
-// Payment Module
-// ==========================================
-
-// ==========================================
-// Family Module
-// ==========================================
+// ==========================================================
+// Family
+// ==========================================================
 
 import FamilyMembers from "../pages/Family/FamilyMembers";
 
-// ==========================================
-// Notification Module
-// ==========================================
+// ==========================================================
+// Notifications
+// ==========================================================
 
 import Notifications from "../pages/Notifications/Notifications";
 
-// ==========================================
-// Settings Module
-// ==========================================
+// ==========================================================
+// Settings
+// ==========================================================
 
 import Settings from "../pages/Settings/Settings";
 
+
 export default function AppRoutes() {
-
     return (
-
         <BrowserRouter>
 
             <Routes>
 
-                {/* ==========================================
-                    Authentication
-                ========================================== */}
+                {/* ==================================================
+                    Guest Routes
+                ================================================== */}
 
                 <Route
                     path="/"
-                    element={<Login />}
+                    element={
+                        <GuestRoute>
+                            <Login />
+                        </GuestRoute>
+                    }
                 />
 
                 <Route
                     path="/login"
-                    element={<Login />}
+                    element={
+                        <GuestRoute>
+                            <Login />
+                        </GuestRoute>
+                    }
                 />
 
                 <Route
                     path="/register"
-                    element={<Register />}
-                />
-                <Route
-                    path="/logout"
-                    element={<Logout />}
+                    element={
+                        <GuestRoute>
+                            <Register />
+                        </GuestRoute>
+                    }
                 />
 
-                {/* ==========================================
+
+                {/* ==================================================
+                    Logout
+                ================================================== */}
+
+                <Route
+                    path="/logout"
+                    element={
+                        <Logout />
+                    }
+                />
+
+
+                {/* ==================================================
                     Dashboard
-                ========================================== */}
+                ================================================== */}
 
                 <Route
                     path="/dashboard"
@@ -121,28 +147,25 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* ==========================================
-                    Appointment Module
-                ========================================== */}
 
-                <Route
-                    path="/appointments/book"
-                    element={
-
-                        <ProtectedRoute>
-
-                            <BookAppointment />
-
-                        </ProtectedRoute>
-
-                    }
-                />
+                {/* ==================================================
+                    Appointments
+                ================================================== */}
 
                 <Route
                     path="/appointments"
                     element={
                         <ProtectedRoute>
                             <MyAppointments />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/appointments/book"
+                    element={
+                        <ProtectedRoute>
+                            <BookAppointment />
                         </ProtectedRoute>
                     }
                 />
@@ -165,9 +188,10 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* ==========================================
-                    Doctor Module
-                ========================================== */}
+
+                {/* ==================================================
+                    Doctors
+                ================================================== */}
 
                 <Route
                     path="/doctors"
@@ -178,9 +202,10 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* ==========================================
-                    Diagnostic Module
-                ========================================== */}
+
+                {/* ==================================================
+                    Diagnostics
+                ================================================== */}
 
                 <Route
                     path="/tests"
@@ -191,9 +216,10 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* ==========================================
-                    Medical Reports
-                ========================================== */}
+
+                {/* ==================================================
+                    Reports
+                ================================================== */}
 
                 <Route
                     path="/reports"
@@ -204,13 +230,12 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* ==========================================
-                    Payments
-                ========================================== */}
 
-                {/* ==========================================
-                    Payment Module
-                ========================================== */}
+                {/* ==================================================
+                    Payments
+                ================================================== */}
+
+                {/* Payment Creation */}
 
                 <Route
                     path="/payment"
@@ -221,6 +246,18 @@ export default function AppRoutes() {
                     }
                 />
 
+                {/* Payment History */}
+
+                <Route
+                    path="/payments"
+                    element={
+                        <ProtectedRoute>
+                            <PaymentHistory />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* Payment Details */}
 
                 <Route
                     path="/payments/:id"
@@ -231,6 +268,7 @@ export default function AppRoutes() {
                     }
                 />
 
+                {/* Payment Receipt */}
 
                 <Route
                     path="/payments/:id/receipt"
@@ -241,6 +279,7 @@ export default function AppRoutes() {
                     }
                 />
 
+                {/* Payment Invoice */}
 
                 <Route
                     path="/payments/:id/invoice"
@@ -251,6 +290,8 @@ export default function AppRoutes() {
                     }
                 />
 
+                {/* Payment Success */}
+
                 <Route
                     path="/payment-success"
                     element={
@@ -260,14 +301,11 @@ export default function AppRoutes() {
                     }
                 />
 
-                <Route
-                    path="/payments"
-                    element={
-                        <ProtectedRoute>
-                            <PaymentHistory />
-                        </ProtectedRoute>
-                    }
-                />
+
+                {/* ==================================================
+                    Admin
+                ================================================== */}
+
                 <Route
                     path="/admin/payments"
                     element={
@@ -277,9 +315,10 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* ==========================================
-                    Family Members
-                ========================================== */}
+
+                {/* ==================================================
+                    Family
+                ================================================== */}
 
                 <Route
                     path="/family"
@@ -290,9 +329,10 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* ==========================================
+
+                {/* ==================================================
                     Notifications
-                ========================================== */}
+                ================================================== */}
 
                 <Route
                     path="/notifications"
@@ -303,9 +343,10 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* ==========================================
+
+                {/* ==================================================
                     Settings
-                ========================================== */}
+                ================================================== */}
 
                 <Route
                     path="/settings"
@@ -316,28 +357,37 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* ==========================================
-                    404 Page
-                ========================================== */}
+
+                {/* ==================================================
+                    404
+                ================================================== */}
 
                 <Route
                     path="*"
                     element={
-                        <h2
+                        <div
                             style={{
+                                minHeight: "60vh",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center",
+                                alignItems: "center",
                                 textAlign: "center",
-                                marginTop: "100px",
                             }}
                         >
-                            404 - Page Not Found
-                        </h2>
+                            <h2>
+                                404 - Page Not Found
+                            </h2>
+
+                            <p>
+                                The page you are looking for does not exist.
+                            </p>
+                        </div>
                     }
                 />
 
             </Routes>
 
         </BrowserRouter>
-
     );
-
 }

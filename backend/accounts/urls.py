@@ -14,7 +14,7 @@ urlpatterns = [
 
     # ======================================================
     # Register
-    # POST: /api/accounts/register/
+    # POST /api/accounts/register/
     # ======================================================
 
     path(
@@ -25,7 +25,7 @@ urlpatterns = [
 
     # ======================================================
     # Login
-    # POST: /api/accounts/login/
+    # POST /api/accounts/login/
     # ======================================================
 
     path(
@@ -35,8 +35,8 @@ urlpatterns = [
     ),
 
     # ======================================================
-    # Refresh Token
-    # POST: /api/accounts/refresh/
+    # Refresh
+    # POST /api/accounts/refresh/
     # ======================================================
 
     path(

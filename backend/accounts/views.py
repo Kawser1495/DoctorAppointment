@@ -1,5 +1,6 @@
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
+
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -10,8 +11,8 @@ from .serializers import RegisterSerializer
 
 
 # ==========================================================
-# Register API
-# POST: /api/accounts/register/
+# Register
+# POST /api/accounts/register/
 # ==========================================================
 
 class RegisterView(generics.CreateAPIView):
@@ -26,8 +27,8 @@ class RegisterView(generics.CreateAPIView):
 
 
 # ==========================================================
-# Login API
-# POST: /api/accounts/login/
+# Login
+# POST /api/accounts/login/
 # ==========================================================
 
 class LoginView(TokenObtainPairView):
@@ -38,8 +39,8 @@ class LoginView(TokenObtainPairView):
 
 
 # ==========================================================
-# Refresh Token API
-# POST: /api/accounts/refresh/
+# Refresh Token
+# POST /api/accounts/refresh/
 # ==========================================================
 
 class RefreshTokenView(TokenRefreshView):

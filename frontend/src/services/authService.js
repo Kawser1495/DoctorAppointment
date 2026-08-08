@@ -1,25 +1,38 @@
-import axios from "axios";
+import {
+    loginApi,
+    registerApi,
+    refreshTokenApi,
+} from "../api/authApi";
 
-export const loginUser = (data) => {
 
-    return axios.post(
+// ==========================================================
+// Login User
+// ==========================================================
 
-        "http://127.0.0.1:8000/api/accounts/login/",
+export const loginUser = async (data) => {
 
-        data
-
-    );
+    return await loginApi(data);
 
 };
 
-export const registerUser = (data) => {
 
-    return axios.post(
+// ==========================================================
+// Register User
+// ==========================================================
 
-        "http://127.0.0.1:8000/api/accounts/register/",
+export const registerUser = async (data) => {
 
-        data
+    return await registerApi(data);
 
-    );
+};
+
+
+// ==========================================================
+// Refresh Access Token
+// ==========================================================
+
+export const refreshAccessToken = async (refresh) => {
+
+    return await refreshTokenApi(refresh);
 
 };

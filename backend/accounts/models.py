@@ -5,33 +5,39 @@ from django.db import models
 class CustomUser(AbstractUser):
 
     ROLE_CHOICES = (
-        ('admin', 'Admin'),
-        ('doctor', 'Doctor'),
-        ('patient', 'Patient'),
-        ('receptionist', 'Receptionist'),
+        ("admin", "Admin"),
+        ("doctor", "Doctor"),
+        ("patient", "Patient"),
+        ("receptionist", "Receptionist"),
     )
 
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
-        default='patient'
+        default="patient",
     )
 
     phone = models.CharField(
         max_length=15,
         unique=True,
         blank=True,
-        null=True
+        null=True,
     )
 
-    is_verified = models.BooleanField(default=False)
+    is_verified = models.BooleanField(
+        default=False
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     class Meta:
-        ordering = ['username']
+        ordering = ["username"]
 
     def __str__(self):
         return self.username

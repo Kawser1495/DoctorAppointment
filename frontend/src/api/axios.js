@@ -1,27 +1,111 @@
 import axios from "axios";
 
+
+// ==========================================================
+// API Configuration
+// ==========================================================
+
+const API_BASE_URL =
+    "http://127.0.0.1:8000/api/";
+
+
 // ==========================================================
 // Axios Instance
 // ==========================================================
 
 const api = axios.create({
-    baseURL: "http://127.0.0.1:8000/api/",
+
+    baseURL: API_BASE_URL,
+
     headers: {
         "Content-Type": "application/json",
     },
+
 });
+
+
+// ==========================================================
+// Helper: Get Access Token
+// ==========================================================
+
+const getAccessToken = () => {
+
+    return (
+        localStorage.getItem("access") ||
+        sessionStorage.getItem("access")
+    );
+
+};
+
+
+// ==========================================================
+// Helper: Get Refresh Token
+// ==========================================================
+
+const getRefreshToken = () => {
+
+    return (
+        localStorage.getItem("refresh") ||
+        sessionStorage.getItem("refresh")
+    );
+
+};
+
+
+// ==========================================================
+// Helper: Save Access Token
+// ==========================================================
+
+const saveAccessToken = (token) => {
+
+    if (localStorage.getItem("refresh")) {
+
+        localStorage.setItem(
+            "access",
+            token
+        );
+
+        return;
+    }
+
+    if (sessionStorage.getItem("refresh")) {
+
+        sessionStorage.setItem(
+            "access",
+            token
+        );
+
+    }
+
+};
+
+
+// ==========================================================
+// Helper: Clear Authentication
+// ==========================================================
+
+export const clearAuthStorage = () => {
+
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+
+    sessionStorage.removeItem("access");
+    sessionStorage.removeItem("refresh");
+
+};
+
 
 // ==========================================================
 // Request Interceptor
-// Automatically attach JWT access token
+// Automatically attach JWT
 // ==========================================================
 
 api.interceptors.request.use(
+
     (config) => {
 
         const accessToken =
-            localStorage.getItem("access") ||
-            sessionStorage.getItem("access");
+            getAccessToken();
 
         if (accessToken) {
 
@@ -31,6 +115,7 @@ api.interceptors.request.use(
         }
 
         return config;
+
     },
 
     (error) => {
@@ -38,11 +123,13 @@ api.interceptors.request.use(
         return Promise.reject(error);
 
     }
+
 );
+
 
 // ==========================================================
 // Response Interceptor
-// Handle expired access token
+// Handle expired JWT
 // ==========================================================
 
 api.interceptors.response.use(
@@ -55,85 +142,124 @@ api.interceptors.response.use(
 
     async (error) => {
 
-        const originalRequest = error.config;
+        const originalRequest =
+            error.config;
 
-        // --------------------------------------------------
-        // If access token expired
-        // --------------------------------------------------
+        // ----------------------------------------------
+        // No response
+        // ----------------------------------------------
 
-        if (
-            error.response?.status === 401 &&
-            !originalRequest?._retry
-        ) {
+        if (!error.response) {
 
-            originalRequest._retry = true;
-
-            const refreshToken =
-                localStorage.getItem("refresh") ||
-                sessionStorage.getItem("refresh");
-
-            if (refreshToken) {
-
-                try {
-
-                    const response = await axios.post(
-                        "http://127.0.0.1:8000/api/accounts/refresh/",
-                        {
-                            refresh: refreshToken,
-                        }
-                    );
-
-                    const newAccessToken =
-                        response.data.access;
-
-                    if (newAccessToken) {
-
-                        if (
-                            localStorage.getItem("refresh")
-                        ) {
-
-                            localStorage.setItem(
-                                "access",
-                                newAccessToken
-                            );
-
-                        } else {
-
-                            sessionStorage.setItem(
-                                "access",
-                                newAccessToken
-                            );
-
-                        }
-
-                        originalRequest.headers.Authorization =
-                            `Bearer ${newAccessToken}`;
-
-                        return api(originalRequest);
-                    }
-
-                } catch (refreshError) {
-
-                    console.error(
-                        "Token refresh failed:",
-                        refreshError
-                    );
-
-                    localStorage.removeItem("access");
-                    localStorage.removeItem("refresh");
-
-                    sessionStorage.removeItem("access");
-                    sessionStorage.removeItem("refresh");
-
-                }
-
-            }
+            return Promise.reject(error);
 
         }
 
-        return Promise.reject(error);
+
+        // ----------------------------------------------
+        // Only handle 401
+        // ----------------------------------------------
+
+        if (
+            error.response.status !== 401 ||
+            !originalRequest ||
+            originalRequest._retry
+        ) {
+
+            return Promise.reject(error);
+
+        }
+
+
+        originalRequest._retry = true;
+
+
+        const refreshToken =
+            getRefreshToken();
+
+
+        // ----------------------------------------------
+        // No refresh token
+        // ----------------------------------------------
+
+        if (!refreshToken) {
+
+            clearAuthStorage();
+
+            return Promise.reject(error);
+
+        }
+
+
+        try {
+
+            const refreshResponse =
+                await axios.post(
+
+                    `${API_BASE_URL}accounts/refresh/`,
+
+                    {
+                        refresh:
+                            refreshToken,
+                    }
+
+                );
+
+
+            const newAccessToken =
+                refreshResponse.data.access;
+
+
+            if (!newAccessToken) {
+
+                throw new Error(
+                    "Access token was not returned."
+                );
+
+            }
+
+
+            // Save new access token
+            saveAccessToken(
+                newAccessToken
+            );
+
+
+            // Update failed request
+            originalRequest.headers =
+                originalRequest.headers || {};
+
+            originalRequest.headers.Authorization =
+                `Bearer ${newAccessToken}`;
+
+
+            // Retry original request
+            return api(
+                originalRequest
+            );
+
+        }
+
+        catch (refreshError) {
+
+            console.error(
+                "Token refresh failed:",
+                refreshError
+            );
+
+
+            clearAuthStorage();
+
+
+            return Promise.reject(
+                refreshError
+            );
+
+        }
 
     }
+
 );
+
 
 export default api;
