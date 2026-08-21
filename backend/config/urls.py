@@ -15,6 +15,12 @@ urlpatterns = [
         "admin/",
         admin.site.urls,
     ),
+    
+    
+    path(
+    "api/admin/",
+    include("adminpanel.urls"),
+    ),
 
     # ==========================================
     # Authentication APIs
