@@ -7,7 +7,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(
         write_only=True,
-        min_length=8,
+        min_length=8
     )
 
     class Meta:
@@ -22,9 +22,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         ]
 
         extra_kwargs = {
-            "username": {
-                "required": True,
-            },
             "email": {
                 "required": True,
             },
@@ -35,7 +32,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
 
-        return CustomUser.objects.create_user(
-            role="patient",
+        user = CustomUser.objects.create_user(
             **validated_data,
+            role="patient"
         )
+
+        return user

@@ -1,29 +1,43 @@
 from django.db import models
+
 from accounts.models import CustomUser
 
 
-# ==========================
-# Department Model
-# ==========================
+# ==========================================================
+# Department
+# ==========================================================
 
 class Department(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    name = models.CharField(
+        max_length=100,
+        unique=True
+    )
+
+    description = models.TextField(
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
     class Meta:
+
         ordering = ["name"]
+
         verbose_name = "Department"
+
         verbose_name_plural = "Departments"
 
     def __str__(self):
+
         return self.name
 
 
-# ==========================
-# Doctor Model
-# ==========================
+# ==========================================================
+# Doctor
+# ==========================================================
 
 class Doctor(models.Model):
 
@@ -39,9 +53,13 @@ class Doctor(models.Model):
         related_name="doctors"
     )
 
-    specialization = models.CharField(max_length=150)
+    specialization = models.CharField(
+        max_length=150
+    )
 
-    qualification = models.CharField(max_length=200)
+    qualification = models.CharField(
+        max_length=200
+    )
 
     experience = models.PositiveIntegerField(
         help_text="Experience in years"
@@ -52,7 +70,9 @@ class Doctor(models.Model):
         decimal_places=2
     )
 
-    biography = models.TextField(blank=True)
+    biography = models.TextField(
+        blank=True
+    )
 
     profile_image = models.ImageField(
         upload_to="doctor_profiles/",
@@ -60,24 +80,40 @@ class Doctor(models.Model):
         null=True
     )
 
-    is_available = models.BooleanField(default=True)
+    is_available = models.BooleanField(
+        default=True
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
 
     class Meta:
+
         ordering = ["user__first_name"]
+
         verbose_name = "Doctor"
+
         verbose_name_plural = "Doctors"
 
     def __str__(self):
-        return f"Dr. {self.user.get_full_name()}"
+
+        full_name = self.user.get_full_name()
+
+        if full_name:
+
+            return f"Dr. {full_name}"
+
+        return f"Dr. {self.user.username}"
 
 
-# ==========================
+# ==========================================================
 # Doctor Schedule
-# ==========================
+# ==========================================================
 
 class DoctorSchedule(models.Model):
 
@@ -106,21 +142,36 @@ class DoctorSchedule(models.Model):
 
     end_time = models.TimeField()
 
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(
+        default=True
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
     class Meta:
-        unique_together = ("doctor", "day")
-        ordering = ["doctor", "day"]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["doctor", "day"],
+                name="unique_doctor_schedule_day"
+            )
+        ]
+
+        ordering = [
+            "doctor",
+            "day"
+        ]
 
     def __str__(self):
+
         return f"{self.doctor} - {self.day}"
 
 
-# ==========================
+# ==========================================================
 # Time Slot
-# ==========================
+# ==========================================================
 
 class TimeSlot(models.Model):
 
@@ -132,21 +183,40 @@ class TimeSlot(models.Model):
 
     slot_time = models.TimeField()
 
-    max_patient = models.PositiveIntegerField(default=1)
+    max_patient = models.PositiveIntegerField(
+        default=1
+    )
 
-    booked_count = models.PositiveIntegerField(default=0)
+    booked_count = models.PositiveIntegerField(
+        default=0
+    )
 
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(
+        default=True
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
 
     class Meta:
-        ordering = ["slot_time"]
-        unique_together = ("schedule", "slot_time")
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["schedule", "slot_time"],
+                name="unique_schedule_slot_time"
+            )
+        ]
+
+        ordering = [
+            "slot_time"
+        ]
 
     def __str__(self):
+
         return f"{self.schedule.day} | {self.slot_time}"
 
     @property
     def is_full(self):
+
         return self.booked_count >= self.max_patient

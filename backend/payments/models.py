@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 
 from patients.models import PatientProfile
 from appointments.models import Appointment
@@ -116,6 +117,18 @@ class Payment(models.Model):
         verbose_name = "Payment"
 
         verbose_name_plural = "Payments"
+
+        constraints = [
+
+            models.CheckConstraint(
+                condition=(
+                    Q(appointment__isnull=False) ^
+                    Q(test_booking__isnull=False)
+                ),
+                name="payment_for_exactly_one_source",
+            ),
+
+        ]
 
     # ==========================================
     # String Representation

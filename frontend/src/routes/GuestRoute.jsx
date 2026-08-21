@@ -1,12 +1,9 @@
-import {
-    Navigate,
-} from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
-import useAuth
-    from "../context/useAuth";
+import useAuth from "../context/useAuth";
 
 
-function GuestRoute({
+export default function GuestRoute({
     children,
 }) {
 
@@ -16,9 +13,9 @@ function GuestRoute({
     } = useAuth();
 
 
-    // ======================================================
+    // ==========================================================
     // Loading
-    // ======================================================
+    // ==========================================================
 
     if (loading) {
 
@@ -26,10 +23,10 @@ function GuestRoute({
 
             <div
                 style={{
-                    minHeight: "100vh",
                     display: "flex",
-                    alignItems: "center",
                     justifyContent: "center",
+                    alignItems: "center",
+                    height: "100vh",
                 }}
             >
 
@@ -42,27 +39,26 @@ function GuestRoute({
     }
 
 
-    // ======================================================
+    // ==========================================================
     // Already Logged In
-    // ======================================================
+    // ==========================================================
 
     if (isAuthenticated) {
 
         return (
-
             <Navigate
                 to="/dashboard"
                 replace
             />
-
         );
 
     }
 
 
+    // ==========================================================
+    // Guest
+    // ==========================================================
+
     return children;
 
 }
-
-
-export default GuestRoute;

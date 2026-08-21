@@ -6,7 +6,7 @@ import {
 
 
 // ==========================================================
-// Login User
+// Login
 // ==========================================================
 
 export const loginUser = async (data) => {
@@ -17,7 +17,7 @@ export const loginUser = async (data) => {
 
 
 // ==========================================================
-// Register User
+// Register
 // ==========================================================
 
 export const registerUser = async (data) => {

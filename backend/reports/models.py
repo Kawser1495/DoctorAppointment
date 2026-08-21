@@ -1,4 +1,5 @@
 from django.db import models
+
 from patients.models import PatientProfile
 from doctors.models import Doctor
 from appointments.models import Appointment
@@ -44,4 +45,5 @@ class MedicalReport(models.Model):
     )
 
     def __str__(self):
+
         return self.report_title

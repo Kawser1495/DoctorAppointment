@@ -2,16 +2,21 @@ from django.urls import path
 
 from .views import DashboardAPIView
 
-urlpatterns=[
 
-path(
+app_name = "dashboard"
 
-"",
 
-DashboardAPIView.as_view(),
+urlpatterns = [
 
-name="dashboard"
+    # ==========================================================
+    # Dashboard
+    # GET: /api/dashboard/
+    # ==========================================================
 
-)
+    path(
+        "",
+        DashboardAPIView.as_view(),
+        name="dashboard",
+    ),
 
 ]

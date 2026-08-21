@@ -10,15 +10,12 @@ import AuthContext from "./AuthContext";
 // Auth Provider
 // ==========================================================
 
-export default function AuthProvider({
-    children,
-}) {
+export default function AuthProvider({ children }) {
 
     const [
         isAuthenticated,
         setIsAuthenticated,
     ] = useState(false);
-
 
     const [
         loading,
@@ -27,7 +24,7 @@ export default function AuthProvider({
 
 
     // ======================================================
-    // Check Existing Login
+    // Check Existing Authentication
     // ======================================================
 
     useEffect(() => {
@@ -48,7 +45,6 @@ export default function AuthProvider({
             )
         );
 
-
         setLoading(false);
 
     }, []);
@@ -64,6 +60,17 @@ export default function AuthProvider({
         rememberMe = true
     ) => {
 
+        if (!accessToken || !refreshToken) {
+
+            console.error(
+                "Access token or refresh token missing."
+            );
+
+            return;
+
+        }
+
+
         if (rememberMe) {
 
             localStorage.setItem(
@@ -76,13 +83,8 @@ export default function AuthProvider({
                 refreshToken
             );
 
-            sessionStorage.removeItem(
-                "access"
-            );
-
-            sessionStorage.removeItem(
-                "refresh"
-            );
+            sessionStorage.removeItem("access");
+            sessionStorage.removeItem("refresh");
 
         } else {
 
@@ -96,13 +98,8 @@ export default function AuthProvider({
                 refreshToken
             );
 
-            localStorage.removeItem(
-                "access"
-            );
-
-            localStorage.removeItem(
-                "refresh"
-            );
+            localStorage.removeItem("access");
+            localStorage.removeItem("refresh");
 
         }
 
@@ -118,27 +115,21 @@ export default function AuthProvider({
 
     const logout = () => {
 
-        localStorage.removeItem(
-            "access"
-        );
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        localStorage.removeItem("rememberMe");
 
-        localStorage.removeItem(
-            "refresh"
-        );
-
-        sessionStorage.removeItem(
-            "access"
-        );
-
-        sessionStorage.removeItem(
-            "refresh"
-        );
-
+        sessionStorage.removeItem("access");
+        sessionStorage.removeItem("refresh");
 
         setIsAuthenticated(false);
 
     };
 
+
+    // ======================================================
+    // Context
+    // ======================================================
 
     return (
 

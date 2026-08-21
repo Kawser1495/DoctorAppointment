@@ -3,96 +3,67 @@ from django.db import models
 from accounts.models import CustomUser
 
 
-# ==========================================
-# Patient Profile Model
-# ==========================================
+# ==========================================================
+# Patient Profile
+# ==========================================================
 
 class PatientProfile(models.Model):
 
     GENDER_CHOICES = (
-
         ("Male", "Male"),
-
         ("Female", "Female"),
-
         ("Other", "Other"),
-
     )
 
     BLOOD_GROUP_CHOICES = (
-
         ("A+", "A+"),
         ("A-", "A-"),
-
         ("B+", "B+"),
         ("B-", "B-"),
-
         ("AB+", "AB+"),
         ("AB-", "AB-"),
-
         ("O+", "O+"),
         ("O-", "O-"),
-
     )
 
     user = models.OneToOneField(
-
         CustomUser,
-
         on_delete=models.CASCADE,
-
         related_name="patient_profile",
-
     )
 
     phone_number = models.CharField(
-
         max_length=15,
-
         unique=True,
-
     )
 
     gender = models.CharField(
-
         max_length=10,
-
         choices=GENDER_CHOICES,
-
     )
 
     date_of_birth = models.DateField()
 
     blood_group = models.CharField(
-
         max_length=5,
-
         choices=BLOOD_GROUP_CHOICES,
-
     )
 
     address = models.TextField()
 
     emergency_contact = models.CharField(
-
         max_length=15,
-
     )
 
     created_at = models.DateTimeField(
-
         auto_now_add=True,
-
     )
 
     updated_at = models.DateTimeField(
-
         auto_now=True,
-
     )
 
     class Meta:
-
         ordering = ["user__first_name"]
 
         verbose_name = "Patient"
@@ -101,99 +72,71 @@ class PatientProfile(models.Model):
 
     def __str__(self):
 
-        return self.user.get_full_name()
+        full_name = self.user.get_full_name()
+
+        if full_name:
+            return full_name
+
+        return self.user.username
 
 
-# ==========================================
-# Family Member Model
-# ==========================================
+# ==========================================================
+# Family Member
+# ==========================================================
 
 class FamilyMember(models.Model):
 
     RELATION_CHOICES = (
-
         ("Father", "Father"),
-
         ("Mother", "Mother"),
-
         ("Brother", "Brother"),
-
         ("Sister", "Sister"),
-
         ("Husband", "Husband"),
-
         ("Wife", "Wife"),
-
         ("Son", "Son"),
-
         ("Daughter", "Daughter"),
-
         ("Other", "Other"),
-
     )
 
     GENDER_CHOICES = (
-
         ("Male", "Male"),
-
         ("Female", "Female"),
-
         ("Other", "Other"),
-
     )
 
     patient = models.ForeignKey(
-
         PatientProfile,
-
         on_delete=models.CASCADE,
-
         related_name="family_members",
-
     )
 
     name = models.CharField(
-
         max_length=100,
-
     )
 
     relation = models.CharField(
-
         max_length=20,
-
         choices=RELATION_CHOICES,
-
     )
 
     age = models.PositiveIntegerField()
 
     gender = models.CharField(
-
         max_length=10,
-
         choices=GENDER_CHOICES,
-
     )
 
     phone_number = models.CharField(
-
         max_length=15,
-
         blank=True,
-
         null=True,
-
     )
 
     created_at = models.DateTimeField(
-
         auto_now_add=True,
-
     )
 
     class Meta:
-
         ordering = ["name"]
 
         verbose_name = "Family Member"
@@ -201,14 +144,4 @@ class FamilyMember(models.Model):
         verbose_name_plural = "Family Members"
 
     def __str__(self):
-
-        if self.family_member:
-            patient_name = self.family_member.name
-        else:
-            patient_name = self.patient.user.get_full_name()
-
-        return (
-            f"{self.booking_number} | "
-            f"{patient_name} | "
-            f"Dr. {self.doctor.user.get_full_name()}"
-    )
+        return f"{self.name} ({self.relation})"

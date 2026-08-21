@@ -1,13 +1,11 @@
 import {
     Navigate,
-    useLocation,
 } from "react-router-dom";
 
-import useAuth
-    from "../context/useAuth";
+import useAuth from "../context/useAuth";
 
 
-function ProtectedRoute({
+export default function ProtectedRoute({
     children,
 }) {
 
@@ -16,14 +14,6 @@ function ProtectedRoute({
         loading,
     } = useAuth();
 
-
-    const location =
-        useLocation();
-
-
-    // ======================================================
-    // Loading
-    // ======================================================
 
     if (loading) {
 
@@ -35,6 +25,8 @@ function ProtectedRoute({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    fontSize: "20px",
+                    fontWeight: "600",
                 }}
             >
 
@@ -47,34 +39,18 @@ function ProtectedRoute({
     }
 
 
-    // ======================================================
-    // Not Authenticated
-    // ======================================================
-
     if (!isAuthenticated) {
 
         return (
-
             <Navigate
                 to="/login"
                 replace
-                state={{
-                    from: location.pathname,
-                }}
             />
-
         );
 
     }
 
 
-    // ======================================================
-    // Authenticated
-    // ======================================================
-
     return children;
 
 }
-
-
-export default ProtectedRoute;

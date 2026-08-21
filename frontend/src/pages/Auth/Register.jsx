@@ -1,68 +1,199 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+
 import { registerUser } from "../../services/authService";
+
 
 export default function Register() {
 
     const navigate = useNavigate();
 
+
+    // ==========================================================
+    // Form State
+    // ==========================================================
+
     const [formData, setFormData] = useState({
+
         username: "",
         email: "",
         phone: "",
-        role: "patient",
         password: "",
+
     });
+
 
     const [confirmPassword, setConfirmPassword] = useState("");
 
+
+    // ==========================================================
+    // UI State
+    // ==========================================================
+
     const [loading, setLoading] = useState(false);
 
-    const handleChange = (e) => {
+    const [error, setError] = useState("");
 
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+    const [success, setSuccess] = useState("");
+
+
+    // ==========================================================
+    // Input Change
+    // ==========================================================
+
+    const handleChange = (event) => {
+
+        setFormData((previousData) => ({
+
+            ...previousData,
+
+            [event.target.name]:
+                event.target.value,
+
+        }));
+
+        setError("");
+
+        setSuccess("");
 
     };
 
-    const handleSubmit = async (e) => {
 
-        e.preventDefault();
+    // ==========================================================
+    // Confirm Password
+    // ==========================================================
 
-        // Confirm Password Validation
-        if (!confirmPassword) {
-            alert("Confirm Password is required.");
+    const handleConfirmPasswordChange = (event) => {
+
+        setConfirmPassword(
+            event.target.value
+        );
+
+        setError("");
+
+    };
+
+
+    // ==========================================================
+    // Submit
+    // ==========================================================
+
+    const handleSubmit = async (event) => {
+
+        event.preventDefault();
+
+        setError("");
+
+        setSuccess("");
+
+
+        // ------------------------------------------------------
+        // Password Match
+        // ------------------------------------------------------
+
+        if (
+            formData.password !==
+            confirmPassword
+        ) {
+
+            setError(
+                "Passwords do not match."
+            );
+
             return;
+
         }
 
-        if (formData.password !== confirmPassword) {
-            alert("Passwords do not match.");
+
+        // ------------------------------------------------------
+        // Minimum Password Length
+        // ------------------------------------------------------
+
+        if (
+            formData.password.length < 8
+        ) {
+
+            setError(
+                "Password must contain at least 8 characters."
+            );
+
             return;
+
         }
+
 
         setLoading(true);
+
 
         try {
 
             await registerUser(formData);
 
-            alert("Registration Successful!");
 
-            navigate("/");
+            setSuccess(
+                "Registration successful. You can now login."
+            );
+
+
+            // --------------------------------------------------
+            // Redirect to Login
+            // --------------------------------------------------
+
+            setTimeout(() => {
+
+                navigate("/login");
+
+            }, 1000);
+
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "Registration error:",
+                error
+            );
 
-            if (error.response) {
 
-                alert(JSON.stringify(error.response.data));
+            // --------------------------------------------------
+            // Backend Validation Error
+            // --------------------------------------------------
+
+            if (error.response?.data) {
+
+                const data =
+                    error.response.data;
+
+
+                if (typeof data === "object") {
+
+                    const messages =
+                        Object.entries(data)
+                            .map(
+                                ([field, message]) =>
+                                    `${field}: ${
+                                        Array.isArray(message)
+                                            ? message.join(", ")
+                                            : message
+                                    }`
+                            )
+                            .join("\n");
+
+
+                    setError(messages);
+
+                } else {
+
+                    setError(
+                        String(data)
+                    );
+
+                }
 
             } else {
 
-                alert("Server Error!");
+                setError(
+                    "Cannot connect to the server. Please try again later."
+                );
 
             }
 
@@ -74,157 +205,239 @@ export default function Register() {
 
     };
 
+
     return (
 
         <div className="container mt-5">
 
             <div className="row justify-content-center">
 
-                <div className="col-md-6">
+                <div className="col-lg-6 col-md-8">
 
-                    <div className="card shadow-lg">
+                    <div className="card shadow-lg border-0">
 
-                        <div className="card-body">
+                        {/* ==================================================
+                            Header
+                        ================================================== */}
 
-                            <h2 className="text-center mb-4">
+                        <div className="card-header bg-primary text-white text-center py-4">
+
+                            <h2 className="mb-1">
+
                                 Doctor Appointment System
+
                             </h2>
 
-                            <h4 className="text-center mb-4">
-                                Create New Account
-                            </h4>
+                            <p className="mb-0">
 
-                            <form onSubmit={handleSubmit}>
+                                Create Your Patient Account
 
-                                {/* Username */}
+                            </p>
+
+                        </div>
+
+
+                        {/* ==================================================
+                            Body
+                        ================================================== */}
+
+                        <div className="card-body p-4">
+
+
+                            {/* ==================================================
+                                Error
+                            ================================================== */}
+
+                            {error && (
+
+                                <div
+                                    className="alert alert-danger"
+                                    style={{
+                                        whiteSpace: "pre-line"
+                                    }}
+                                >
+
+                                    {error}
+
+                                </div>
+
+                            )}
+
+
+                            {/* ==================================================
+                                Success
+                            ================================================== */}
+
+                            {success && (
+
+                                <div className="alert alert-success">
+
+                                    {success}
+
+                                </div>
+
+                            )}
+
+
+                            <form
+                                onSubmit={handleSubmit}
+                                autoComplete="on"
+                            >
+
+
+                                {/* ==================================================
+                                    Username
+                                ================================================== */}
 
                                 <div className="mb-3">
 
                                     <label className="form-label">
+
                                         Username
+
                                     </label>
 
                                     <input
                                         type="text"
                                         className="form-control"
                                         name="username"
-                                        placeholder="Enter Username"
-                                        value={formData.username}
-                                        onChange={handleChange}
+                                        value={
+                                            formData.username
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        placeholder="Enter username"
+                                        autoComplete="username"
                                         required
                                     />
 
                                 </div>
 
-                                {/* Email */}
+
+                                {/* ==================================================
+                                    Email
+                                ================================================== */}
 
                                 <div className="mb-3">
 
                                     <label className="form-label">
-                                        Email
+
+                                        Email Address
+
                                     </label>
 
                                     <input
                                         type="email"
                                         className="form-control"
                                         name="email"
-                                        placeholder="Enter Email"
-                                        value={formData.email}
-                                        onChange={handleChange}
+                                        value={
+                                            formData.email
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        placeholder="Enter email address"
+                                        autoComplete="email"
                                         required
                                     />
 
                                 </div>
 
-                                {/* Phone */}
+
+                                {/* ==================================================
+                                    Phone
+                                ================================================== */}
 
                                 <div className="mb-3">
 
                                     <label className="form-label">
+
                                         Phone Number
+
                                     </label>
 
                                     <input
-                                        type="text"
+                                        type="tel"
                                         className="form-control"
                                         name="phone"
+                                        value={
+                                            formData.phone
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
                                         placeholder="017XXXXXXXX"
-                                        value={formData.phone}
-                                        onChange={handleChange}
+                                        autoComplete="tel"
                                         required
                                     />
 
                                 </div>
 
-                                {/* Role */}
+
+                                {/* ==================================================
+                                    Password
+                                ================================================== */}
 
                                 <div className="mb-3">
 
                                     <label className="form-label">
-                                        Select Role
-                                    </label>
 
-                                    <select
-                                        className="form-select"
-                                        name="role"
-                                        value={formData.role}
-                                        onChange={handleChange}
-                                    >
-
-                                        <option value="patient">
-                                            Patient
-                                        </option>
-
-                                        <option value="doctor">
-                                            Doctor
-                                        </option>
-
-                                    </select>
-
-                                </div>
-
-                                {/* Password */}
-
-                                <div className="mb-3">
-
-                                    <label className="form-label">
                                         Password
+
                                     </label>
 
                                     <input
                                         type="password"
                                         className="form-control"
                                         name="password"
-                                        placeholder="Enter Password"
-                                        value={formData.password}
-                                        onChange={handleChange}
+                                        value={
+                                            formData.password
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        placeholder="Minimum 8 characters"
+                                        autoComplete="new-password"
+                                        minLength={8}
                                         required
                                     />
 
                                 </div>
 
-                                {/* Confirm Password */}
 
-                                <div className="mb-3">
+                                {/* ==================================================
+                                    Confirm Password
+                                ================================================== */}
+
+                                <div className="mb-4">
 
                                     <label className="form-label">
+
                                         Confirm Password
+
                                     </label>
 
                                     <input
                                         type="password"
                                         className="form-control"
-                                        placeholder="Confirm Password"
-                                        value={confirmPassword}
-                                        onChange={(e) =>
-                                            setConfirmPassword(e.target.value)
+                                        value={
+                                            confirmPassword
                                         }
+                                        onChange={
+                                            handleConfirmPasswordChange
+                                        }
+                                        placeholder="Re-enter password"
+                                        autoComplete="new-password"
                                         required
                                     />
 
                                 </div>
 
-                                {/* Button */}
+
+                                {/* ==================================================
+                                    Submit
+                                ================================================== */}
 
                                 <button
                                     type="submit"
@@ -234,25 +447,40 @@ export default function Register() {
 
                                     {loading
                                         ? "Creating Account..."
-                                        : "Create Account"}
+                                        : "Create Patient Account"}
 
                                 </button>
 
+
                             </form>
 
-                            <hr />
+
+                            <hr className="my-4" />
+
+
+                            {/* ==================================================
+                                Login Link
+                            ================================================== */}
 
                             <div className="text-center">
 
-                                Already have an account?
+                                <p className="mb-2">
 
-                                <br />
+                                    Already have an account?
 
-                                <Link to="/">
+                                </p>
+
+                                <Link
+                                    to="/login"
+                                    className="btn btn-outline-primary"
+                                >
+
                                     Login Here
+
                                 </Link>
 
                             </div>
+
 
                         </div>
 

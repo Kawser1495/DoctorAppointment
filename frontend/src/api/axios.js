@@ -2,30 +2,19 @@ import axios from "axios";
 
 
 // ==========================================================
-// API Configuration
-// ==========================================================
-
-const API_BASE_URL =
-    "http://127.0.0.1:8000/api/";
-
-
-// ==========================================================
 // Axios Instance
 // ==========================================================
 
 const api = axios.create({
-
-    baseURL: API_BASE_URL,
-
+    baseURL: "http://127.0.0.1:8000/api/",
     headers: {
         "Content-Type": "application/json",
     },
-
 });
 
 
 // ==========================================================
-// Helper: Get Access Token
+// Get Access Token
 // ==========================================================
 
 const getAccessToken = () => {
@@ -39,7 +28,7 @@ const getAccessToken = () => {
 
 
 // ==========================================================
-// Helper: Get Refresh Token
+// Get Refresh Token
 // ==========================================================
 
 const getRefreshToken = () => {
@@ -53,59 +42,15 @@ const getRefreshToken = () => {
 
 
 // ==========================================================
-// Helper: Save Access Token
-// ==========================================================
-
-const saveAccessToken = (token) => {
-
-    if (localStorage.getItem("refresh")) {
-
-        localStorage.setItem(
-            "access",
-            token
-        );
-
-        return;
-    }
-
-    if (sessionStorage.getItem("refresh")) {
-
-        sessionStorage.setItem(
-            "access",
-            token
-        );
-
-    }
-
-};
-
-
-// ==========================================================
-// Helper: Clear Authentication
-// ==========================================================
-
-export const clearAuthStorage = () => {
-
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-
-    sessionStorage.removeItem("access");
-    sessionStorage.removeItem("refresh");
-
-};
-
-
-// ==========================================================
 // Request Interceptor
-// Automatically attach JWT
+// Attach JWT Access Token
 // ==========================================================
 
 api.interceptors.request.use(
 
     (config) => {
 
-        const accessToken =
-            getAccessToken();
+        const accessToken = getAccessToken();
 
         if (accessToken) {
 
@@ -129,7 +74,7 @@ api.interceptors.request.use(
 
 // ==========================================================
 // Response Interceptor
-// Handle expired JWT
+// Refresh Expired Access Token
 // ==========================================================
 
 api.interceptors.response.use(
@@ -142,12 +87,11 @@ api.interceptors.response.use(
 
     async (error) => {
 
-        const originalRequest =
-            error.config;
+        const originalRequest = error.config;
 
-        // ----------------------------------------------
-        // No response
-        // ----------------------------------------------
+        // --------------------------------------------------
+        // No response from server
+        // --------------------------------------------------
 
         if (!error.response) {
 
@@ -155,101 +99,112 @@ api.interceptors.response.use(
 
         }
 
-
-        // ----------------------------------------------
+        // --------------------------------------------------
         // Only handle 401
-        // ----------------------------------------------
+        // --------------------------------------------------
 
         if (
             error.response.status !== 401 ||
-            !originalRequest ||
-            originalRequest._retry
+            originalRequest?._retry
         ) {
 
             return Promise.reject(error);
 
         }
 
-
         originalRequest._retry = true;
 
+        const refreshToken = getRefreshToken();
 
-        const refreshToken =
-            getRefreshToken();
-
-
-        // ----------------------------------------------
+        // --------------------------------------------------
         // No refresh token
-        // ----------------------------------------------
+        // --------------------------------------------------
 
         if (!refreshToken) {
 
-            clearAuthStorage();
+            localStorage.removeItem("access");
+            localStorage.removeItem("refresh");
+
+            sessionStorage.removeItem("access");
+            sessionStorage.removeItem("refresh");
 
             return Promise.reject(error);
 
         }
 
+        // --------------------------------------------------
+        // Refresh Access Token
+        // --------------------------------------------------
 
         try {
 
-            const refreshResponse =
-                await axios.post(
+            const refreshResponse = await axios.post(
 
-                    `${API_BASE_URL}accounts/refresh/`,
+                "http://127.0.0.1:8000/api/accounts/refresh/",
 
-                    {
-                        refresh:
-                            refreshToken,
-                    }
+                {
+                    refresh: refreshToken,
+                }
 
-                );
-
+            );
 
             const newAccessToken =
                 refreshResponse.data.access;
 
-
             if (!newAccessToken) {
 
                 throw new Error(
-                    "Access token was not returned."
+                    "New access token was not returned."
                 );
 
             }
 
+            // ------------------------------------------------
+            // Save new token in same storage
+            // ------------------------------------------------
 
-            // Save new access token
-            saveAccessToken(
-                newAccessToken
-            );
+            if (
+                localStorage.getItem("refresh")
+            ) {
 
+                localStorage.setItem(
+                    "access",
+                    newAccessToken
+                );
 
-            // Update failed request
+            } else {
+
+                sessionStorage.setItem(
+                    "access",
+                    newAccessToken
+                );
+
+            }
+
+            // ------------------------------------------------
+            // Retry original request
+            // ------------------------------------------------
+
             originalRequest.headers =
                 originalRequest.headers || {};
 
             originalRequest.headers.Authorization =
                 `Bearer ${newAccessToken}`;
 
+            return api(originalRequest);
 
-            // Retry original request
-            return api(
-                originalRequest
-            );
-
-        }
-
-        catch (refreshError) {
+        } catch (refreshError) {
 
             console.error(
                 "Token refresh failed:",
                 refreshError
             );
 
+            localStorage.removeItem("access");
+            localStorage.removeItem("refresh");
 
-            clearAuthStorage();
-
+            sessionStorage.removeItem("access");
+            sessionStorage.removeItem("refresh");
 
             return Promise.reject(
                 refreshError

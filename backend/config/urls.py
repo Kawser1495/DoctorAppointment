@@ -5,6 +5,7 @@ URL configuration for Doctor Appointment System
 from django.contrib import admin
 from django.urls import path, include
 
+
 urlpatterns = [
 
     # ==========================================
@@ -64,11 +65,18 @@ urlpatterns = [
     ),
 
     # ==========================================
+    # Medical Reports APIs
+    # ==========================================
+    path(
+        "api/reports/",
+        include("reports.urls"),
+    ),
+
+    # ==========================================
     # Dashboard APIs
     # ==========================================
     path(
         "api/dashboard/",
         include("dashboard.urls"),
     ),
-
 ]

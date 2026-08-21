@@ -3,12 +3,12 @@ import api from "./axios";
 
 // ==========================================================
 // Register
-// POST /api/accounts/register/
+// POST: /api/accounts/register/
 // ==========================================================
 
-export const registerApi = async (data) => {
+export const registerApi = (data) => {
 
-    return await api.post(
+    return api.post(
         "accounts/register/",
         data
     );
@@ -18,12 +18,12 @@ export const registerApi = async (data) => {
 
 // ==========================================================
 // Login
-// POST /api/accounts/login/
+// POST: /api/accounts/login/
 // ==========================================================
 
-export const loginApi = async (data) => {
+export const loginApi = (data) => {
 
-    return await api.post(
+    return api.post(
         "accounts/login/",
         data
     );
@@ -33,21 +33,16 @@ export const loginApi = async (data) => {
 
 // ==========================================================
 // Refresh Token
-// POST /api/accounts/refresh/
+// POST: /api/accounts/refresh/
 // ==========================================================
 
-export const refreshTokenApi = async (
-    refresh
-) => {
+export const refreshTokenApi = (refresh) => {
 
-    return await api.post(
-
+    return api.post(
         "accounts/refresh/",
-
         {
             refresh,
         }
-
     );
 
 };
