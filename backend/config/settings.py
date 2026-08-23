@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'reports',
     'notifications',
     'dashboard',
-    'adminpanel',
 ]
 
 # ===========================
