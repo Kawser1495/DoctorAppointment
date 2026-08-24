@@ -4,15 +4,25 @@ import { getDepartments } from "../services/departmentService";
 
 
 function DepartmentDropdown({
+
     selectedDepartment,
+
     onDepartmentChange,
+
 }) {
 
-    const [departments, setDepartments] = useState([]);
+    // ==========================================
+    // State
+    // ==========================================
 
-    const [loading, setLoading] = useState(true);
+    const [departments, setDepartments] =
+        useState([]);
 
-    const [error, setError] = useState("");
+    const [loading, setLoading] =
+        useState(true);
+
+    const [error, setError] =
+        useState("");
 
 
     // ==========================================
@@ -29,18 +39,23 @@ function DepartmentDropdown({
 
                 setError("");
 
+
                 const response =
                     await getDepartments();
 
+
                 console.log(
-                    "Departments API Response:",
+                    "Department API Response:",
                     response.data
                 );
 
 
-                // Django REST Framework Pagination
+                const departmentList =
+                    response.data?.results || [];
+
+
                 setDepartments(
-                    response.data.results || response.data
+                    departmentList
                 );
 
             }
@@ -53,13 +68,36 @@ function DepartmentDropdown({
                 );
 
                 console.error(
-                    "Department Error Response:",
+                    "Status:",
+                    error.response?.status
+                );
+
+                console.error(
+                    "Response:",
                     error.response?.data
                 );
 
-                setError(
-                    "Failed to load departments."
-                );
+
+                setDepartments([]);
+
+
+                if (
+                    error.response?.status === 401
+                ) {
+
+                    setError(
+                        "Session expired. Please login again."
+                    );
+
+                }
+
+                else {
+
+                    setError(
+                        "Failed to load departments."
+                    );
+
+                }
 
             }
 
@@ -77,23 +115,44 @@ function DepartmentDropdown({
     }, []);
 
 
+    // ==========================================
+    // Render
+    // ==========================================
+
     return (
 
         <div className="form-group">
 
-            <label>Department</label>
+            <label>
+
+                Department
+
+            </label>
+
 
             <select
+
                 value={selectedDepartment}
+
                 onChange={onDepartmentChange}
+
                 disabled={loading}
+
             >
 
                 <option value="">
 
                     {loading
-                        ? "Loading departments..."
-                        : "Select Department"}
+
+                        ? "Loading Departments..."
+
+                        : departments.length === 0
+
+                            ? "No Departments Available"
+
+                            : "Select Department"
+
+                    }
 
                 </option>
 
@@ -101,8 +160,11 @@ function DepartmentDropdown({
                 {departments.map((department) => (
 
                     <option
+
                         key={department.id}
+
                         value={department.id}
+
                     >
 
                         {department.name}

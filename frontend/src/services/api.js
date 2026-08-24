@@ -16,9 +16,10 @@ const api = axios.create({
 
 });
 
+
 // ======================================
 // Request Interceptor
-// Automatically Attach JWT Token
+// Attach JWT Access Token
 // ======================================
 
 api.interceptors.request.use(
@@ -28,11 +29,11 @@ api.interceptors.request.use(
         const token =
             localStorage.getItem("access") ||
             sessionStorage.getItem("access");
-        console.log("Interceptor Token:", token);
 
         if (token) {
 
-            config.headers.Authorization = `Bearer ${token}`;
+            config.headers.Authorization =
+                `Bearer ${token}`;
 
         }
 
@@ -40,13 +41,17 @@ api.interceptors.request.use(
 
     },
 
-    (error) => Promise.reject(error)
+    (error) => {
+
+        return Promise.reject(error);
+
+    }
 
 );
 
+
 // ======================================
 // Response Interceptor
-// Handle Unauthorized Requests
 // ======================================
 
 api.interceptors.response.use(
@@ -57,15 +62,9 @@ api.interceptors.response.use(
 
         if (error.response?.status === 401) {
 
-            console.error("Session expired. Please login again.");
-
-            // Uncomment if you want automatic logout
-
-            /*
-            localStorage.removeItem("access");
-            localStorage.removeItem("refresh");
-            window.location.href = "/";
-            */
+            console.error(
+                "401 Unauthorized - Token may be invalid or expired."
+            );
 
         }
 
@@ -74,5 +73,6 @@ api.interceptors.response.use(
     }
 
 );
+
 
 export default api;
