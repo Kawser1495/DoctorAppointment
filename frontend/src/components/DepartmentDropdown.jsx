@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { getDepartments } from "../services/departmentService";
+import {
+    getDepartments
+} from "../services/departmentService";
 
 
 function DepartmentDropdown({
@@ -10,10 +12,6 @@ function DepartmentDropdown({
     onDepartmentChange,
 
 }) {
-
-    // ==========================================
-    // State
-    // ==========================================
 
     const [departments, setDepartments] =
         useState([]);
@@ -25,10 +23,6 @@ function DepartmentDropdown({
         useState("");
 
 
-    // ==========================================
-    // Load Departments
-    // ==========================================
-
     useEffect(() => {
 
         const loadDepartments = async () => {
@@ -39,20 +33,16 @@ function DepartmentDropdown({
 
                 setError("");
 
-
                 const response =
                     await getDepartments();
 
+                const data = response.data;
 
-                console.log(
-                    "Department API Response:",
-                    response.data
-                );
-
-
+                // Support paginated and normal response
                 const departmentList =
-                    response.data?.results || [];
-
+                    Array.isArray(data)
+                        ? data
+                        : data.results || [];
 
                 setDepartments(
                     departmentList
@@ -67,37 +57,11 @@ function DepartmentDropdown({
                     error
                 );
 
-                console.error(
-                    "Status:",
-                    error.response?.status
+                setError(
+                    "Failed to load departments."
                 );
-
-                console.error(
-                    "Response:",
-                    error.response?.data
-                );
-
 
                 setDepartments([]);
-
-
-                if (
-                    error.response?.status === 401
-                ) {
-
-                    setError(
-                        "Session expired. Please login again."
-                    );
-
-                }
-
-                else {
-
-                    setError(
-                        "Failed to load departments."
-                    );
-
-                }
 
             }
 
@@ -115,18 +79,12 @@ function DepartmentDropdown({
     }, []);
 
 
-    // ==========================================
-    // Render
-    // ==========================================
-
     return (
 
         <div className="form-group">
 
             <label>
-
                 Department
-
             </label>
 
 
@@ -143,35 +101,30 @@ function DepartmentDropdown({
                 <option value="">
 
                     {loading
-
                         ? "Loading Departments..."
-
-                        : departments.length === 0
-
-                            ? "No Departments Available"
-
-                            : "Select Department"
-
+                        : "Select Department"
                     }
 
                 </option>
 
 
-                {departments.map((department) => (
+                {departments.map(
+                    (department) => (
 
-                    <option
+                        <option
 
-                        key={department.id}
+                            key={department.id}
 
-                        value={department.id}
+                            value={department.id}
 
-                    >
+                        >
 
-                        {department.name}
+                            {department.name}
 
-                    </option>
+                        </option>
 
-                ))}
+                    )
+                )}
 
             </select>
 

@@ -1,14 +1,5 @@
-import api from "./api";
+import { publicApi } from "./api";
 
-
-// ==========================================
-// Get All Departments
-// ==========================================
-
-export const getDepartments = async () => {
-
-    return await api.get(
-        "doctors/departments/"
-    );
-
+export const getDepartments = () => {
+    return publicApi.get("doctors/departments/");
 };

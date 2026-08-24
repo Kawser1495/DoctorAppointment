@@ -1,56 +1,38 @@
-import api from "./api";
+import { publicApi } from "./api";
 
 
 // ==========================================
-// Get All Doctors
+// Doctors by Department
 // ==========================================
 
-export const getDoctors = async () => {
+export const getDoctorsByDepartment = (
+    departmentId
+) => {
 
-    return await api.get(
-        "doctors/doctors/"
+    return publicApi.get(
+        `doctors/departments/${departmentId}/doctors/`
     );
 
 };
 
 
 // ==========================================
-// Get Doctors By Department
+// Available Time Slots
 // ==========================================
 
-export const getDoctorsByDepartment =
-    async (departmentId) => {
+export const getAvailableTimeSlots = (
+    doctorId,
+    date
+) => {
 
-        return await api.get(
-            `doctors/departments/${departmentId}/doctors/`
-        );
+    return publicApi.get(
+        "doctors/time-slots/",
+        {
+            params: {
+                doctor: doctorId,
+                date: date,
+            },
+        }
+    );
 
-    };
-
-
-// ==========================================
-// Search Doctors
-// ==========================================
-
-export const searchDoctors =
-    async (keyword) => {
-
-        return await api.get(
-            `doctors/search/?search=${keyword}`
-        );
-
-    };
-
-
-// ==========================================
-// Get Available Time Slots
-// ==========================================
-
-export const getAvailableTimeSlots =
-    async (doctorId) => {
-
-        return await api.get(
-            `doctors/time-slots/?doctor=${doctorId}`
-        );
-
-    };
+};

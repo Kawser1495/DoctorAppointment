@@ -1,78 +1,52 @@
 import axios from "axios";
 
+const BASE_URL = "http://127.0.0.1:8000/api/";
+
+
 // ======================================
-// Axios Instance
+// PRIVATE API
+// For protected endpoints
 // ======================================
 
 const api = axios.create({
-
-    baseURL: "http://127.0.0.1:8000/api/",
-
+    baseURL: BASE_URL,
     headers: {
-
         "Content-Type": "application/json",
-
     },
-
 });
 
 
 // ======================================
-// Request Interceptor
-// Attach JWT Access Token
+// Attach JWT Token
 // ======================================
 
 api.interceptors.request.use(
-
     (config) => {
-
         const token =
             localStorage.getItem("access") ||
             sessionStorage.getItem("access");
 
         if (token) {
-
-            config.headers.Authorization =
-                `Bearer ${token}`;
-
+            config.headers.Authorization = `Bearer ${token}`;
         }
 
         return config;
-
     },
-
-    (error) => {
-
-        return Promise.reject(error);
-
-    }
-
+    (error) => Promise.reject(error)
 );
 
 
 // ======================================
-// Response Interceptor
+// PUBLIC API
+// No JWT token
 // ======================================
 
-api.interceptors.response.use(
-
-    (response) => response,
-
-    (error) => {
-
-        if (error.response?.status === 401) {
-
-            console.error(
-                "401 Unauthorized - Token may be invalid or expired."
-            );
-
-        }
-
-        return Promise.reject(error);
-
-    }
-
-);
+export const publicApi = axios.create({
+    baseURL: BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+    },
+});
 
 
 export default api;

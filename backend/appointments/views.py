@@ -1,25 +1,31 @@
 from django.db import transaction
-from django.shortcuts import get_object_or_404
 
-from rest_framework import generics, status
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework import status
+
+from doctors.models import TimeSlot
+
+from patients.models import PatientProfile
 
 from .models import Appointment
-from .serializers import AppointmentSerializer
-from .permissions import (
-    IsAdminUser,
-    IsDoctorUser,
+
+from .serializers import (
+    AppointmentSerializer
 )
 
 
 # ==========================================================
 # Book Appointment
-# POST: /api/appointments/create/
+#
+# POST:
+# /api/appointments/book/
 # ==========================================================
 
-class AppointmentCreateView(generics.CreateAPIView):
+class BookAppointmentView(
+    generics.CreateAPIView
+):
 
     serializer_class = AppointmentSerializer
 
@@ -27,34 +33,91 @@ class AppointmentCreateView(generics.CreateAPIView):
         IsAuthenticated
     ]
 
-    @transaction.atomic
+
     def perform_create(self, serializer):
 
-        serializer.save()
+        try:
 
-    def create(self, request, *args, **kwargs):
+            patient = (
+                self.request.user.patient_profile
+            )
 
-        response = super().create(
-            request,
-            *args,
-            **kwargs
-        )
+        except AttributeError:
 
-        return Response(
-            {
-                "success": True,
-                "message":
-                    "Appointment booked successfully.",
-                "data":
-                    response.data,
-            },
-            status=status.HTTP_201_CREATED
-        )
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError({
+
+                "patient":
+                "Patient profile not found. Please complete your profile first."
+
+            })
+
+
+        # ==================================================
+        # Atomic transaction
+        #
+        # Prevent two users booking the last seat at the same
+        # time.
+        # ==================================================
+
+        with transaction.atomic():
+
+            slot_id = serializer.validated_data[
+                "slot"
+            ].id
+
+
+            slot = TimeSlot.objects.select_for_update().get(
+
+                id=slot_id
+
+            )
+
+
+            # Re-check after locking
+
+            if slot.booked_count >= slot.max_patient:
+
+                from rest_framework.exceptions import ValidationError
+
+                raise ValidationError({
+
+                    "slot":
+                    "This time slot has just become full."
+
+                })
+
+
+            # Create appointment
+
+            serializer.save(
+
+                patient=patient,
+
+                status="Pending",
+
+            )
+
+
+            # Increase booked count
+
+            slot.booked_count += 1
+
+            slot.save(
+
+                update_fields=[
+                    "booked_count"
+                ]
+
+            )
 
 
 # ==========================================================
-# Patient Appointment History
-# GET: /api/appointments/
+# Get My Appointments
+#
+# GET:
+# /api/appointments/patient/
 # ==========================================================
 
 class PatientAppointmentListView(
@@ -67,42 +130,44 @@ class PatientAppointmentListView(
         IsAuthenticated
     ]
 
+
     def get_queryset(self):
 
-        user = self.request.user
+        try:
 
-        if not hasattr(
-            user,
-            "patient_profile"
-        ):
+            patient = (
+                self.request.user.patient_profile
+            )
+
+        except AttributeError:
 
             return Appointment.objects.none()
 
-        return (
-            Appointment.objects
-            .select_related(
-                "doctor",
-                "doctor__user",
-                "doctor__department",
-                "patient",
-                "patient__user",
-                "family_member",
-                "slot",
-                "slot__schedule",
-            )
-            .filter(
-                patient=user.patient_profile
-            )
-            .order_by(
-                "-appointment_date",
-                "-created_at"
-            )
+
+        return Appointment.objects.filter(
+
+            patient=patient
+
+        ).select_related(
+
+            "doctor",
+
+            "doctor__user",
+
+            "doctor__department",
+
+            "slot",
+
+            "family_member",
+
         )
 
 
 # ==========================================================
 # Appointment Details
-# GET: /api/appointments/<id>/
+#
+# GET:
+# /api/appointments/<id>/
 # ==========================================================
 
 class AppointmentDetailView(
@@ -115,94 +180,49 @@ class AppointmentDetailView(
         IsAuthenticated
     ]
 
+    lookup_field = "id"
+
+
     def get_queryset(self):
 
-        user = self.request.user
+        try:
 
-        # --------------------------------------------------
-        # Patient
-        # --------------------------------------------------
-
-        if hasattr(
-            user,
-            "patient_profile"
-        ):
-
-            return (
-                Appointment.objects
-                .select_related(
-                    "doctor",
-                    "doctor__user",
-                    "doctor__department",
-                    "patient",
-                    "patient__user",
-                    "family_member",
-                    "slot",
-                    "slot__schedule",
-                )
-                .filter(
-                    patient=user.patient_profile
-                )
+            patient = (
+                self.request.user.patient_profile
             )
 
-        # --------------------------------------------------
-        # Doctor
-        # --------------------------------------------------
+        except AttributeError:
 
-        if (
-            user.role == "doctor"
-            and hasattr(
-                user,
-                "doctor_profile"
-            )
-        ):
+            return Appointment.objects.none()
 
-            return (
-                Appointment.objects
-                .select_related(
-                    "doctor",
-                    "doctor__user",
-                    "doctor__department",
-                    "patient",
-                    "patient__user",
-                    "family_member",
-                    "slot",
-                    "slot__schedule",
-                )
-                .filter(
-                    doctor=user.doctor_profile
-                )
-            )
 
-        # --------------------------------------------------
-        # Admin
-        # --------------------------------------------------
+        return Appointment.objects.filter(
 
-        if user.is_staff:
+            patient=patient
 
-            return (
-                Appointment.objects
-                .select_related(
-                    "doctor",
-                    "doctor__user",
-                    "doctor__department",
-                    "patient",
-                    "patient__user",
-                    "family_member",
-                    "slot",
-                    "slot__schedule",
-                )
-            )
+        ).select_related(
 
-        return Appointment.objects.none()
+            "doctor",
+
+            "doctor__user",
+
+            "doctor__department",
+
+            "slot",
+
+            "family_member",
+
+        )
 
 
 # ==========================================================
-# Update Appointment
-# PUT/PATCH: /api/appointments/<id>/update/
+# Cancel Appointment
+#
+# PATCH:
+# /api/appointments/<id>/cancel/
 # ==========================================================
 
-class AppointmentUpdateView(
+class CancelAppointmentView(
     generics.UpdateAPIView
 ):
 
@@ -212,412 +232,119 @@ class AppointmentUpdateView(
         IsAuthenticated
     ]
 
+    lookup_field = "id"
+
+
     def get_queryset(self):
 
-        user = self.request.user
+        try:
 
-        if not hasattr(
-            user,
-            "patient_profile"
-        ):
+            patient = (
+                self.request.user.patient_profile
+            )
+
+        except AttributeError:
 
             return Appointment.objects.none()
 
+
         return Appointment.objects.filter(
-            patient=user.patient_profile
+
+            patient=patient
+
         )
 
-    @transaction.atomic
-    def perform_update(self, serializer):
+
+    def patch(self, request, *args, **kwargs):
 
         appointment = self.get_object()
 
-        # --------------------------------------------------
-        # Don't allow modification of finished appointments
-        # --------------------------------------------------
 
-        if appointment.status in [
-            "Completed",
-            "Cancelled",
-            "Rejected",
-            "No Show",
-        ]:
+        # ----------------------------------------------
+        # Cannot cancel completed appointment
+        # ----------------------------------------------
 
-            from rest_framework.exceptions import ValidationError
-
-            raise ValidationError({
-                "detail":
-                    "This appointment can no longer be updated."
-            })
-
-        serializer.save()
-
-    def update(
-        self,
-        request,
-        *args,
-        **kwargs
-    ):
-
-        response = super().update(
-            request,
-            *args,
-            **kwargs
-        )
-
-        return Response(
-            {
-                "success": True,
-                "message":
-                    "Appointment updated successfully.",
-                "data":
-                    response.data,
-            },
-            status=status.HTTP_200_OK
-        )
-
-
-# ==========================================================
-# Cancel Appointment
-# PATCH: /api/appointments/<id>/cancel/
-# ==========================================================
-
-class AppointmentCancelView(
-    APIView
-):
-
-    permission_classes = [
-        IsAuthenticated
-    ]
-
-    @transaction.atomic
-    def patch(
-        self,
-        request,
-        pk
-    ):
-
-        # --------------------------------------------------
-        # Patient Profile
-        # --------------------------------------------------
-
-        if not hasattr(
-            request.user,
-            "patient_profile"
-        ):
+        if appointment.status == "Completed":
 
             return Response(
+
                 {
-                    "success": False,
-                    "message":
-                        "Patient profile not found."
+
+                    "detail":
+                    "Completed appointments cannot be cancelled."
+
                 },
-                status=status.HTTP_403_FORBIDDEN
+
+                status=status.HTTP_400_BAD_REQUEST
+
             )
 
-        # --------------------------------------------------
-        # Get Own Appointment
-        # --------------------------------------------------
 
-        appointment = get_object_or_404(
-            Appointment.objects.select_related(
-                "slot"
-            ),
-            pk=pk,
-            patient=request.user.patient_profile
-        )
-
-        # --------------------------------------------------
-        # Already Cancelled
-        # --------------------------------------------------
+        # ----------------------------------------------
+        # Already cancelled
+        # ----------------------------------------------
 
         if appointment.status == "Cancelled":
 
             return Response(
+
                 {
-                    "success": False,
-                    "message":
-                        "Appointment already cancelled."
+
+                    "detail":
+                    "This appointment is already cancelled."
+
                 },
+
                 status=status.HTTP_400_BAD_REQUEST
+
             )
 
-        # --------------------------------------------------
-        # Cannot Cancel Completed
-        # --------------------------------------------------
 
-        if appointment.status in [
-            "Completed",
-            "No Show",
-            "Rejected",
-        ]:
+        with transaction.atomic():
 
-            return Response(
-                {
-                    "success": False,
-                    "message":
-                        "This appointment cannot be cancelled."
-                },
-                status=status.HTTP_400_BAD_REQUEST
+            slot = TimeSlot.objects.select_for_update().get(
+
+                id=appointment.slot.id
+
             )
 
-        # --------------------------------------------------
-        # Reduce Slot Count
-        # --------------------------------------------------
 
-        slot = appointment.slot
+            appointment.status = "Cancelled"
 
-        if slot.booked_count > 0:
+            appointment.save(
 
-            slot.booked_count -= 1
-
-            slot.save(
                 update_fields=[
-                    "booked_count"
+                    "status",
+                    "updated_at",
                 ]
+
             )
 
-        # --------------------------------------------------
-        # Cancel Appointment
-        # --------------------------------------------------
 
-        appointment.status = "Cancelled"
-
-        appointment.save(
-            update_fields=[
-                "status",
-                "updated_at",
-            ]
-        )
-
-        return Response(
-            {
-                "success": True,
-                "message":
-                    "Appointment cancelled successfully.",
-            },
-            status=status.HTTP_200_OK
-        )
-
-
-# ==========================================================
-# Doctor Appointment List
-# GET: /api/appointments/doctor/
-# ==========================================================
-
-class DoctorAppointmentView(
-    generics.ListAPIView
-):
-
-    serializer_class = AppointmentSerializer
-
-    permission_classes = [
-        IsDoctorUser
-    ]
-
-    def get_queryset(self):
-
-        return (
-            Appointment.objects
-            .select_related(
-                "doctor",
-                "doctor__user",
-                "doctor__department",
-                "patient",
-                "patient__user",
-                "family_member",
-                "slot",
-                "slot__schedule",
-            )
-            .filter(
-                doctor=self.request.user.doctor_profile
-            )
-            .order_by(
-                "-appointment_date",
-                "-created_at"
-            )
-        )
-
-
-# ==========================================================
-# Admin Appointment List
-# GET: /api/appointments/admin/
-# ==========================================================
-
-class AdminAppointmentView(
-    generics.ListAPIView
-):
-
-    serializer_class = AppointmentSerializer
-
-    permission_classes = [
-        IsAdminUser
-    ]
-
-    queryset = (
-        Appointment.objects
-        .select_related(
-            "doctor",
-            "doctor__user",
-            "doctor__department",
-            "patient",
-            "patient__user",
-            "family_member",
-            "slot",
-            "slot__schedule",
-        )
-        .order_by(
-            "-appointment_date",
-            "-created_at"
-        )
-    )
-
-
-# ==========================================================
-# Appointment Status Update
-# PATCH: /api/appointments/<id>/status/
-# ==========================================================
-
-class AppointmentStatusUpdateView(
-    APIView
-):
-
-    permission_classes = [
-        IsAuthenticated
-    ]
-
-    VALID_STATUS = [
-        "Pending",
-        "Confirmed",
-        "Completed",
-        "Cancelled",
-        "Rejected",
-        "No Show",
-    ]
-
-    @transaction.atomic
-    def patch(
-        self,
-        request,
-        pk
-    ):
-
-        appointment = get_object_or_404(
-            Appointment,
-            pk=pk
-        )
-
-        # ==================================================
-        # Permission
-        # ==================================================
-
-        user = request.user
-
-        is_admin = (
-            user.is_staff
-        )
-
-        is_doctor = (
-            user.role == "doctor"
-            and hasattr(
-                user,
-                "doctor_profile"
-            )
-            and appointment.doctor
-            == user.doctor_profile
-        )
-
-        if not (
-            is_admin
-            or is_doctor
-        ):
-
-            return Response(
-                {
-                    "success": False,
-                    "message":
-                        "Only the assigned doctor or admin can update appointment status."
-                },
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        # ==================================================
-        # New Status
-        # ==================================================
-
-        new_status = request.data.get(
-            "status"
-        )
-
-        if new_status not in self.VALID_STATUS:
-
-            return Response(
-                {
-                    "success": False,
-                    "message":
-                        "Invalid appointment status."
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # ==================================================
-        # Prevent unnecessary update
-        # ==================================================
-
-        if appointment.status == new_status:
-
-            return Response(
-                {
-                    "success": False,
-                    "message":
-                        f"Appointment is already {new_status}."
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # ==================================================
-        # Cancellation / Rejection
-        # ==================================================
-
-        if new_status in [
-            "Cancelled",
-            "Rejected",
-        ]:
-
-            slot = appointment.slot
+            # Reduce booked count
 
             if slot.booked_count > 0:
 
                 slot.booked_count -= 1
 
                 slot.save(
+
                     update_fields=[
                         "booked_count"
                     ]
+
                 )
 
-        # ==================================================
-        # Update Status
-        # ==================================================
-
-        appointment.status = new_status
-
-        appointment.save(
-            update_fields=[
-                "status",
-                "updated_at",
-            ]
-        )
 
         return Response(
+
             {
-                "success": True,
+
                 "message":
-                    "Appointment status updated successfully.",
-                "appointment_id":
-                    appointment.id,
-                "status":
-                    appointment.status,
+                "Appointment cancelled successfully."
+
             },
+
             status=status.HTTP_200_OK
+
         )
