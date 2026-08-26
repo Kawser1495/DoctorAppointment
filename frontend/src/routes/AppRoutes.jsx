@@ -42,6 +42,10 @@ import DoctorList from "../pages/Doctors/DoctorList";
 
 import DiagnosticTests from "../pages/Diagnostics/DiagnosticTests";
 
+
+import DiagnosticTestBooking
+    from "../pages/Diagnostics/DiagnosticTestBooking";
+
 // ==========================================================
 // Reports
 // ==========================================================
@@ -214,6 +218,17 @@ export default function AppRoutes() {
                             <DiagnosticTests />
                         </ProtectedRoute>
                     }
+                />
+
+
+                <Route
+                    path="/diagnostics"
+                    element={<DiagnosticTests />}
+                />
+
+                <Route
+                    path="/diagnostics/book/:testId"
+                    element={<DiagnosticTestBooking />}
                 />
 
 

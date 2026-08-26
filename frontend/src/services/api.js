@@ -1,51 +1,73 @@
 import axios from "axios";
 
+
 const BASE_URL = "http://127.0.0.1:8000/api/";
 
 
-// ======================================
-// PRIVATE API
-// For protected endpoints
-// ======================================
+// ======================================================
+// Private API
+// ======================================================
 
 const api = axios.create({
+
     baseURL: BASE_URL,
+
     headers: {
         "Content-Type": "application/json",
     },
+
 });
 
 
-// ======================================
-// Attach JWT Token
-// ======================================
+// ======================================================
+// Attach JWT Access Token
+// ======================================================
 
 api.interceptors.request.use(
+
     (config) => {
-        const token =
+
+        const accessToken =
+
             localStorage.getItem("access") ||
+
             sessionStorage.getItem("access");
 
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+
+        if (accessToken) {
+
+            config.headers.Authorization =
+                `Bearer ${accessToken}`;
+
         }
 
+
         return config;
+
     },
-    (error) => Promise.reject(error)
+
+
+    (error) => {
+
+        return Promise.reject(error);
+
+    }
+
 );
 
 
-// ======================================
-// PUBLIC API
-// No JWT token
-// ======================================
+// ======================================================
+// Public API
+// ======================================================
 
 export const publicApi = axios.create({
+
     baseURL: BASE_URL,
+
     headers: {
         "Content-Type": "application/json",
     },
+
 });
 
 
