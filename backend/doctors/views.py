@@ -1,4 +1,7 @@
 from datetime import datetime
+from django.db import models
+
+from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
 from rest_framework.filters import SearchFilter
@@ -52,6 +55,38 @@ class DoctorListView(generics.ListAPIView):
     serializer_class = DoctorSerializer
 
     permission_classes = [AllowAny]
+
+
+# ==========================================================
+# Get Single Doctor Details
+#
+# GET:
+# /api/doctors/doctors/<id>/
+# ==========================================================
+
+class DoctorDetailView(
+    generics.RetrieveAPIView
+):
+
+    serializer_class = DoctorSerializer
+
+    permission_classes = [AllowAny]
+
+
+    def get_object(self):
+
+        return get_object_or_404(
+
+            Doctor.objects.select_related(
+                "user",
+                "department"
+            ),
+
+            id=self.kwargs.get("pk"),
+
+            is_available=True,
+
+        )
 
 
 # ==========================================================
@@ -134,10 +169,6 @@ class DoctorByDepartmentView(
 # OR
 #
 # /api/doctors/time-slots/?doctor=1&date=2026-08-26
-#
-# If date is provided:
-# Only slots for that doctor's schedule on that weekday
-# will be returned.
 # ==========================================================
 
 class AvailableTimeSlotAPIView(
@@ -160,14 +191,18 @@ class AvailableTimeSlotAPIView(
         )
 
 
-        # ----------------------------------------------
-        # Doctor not selected
-        # ----------------------------------------------
+        # ==================================================
+        # Doctor Not Selected
+        # ==================================================
 
         if not doctor_id:
 
             return TimeSlot.objects.none()
 
+
+        # ==================================================
+        # Get Active and Available Slots
+        # ==================================================
 
         queryset = TimeSlot.objects.filter(
 
@@ -176,6 +211,11 @@ class AvailableTimeSlotAPIView(
             schedule__is_active=True,
 
             is_active=True,
+
+            # Full slot will not be returned
+            booked_count__lt=models.F(
+                "max_patient"
+            ),
 
         ).select_related(
 
@@ -186,9 +226,9 @@ class AvailableTimeSlotAPIView(
         )
 
 
-        # ----------------------------------------------
-        # Filter by selected appointment date
-        # ----------------------------------------------
+        # ==================================================
+        # Filter By Selected Date
+        # ==================================================
 
         if appointment_date:
 
@@ -202,11 +242,6 @@ class AvailableTimeSlotAPIView(
 
                 ).date()
 
-
-                # Example:
-                # Monday
-                # Tuesday
-                # Wednesday
 
                 day_name = selected_date.strftime(
                     "%A"

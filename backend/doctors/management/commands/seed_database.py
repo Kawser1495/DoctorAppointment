@@ -1,10 +1,10 @@
-from datetime import date, timedelta, time
+from datetime import date, datetime, timedelta, time
 from decimal import Decimal
 from random import choice
 import uuid
 
 from django.core.management.base import BaseCommand
-from django.db import models
+from django.db import models, transaction
 
 from accounts.models import CustomUser
 from patients.models import PatientProfile
@@ -17,7 +17,6 @@ from doctors.models import (
 )
 
 from appointments.models import Appointment
-
 from payments.models import Payment
 
 from diagnostics.models import (
@@ -34,6 +33,17 @@ class Command(BaseCommand):
 
     help = "Seed realistic hospital management system data"
 
+    DEFAULT_DOCTOR_PASSWORD = "Doctor@123"
+    DEFAULT_PATIENT_PASSWORD = "Patient@123"
+
+    SLOT_DURATION_MINUTES = 30
+    MAX_PATIENT_PER_SLOT = 5
+
+    # ==================================================
+    # MAIN COMMAND
+    # ==================================================
+
+    @transaction.atomic
     def handle(self, *args, **kwargs):
 
         self.stdout.write(
@@ -42,45 +52,97 @@ class Command(BaseCommand):
             )
         )
 
-        # ==================================================
-        # 1. DEPARTMENTS
-        # ==================================================
+        self.seed_departments()
+        self.seed_doctors()
+        self.seed_patients()
+        self.seed_doctor_schedules()
+        self.seed_time_slots()
+
+        # Important:
+        # First synchronize old slot counts
+        self.sync_slot_booked_counts()
+
+        self.seed_appointments()
+
+        # Sync again after creating appointments
+        self.sync_slot_booked_counts()
+
+        self.seed_payments()
+        self.seed_diagnostic_categories()
+        self.seed_diagnostic_tests()
+        self.seed_test_bookings()
+        self.seed_medical_reports()
+        self.seed_notifications()
+
+        self.print_summary()
+
+    # ==================================================
+    # 1. DEPARTMENTS
+    # ==================================================
+
+    def seed_departments(self):
 
         departments_data = [
 
-            ("Cardiology", "Diagnosis and treatment of heart and cardiovascular diseases."),
+            (
+                "Cardiology",
+                "Diagnosis and treatment of heart and cardiovascular diseases."
+            ),
 
-            ("Neurology", "Diagnosis and treatment of brain, spinal cord and nervous system disorders."),
+            (
+                "Neurology",
+                "Diagnosis and treatment of brain, spinal cord and nervous system disorders."
+            ),
 
-            ("Orthopedics", "Treatment of bone, joint, muscle and musculoskeletal conditions."),
+            (
+                "Orthopedics",
+                "Treatment of bone, joint, muscle and musculoskeletal conditions."
+            ),
 
-            ("Medicine", "General internal medicine, chronic disease management and adult healthcare."),
+            (
+                "Medicine",
+                "General internal medicine, chronic disease management and adult healthcare."
+            ),
 
-            ("ENT", "Treatment of ear, nose, throat and related head and neck conditions."),
+            (
+                "ENT",
+                "Treatment of ear, nose, throat and related head and neck conditions."
+            ),
 
-            ("Gynecology", "Women's reproductive health, pregnancy and gynecological care."),
+            (
+                "Gynecology",
+                "Women's reproductive health, pregnancy and gynecological care."
+            ),
 
-            ("Pediatrics", "Medical care for infants, children and adolescents."),
+            (
+                "Pediatrics",
+                "Medical care for infants, children and adolescents."
+            ),
 
-            ("Dermatology", "Diagnosis and treatment of skin, hair and nail conditions."),
+            (
+                "Dermatology",
+                "Diagnosis and treatment of skin, hair and nail conditions."
+            ),
 
-            ("Dental", "Dental, oral and gum healthcare services."),
+            (
+                "Dental",
+                "Dental, oral and gum healthcare services."
+            ),
 
-            ("Ophthalmology", "Diagnosis and treatment of eye and vision disorders."),
+            (
+                "Ophthalmology",
+                "Diagnosis and treatment of eye and vision disorders."
+            ),
         ]
 
         for name, description in departments_data:
 
-            department, created = Department.objects.get_or_create(
+            Department.objects.update_or_create(
                 name=name,
                 defaults={
                     "description": description
                 }
             )
-
-            if not created:
-                department.description = description
-                department.save(update_fields=["description"])
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -88,118 +150,37 @@ class Command(BaseCommand):
             )
         )
 
-        # ==================================================
-        # 2. DOCTORS
-        # ==================================================
+    # ==================================================
+    # 2. DOCTORS
+    # ==================================================
+
+    def seed_doctors(self):
 
         doctor_data = [
 
-            # ==============================================
-            # CARDIOLOGY - 3 Doctors
-            # ==============================================
+            # ==========================================
+            # 1. DR ABDUL KARIM
+            # ==========================================
 
             {
-                "username": "dr_rahat_has",
-                "first_name": "Md. Rahat",
-                "last_name": "Hasan",
-                "email": "rahat.hasan@hospital.com",
-                "department": "Cardiology",
-                "specialization": "Interventional Cardiology and Heart Diseases",
-                "qualification": "MBBS, MD (Cardiology), FACC",
-                "experience": 14,
-                "fee": 1500,
-                "biography": "Specializes in coronary artery disease, hypertension, heart failure and cardiac interventions.",
-            },
-
-            {
-                "username": "dr_nusrat_karim",
-                "first_name": "Nusrat",
+                "username": "dr_abdul_karim",
+                "first_name": "Abdul",
                 "last_name": "Karim",
-                "email": "nusrat.karim@hospital.com",
-                "department": "Cardiology",
-                "specialization": "Cardiology and Hypertension",
-                "qualification": "MBBS, D-CARD, MD (Cardiology)",
-                "experience": 9,
-                "fee": 1200,
-                "biography": "Experienced in hypertension, heart disease prevention and cardiovascular medicine.",
-            },
-
-            {
-                "username": "dr_imran_ahmed",
-                "first_name": "Imran",
-                "last_name": "Ahmed",
-                "email": "imran.ahmed@hospital.com",
-                "department": "Cardiology",
-                "specialization": "Clinical Cardiology",
-                "qualification": "MBBS, FCPS (Medicine), MD (Cardiology)",
-                "experience": 11,
-                "fee": 1300,
-                "biography": "Provides diagnosis and treatment for common and complex cardiovascular diseases.",
-            },
-
-            # ==============================================
-            # NEUROLOGY - 2 Doctors
-            # ==============================================
-
-            {
-                "username": "dr_farhana_islam",
-                "first_name": "Farhana",
-                "last_name": "Islam",
-                "email": "farhana.islam@hospital.com",
+                "email": "abdul.karim@hospital.com",
                 "department": "Neurology",
-                "specialization": "Neurology and Stroke Medicine",
-                "qualification": "MBBS, MD (Neurology)",
-                "experience": 12,
-                "fee": 1500,
-                "biography": "Specializes in stroke, headache, migraine, epilepsy and neurological disorders.",
-            },
-
-            {
-                "username": "dr_tanvir_hossain",
-                "first_name": "Tanvir",
-                "last_name": "Hossain",
-                "email": "tanvir.hossain@hospital.com",
-                "department": "Neurology",
-                "specialization": "Brain and Nervous System Disorders",
-                "qualification": "MBBS, FCPS (Medicine), MD (Neurology)",
+                "specialization": "Neurologist",
+                "qualification": "MBBS, FCPS",
                 "experience": 8,
                 "fee": 1200,
-                "biography": "Provides care for epilepsy, migraine, nerve disorders and movement disorders.",
+                "biography": (
+                    "Experienced neurologist specializing in brain, "
+                    "nerve and neurological disorders."
+                ),
             },
 
-            # ==============================================
-            # ORTHOPEDICS - 2 Doctors
-            # ==============================================
-
-            {
-                "username": "dr_samiul_rahman",
-                "first_name": "Samiul",
-                "last_name": "Rahman",
-                "email": "samiul.rahman@hospital.com",
-                "department": "Orthopedics",
-                "specialization": "Orthopedic Surgery and Trauma",
-                "qualification": "MBBS, MS (Orthopedics)",
-                "experience": 16,
-                "fee": 1500,
-                "biography": "Specializes in fractures, trauma, bone injuries and orthopedic surgery.",
-            },
-
-            {
-                "username": "dr_mahmud_ali",
-                "first_name": "Mahmud",
-                "last_name": "Ali",
-                "email": "mahmud.ali@hospital.com",
-                "department": "Orthopedics",
-                "specialization": "Joint and Sports Injury Specialist",
-                "qualification": "MBBS, D-ORTHO, MS (Orthopedics)",
-                "experience": 10,
-                "fee": 1200,
-                "biography": "Treats joint pain, sports injuries, arthritis and musculoskeletal conditions.",
-            },
-
-            # ==============================================
-            # MEDICINE - 2 Doctors
-            # ==============================================
+            # ==========================================
+            # 2. DR ABDUR RAHIM
+            # ==========================================
 
             {
                 "username": "dr_abdur_rahim",
@@ -207,59 +188,81 @@ class Command(BaseCommand):
                 "last_name": "Rahim",
                 "email": "abdur.rahim@hospital.com",
                 "department": "Medicine",
-                "specialization": "Internal Medicine and Diabetes",
-                "qualification": "MBBS, FCPS (Medicine)",
-                "experience": 15,
-                "fee": 1000,
-                "biography": "Experienced in diabetes, hypertension, fever and general internal medicine.",
+                "specialization": "Medicine Specialist",
+                "qualification": "MBBS, MD",
+                "experience": 10,
+                "fee": 800,
+                "biography": (
+                    "Provides treatment for general medical conditions "
+                    "and adult healthcare."
+                ),
             },
 
+            # ==========================================
+            # 3. DR ARIF HOSSAIN
+            # ==========================================
+
             {
-                "username": "dr_sadia_sultana",
-                "first_name": "Sadia",
-                "last_name": "Sultana",
-                "email": "sadia.sultana@hospital.com",
+                "username": "dr_arif_hossain",
+                "first_name": "Arif",
+                "last_name": "Hossain",
+                "email": "arif.hossain@hospital.com",
                 "department": "Medicine",
-                "specialization": "Internal Medicine",
-                "qualification": "MBBS, MD (Internal Medicine)",
-                "experience": 9,
-                "fee": 900,
-                "biography": "Provides comprehensive care for adult medical conditions and chronic diseases.",
+                "specialization": "Diabetes and Internal Medicine",
+                "qualification": "MBBS, MD (Medicine)",
+                "experience": 11,
+                "fee": 1100,
+                "biography": (
+                    "Specializes in diabetes management, internal medicine "
+                    "and chronic disease care."
+                ),
             },
 
-            # ==============================================
-            # ENT - 2 Doctors
-            # ==============================================
+            # ==========================================
+            # 4. DR FAHIM AHMED
+            # ==========================================
 
             {
-                "username": "dr_nabil_chowdhury",
-                "first_name": "Nabil",
-                "last_name": "Chowdhury",
-                "email": "nabil.chowdhury@hospital.com",
-                "department": "ENT",
-                "specialization": "Ear, Nose and Throat Specialist",
-                "qualification": "MBBS, DLO, FCPS (ENT)",
-                "experience": 13,
-                "fee": 1000,
-                "biography": "Treats ear infections, sinus problems, tonsillitis and throat disorders.",
+                "username": "dr_fahim_ahmed",
+                "first_name": "Fahim",
+                "last_name": "Ahmed",
+                "email": "fahim.ahmed@hospital.com",
+                "department": "Dental",
+                "specialization": (
+                    "Dental Surgery and Root Canal Treatment"
+                ),
+                "qualification": "BDS, PGT",
+                "experience": 6,
+                "fee": 700,
+                "biography": (
+                    "Provides dental surgery, root canal treatment, "
+                    "tooth care and oral health services."
+                ),
             },
+
+            # ==========================================
+            # 5. DR FARHANA ISLAM
+            # ==========================================
 
             {
-                "username": "dr_mim_akter",
-                "first_name": "Mim",
-                "last_name": "Akter",
-                "email": "mim.akter@hospital.com",
-                "department": "ENT",
-                "specialization": "ENT and Head-Neck Diseases",
-                "qualification": "MBBS, MS (ENT)",
-                "experience": 7,
-                "fee": 900,
-                "biography": "Experienced in common ear, nose, throat and voice-related conditions.",
+                "username": "dr_farhana_islam",
+                "first_name": "Farhana",
+                "last_name": "Islam",
+                "email": "farhana.islam@hospital.com",
+                "department": "Neurology",
+                "specialization": "Neurology and Stroke",
+                "qualification": "MBBS, MD (Neurology)",
+                "experience": 12,
+                "fee": 1500,
+                "biography": (
+                    "Specializes in stroke, migraine, epilepsy and "
+                    "neurological disorders."
+                ),
             },
 
-            # ==============================================
-            # GYNECOLOGY - 2 Doctors
-            # ==============================================
+            # ==========================================
+            # 6. DR FATEMA BEGUM
+            # ==========================================
 
             {
                 "username": "dr_fatema_begum",
@@ -267,190 +270,137 @@ class Command(BaseCommand):
                 "last_name": "Begum",
                 "email": "fatema.begum@hospital.com",
                 "department": "Gynecology",
-                "specialization": "Gynecology and Obstetrics",
-                "qualification": "MBBS, FCPS (Gynecology & Obstetrics)",
-                "experience": 14,
-                "fee": 1400,
-                "biography": "Provides care for pregnancy, childbirth, menstrual disorders and women's health.",
-            },
-
-            {
-                "username": "dr_samira_haque",
-                "first_name": "Samira",
-                "last_name": "Haque",
-                "email": "samira.haque@hospital.com",
-                "department": "Gynecology",
-                "specialization": "Women's Reproductive Health",
-                "qualification": "MBBS, MCPS, FCPS (Gynecology)",
-                "experience": 8,
-                "fee": 1100,
-                "biography": "Specializes in reproductive health, pregnancy consultation and gynecological disorders.",
-            },
-
-            # ==============================================
-            # PEDIATRICS - 2 Doctors
-            # ==============================================
-
-            {
-                "username": "dr_arif_hasan",
-                "first_name": "Arif",
-                "last_name": "Hasan",
-                "email": "arif.hasan@hospital.com",
-                "department": "Pediatrics",
-                "specialization": "Child Diseases and Pediatric Care",
-                "qualification": "MBBS, DCH, FCPS (Pediatrics)",
-                "experience": 13,
-                "fee": 1000,
-                "biography": "Provides medical care for newborns, infants, children and adolescents.",
-            },
-
-            {
-                "username": "dr_tasnim_jahan",
-                "first_name": "Tasnim",
-                "last_name": "Jahan",
-                "email": "tasnim.jahan@hospital.com",
-                "department": "Pediatrics",
-                "specialization": "Pediatric Medicine and Nutrition",
-                "qualification": "MBBS, MD (Pediatrics)",
-                "experience": 7,
-                "fee": 900,
-                "biography": "Focuses on childhood diseases, growth, nutrition and preventive healthcare.",
-            },
-
-            # ==============================================
-            # DERMATOLOGY - 2 Doctors
-            # ==============================================
-
-            {
-                "username": "dr_sharmin_akter",
-                "first_name": "Sharmin",
-                "last_name": "Akter",
-                "email": "sharmin.akter@hospital.com",
-                "department": "Dermatology",
-                "specialization": "Dermatology and Skin Diseases",
-                "qualification": "MBBS, DDV, FCPS (Dermatology)",
+                "specialization": "Gynecologist",
+                "qualification": "MBBS, FCPS",
                 "experience": 11,
-                "fee": 1100,
-                "biography": "Treats acne, eczema, allergies, psoriasis and other skin conditions.",
+                "fee": 1200,
+                "biography": (
+                    "Provides treatment for women's health, pregnancy "
+                    "and gynecological conditions."
+                ),
             },
 
-            {
-                "username": "dr_rakib_hassan",
-                "first_name": "Rakib",
-                "last_name": "Hassan",
-                "email": "rakib.hassan@hospital.com",
-                "department": "Dermatology",
-                "specialization": "Dermatology and Cosmetic Skin Care",
-                "qualification": "MBBS, DDV",
-                "experience": 6,
-                "fee": 900,
-                "biography": "Provides treatment for skin, hair and nail problems and cosmetic dermatology.",
-            },
-
-            # ==============================================
-            # DENTAL - 2 Doctors
-            # ==============================================
+            # ==========================================
+            # 7. DR IMRAN CHOWDHURY
+            # ==========================================
 
             {
-                "username": "dr_shafiq_islam",
-                "first_name": "Shafiq",
-                "last_name": "Islam",
-                "email": "shafiq.islam@hospital.com",
-                "department": "Dental",
-                "specialization": "Dental Surgery and Oral Health",
-                "qualification": "BDS, PGT, FCPS (Oral & Maxillofacial Surgery)",
+                "username": "dr_imran_chowdhury",
+                "first_name": "Imran",
+                "last_name": "Chowdhury",
+                "email": "imran.chowdhury@hospital.com",
+                "department": "Pediatrics",
+                "specialization": (
+                    "Child Diseases and Newborn Care"
+                ),
+                "qualification": "MBBS, DCH, FCPS (Pediatrics)",
                 "experience": 12,
                 "fee": 1000,
-                "biography": "Experienced in dental pain, tooth extraction, oral surgery and dental care.",
+                "biography": (
+                    "Provides healthcare for newborns, infants, children "
+                    "and pediatric diseases."
+                ),
             },
 
+            # ==========================================
+            # 8. DR IMRAN KABIR
+            # ==========================================
+
             {
-                "username": "dr_rumana_ahmed",
-                "first_name": "Rumana",
-                "last_name": "Ahmed",
-                "email": "rumana.ahmed@hospital.com",
+                "username": "dr_imran_kabir",
+                "first_name": "Imran",
+                "last_name": "Kabir",
+                "email": "imran.kabir@hospital.com",
                 "department": "Dental",
-                "specialization": "General Dentistry and Root Canal Treatment",
-                "qualification": "BDS, PGT",
-                "experience": 7,
+                "specialization": "Dental and Oral Surgery",
+                "qualification": "BDS, MS (Oral Surgery)",
+                "experience": 12,
                 "fee": 800,
-                "biography": "Provides routine dental care, fillings, scaling and root canal treatment.",
+                "biography": (
+                    "Specializes in dental treatment, oral surgery and "
+                    "oral healthcare."
+                ),
             },
 
-            # ==============================================
-            # OPHTHALMOLOGY - 2 Doctors
-            # ==============================================
+            # ==========================================
+            # 9. DR JANNAT ARA
+            # ==========================================
 
             {
-                "username": "dr_kamal_hossain",
-                "first_name": "Kamal",
-                "last_name": "Hossain",
-                "email": "kamal.hossain@hospital.com",
-                "department": "Ophthalmology",
-                "specialization": "Eye Diseases and Cataract Surgery",
-                "qualification": "MBBS, DO, MS (Ophthalmology)",
-                "experience": 15,
-                "fee": 1300,
-                "biography": "Specializes in cataract, glaucoma, eye infections and vision problems.",
+                "username": "dr_jannat_ara",
+                "first_name": "Jannat",
+                "last_name": "Ara",
+                "email": "jannat.ara@hospital.com",
+                "department": "Pediatrics",
+                "specialization": (
+                    "Pediatrics and Child Nutrition"
+                ),
+                "qualification": "MBBS, MD (Pediatrics)",
+                "experience": 8,
+                "fee": 900,
+                "biography": (
+                    "Focuses on child diseases, nutrition, growth and "
+                    "preventive pediatric healthcare."
+                ),
             },
+
+            # ==========================================
+            # 10. DR JOHN SMITH
+            # ==========================================
 
             {
-                "username": "dr_lamia_noor",
-                "first_name": "Lamia",
-                "last_name": "Noor",
-                "email": "lamia.noor@hospital.com",
-                "department": "Ophthalmology",
-                "specialization": "Ophthalmology and Retina Care",
-                "qualification": "MBBS, DO, FCPS (Ophthalmology)",
-                "experience": 9,
-                "fee": 1100,
-                "biography": "Provides care for retina disorders, diabetes-related eye disease and general ophthalmology.",
+                "username": "dr_john_smith",
+                "first_name": "John",
+                "last_name": "Smith",
+                "email": "john.smith@hospital.com",
+                "department": "Cardiology",
+                "specialization": "Cardiologist",
+                "qualification": "MBBS, FCPS",
+                "experience": 12,
+                "fee": 1000,
+                "biography": (
+                    "Experienced cardiologist specializing in heart "
+                    "diseases and cardiovascular care."
+                ),
             },
-
         ]
 
         for data in doctor_data:
 
             user, created = CustomUser.objects.get_or_create(
-                username=data["username"],
-                defaults={
-                    "first_name": data["first_name"],
-                    "last_name": data["last_name"],
-                    "email": data["email"],
-                    "role": "doctor",
-                }
+                username=data["username"]
             )
 
+            user.first_name = data["first_name"]
+            user.last_name = data["last_name"]
+            user.email = data["email"]
+            user.role = "doctor"
+
             if created:
-                user.set_password("Doctor@123")
-                user.save()
+                user.set_password(
+                    self.DEFAULT_DOCTOR_PASSWORD
+                )
+
+            user.save()
 
             department = Department.objects.get(
                 name=data["department"]
             )
 
-            doctor, doctor_created = Doctor.objects.get_or_create(
+            Doctor.objects.update_or_create(
                 user=user,
                 defaults={
                     "department": department,
                     "specialization": data["specialization"],
                     "qualification": data["qualification"],
                     "experience": data["experience"],
-                    "consultation_fee": Decimal(data["fee"]),
+                    "consultation_fee": Decimal(
+                        str(data["fee"])
+                    ),
                     "biography": data["biography"],
                     "is_available": True,
                 }
             )
-
-            if not doctor_created:
-                doctor.department = department
-                doctor.specialization = data["specialization"]
-                doctor.qualification = data["qualification"]
-                doctor.experience = data["experience"]
-                doctor.consultation_fee = Decimal(data["fee"])
-                doctor.biography = data["biography"]
-                doctor.is_available = True
-                doctor.save()
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -458,9 +408,11 @@ class Command(BaseCommand):
             )
         )
 
-        # ==================================================
-        # 3. PATIENTS
-        # ==================================================
+    # ==================================================
+    # 3. PATIENTS
+    # ==================================================
+
+    def seed_patients(self):
 
         patient_data = [
 
@@ -528,27 +480,28 @@ class Command(BaseCommand):
                 "address": "Mymensingh",
                 "emergency_contact": "01855555555",
             },
-
         ]
 
         for data in patient_data:
 
             user, created = CustomUser.objects.get_or_create(
-                username=data["username"],
-                defaults={
-                    "first_name": data["first_name"],
-                    "last_name": data["last_name"],
-                    "email": data["email"],
-                    "phone": data["phone"],
-                    "role": "patient",
-                }
+                username=data["username"]
             )
 
-            if created:
-                user.set_password("Patient@123")
-                user.save()
+            user.first_name = data["first_name"]
+            user.last_name = data["last_name"]
+            user.email = data["email"]
+            user.phone = data["phone"]
+            user.role = "patient"
 
-            PatientProfile.objects.get_or_create(
+            if created:
+                user.set_password(
+                    self.DEFAULT_PATIENT_PASSWORD
+                )
+
+            user.save()
+
+            PatientProfile.objects.update_or_create(
                 user=user,
                 defaults={
                     "phone_number": data["phone"],
@@ -556,7 +509,9 @@ class Command(BaseCommand):
                     "date_of_birth": data["dob"],
                     "blood_group": data["blood_group"],
                     "address": data["address"],
-                    "emergency_contact": data["emergency_contact"],
+                    "emergency_contact": (
+                        data["emergency_contact"]
+                    ),
                 }
             )
 
@@ -566,9 +521,11 @@ class Command(BaseCommand):
             )
         )
 
-        # ==================================================
-        # 4. DOCTOR SCHEDULES
-        # ==================================================
+    # ==================================================
+    # 4. DOCTOR SCHEDULES
+    # ==================================================
+
+    def seed_doctor_schedules(self):
 
         schedule_patterns = {
 
@@ -633,35 +590,34 @@ class Command(BaseCommand):
                 ("Tuesday", "09:00", "15:00"),
                 ("Thursday", "09:00", "15:00"),
             ],
-
         }
 
-        for doctor in Doctor.objects.all():
+        doctors = Doctor.objects.select_related(
+            "department"
+        ).all()
 
-            department_name = doctor.department.name
+        for doctor in doctors:
 
             schedules = schedule_patterns.get(
-                department_name,
+                doctor.department.name,
                 []
             )
 
             for day, start_time, end_time in schedules:
 
-                schedule, created = DoctorSchedule.objects.get_or_create(
+                DoctorSchedule.objects.update_or_create(
                     doctor=doctor,
                     day=day,
                     defaults={
-                        "start_time": start_time,
-                        "end_time": end_time,
+                        "start_time": time.fromisoformat(
+                            start_time
+                        ),
+                        "end_time": time.fromisoformat(
+                            end_time
+                        ),
                         "is_active": True,
                     }
                 )
-
-                if not created:
-                    schedule.start_time = start_time
-                    schedule.end_time = end_time
-                    schedule.is_active = True
-                    schedule.save()
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -669,74 +625,118 @@ class Command(BaseCommand):
             )
         )
 
-        # ==================================================
-        # 5. TIME SLOTS
-        # ==================================================
+    # ==================================================
+    # 5. TIME SLOTS
+    #
+    # Automatically creates 30-minute slots based on
+    # every doctor's actual schedule.
+    # ==================================================
 
-        slot_times = [
-            "09:00",
-            "09:30",
-            "10:00",
-            "10:30",
-            "11:00",
-            "11:30",
-            "12:00",
-            "12:30",
-            "14:00",
-            "14:30",
-            "15:00",
-            "15:30",
-            "16:00",
-            "16:30",
-            "17:00",
-            "17:30",
-            "18:00",
-            "18:30",
-            "19:00",
-            "19:30",
-        ]
+    def seed_time_slots(self):
 
-        for schedule in DoctorSchedule.objects.all():
+        schedules = DoctorSchedule.objects.filter(
+            is_active=True
+        )
 
-            for slot in slot_times:
+        created_count = 0
 
-                slot_time_obj = time.fromisoformat(slot)
+        for schedule in schedules:
 
-                if (
-                    schedule.start_time
-                    <= slot_time_obj
-                    < schedule.end_time
-                ):
+            current_datetime = datetime.combine(
+                date.today(),
+                schedule.start_time
+            )
 
-                    TimeSlot.objects.get_or_create(
-                        schedule=schedule,
-                        slot_time=slot_time_obj,
-                        defaults={
-                            "max_patient": 5,
-                            "booked_count": 0,
-                            "is_active": True,
-                        }
-                    )
+            end_datetime = datetime.combine(
+                date.today(),
+                schedule.end_time
+            )
+
+            while current_datetime < end_datetime:
+
+                slot_time = current_datetime.time()
+
+                _, created = TimeSlot.objects.update_or_create(
+                    schedule=schedule,
+                    slot_time=slot_time,
+                    defaults={
+                        "max_patient": (
+                            self.MAX_PATIENT_PER_SLOT
+                        ),
+                        "is_active": True,
+                    }
+                )
+
+                if created:
+                    created_count += 1
+
+                current_datetime += timedelta(
+                    minutes=self.SLOT_DURATION_MINUTES
+                )
 
         self.stdout.write(
             self.style.SUCCESS(
-                "✓ Professional time slots seeded successfully"
+                f"✓ Time slots seeded successfully "
+                f"({created_count} new slots)"
             )
         )
 
-        # ==================================================
-        # 6. APPOINTMENTS
-        # ==================================================
+    # ==================================================
+    # 6. SYNC SLOT BOOKED COUNT
+    #
+    # Fixes old incorrect booked_count values.
+    # ==================================================
+
+    def sync_slot_booked_counts(self):
+
+        slots = TimeSlot.objects.all()
+
+        for slot in slots:
+
+            appointment_count = Appointment.objects.filter(
+                slot=slot
+            ).exclude(
+                status__in=["Cancelled", "Rejected"]
+            ).count()
+
+            if appointment_count > slot.max_patient:
+                appointment_count = slot.max_patient
+
+            TimeSlot.objects.filter(
+                pk=slot.pk
+            ).update(
+                booked_count=appointment_count
+            )
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                "✓ Time slot booked counts synchronized"
+            )
+        )
+
+    # ==================================================
+    # 7. APPOINTMENTS
+    #
+    # Fixed appointment generation:
+    # - Correct doctor working day
+    # - Correct schedule
+    # - Correct slot capacity
+    # - No duplicate patient/doctor/date appointment
+    # ==================================================
+
+    def seed_appointments(self):
 
         patients = list(
             PatientProfile.objects.all()
         )
 
-        doctors = list(
-            Doctor.objects.filter(
-                is_available=True
+        if not patients:
+            self.stdout.write(
+                self.style.WARNING(
+                    "⚠ No patients found. Skipping appointments."
+                )
             )
-        )
+            return
 
         appointment_statuses = [
             "Pending",
@@ -767,103 +767,133 @@ class Command(BaseCommand):
             "Routine health concern",
         ]
 
-        day_mapping = {
-            0: "Monday",
-            1: "Tuesday",
-            2: "Wednesday",
-            3: "Thursday",
-            4: "Friday",
-            5: "Saturday",
-            6: "Sunday",
-        }
+        target_appointments = 30
+        created_count = 0
 
-        if patients and doctors:
+        for offset in range(1, 31):
 
-            created_count = 0
+            if created_count >= target_appointments:
+                break
 
-            for offset in range(1, 15):
+            appointment_date = (
+                date.today()
+                + timedelta(days=offset)
+            )
 
-                if created_count >= 20:
-                    break
+            day_name = appointment_date.strftime(
+                "%A"
+            )
 
-                appointment_date = (
-                    date.today()
-                    + timedelta(days=offset)
+            schedules = list(
+                DoctorSchedule.objects.select_related(
+                    "doctor",
+                    "doctor__department"
+                ).filter(
+                    day=day_name,
+                    is_active=True,
+                    doctor__is_available=True
                 )
+            )
 
-                day_name = day_mapping[
-                    appointment_date.weekday()
-                ]
+            if not schedules:
+                continue
 
-                available_doctors = [
-                    doctor
-                    for doctor in doctors
-                    if doctor.schedules.filter(
-                        day=day_name,
-                        is_active=True
-                    ).exists()
-                ]
+            attempts = 0
+            max_attempts = 20
 
-                if not available_doctors:
+            while (
+                created_count < target_appointments
+                and attempts < max_attempts
+            ):
+
+                attempts += 1
+
+                patient = choice(patients)
+                schedule = choice(schedules)
+                doctor = schedule.doctor
+
+                # Prevent same patient booking same doctor
+                # more than once on the same date.
+                duplicate_appointment = Appointment.objects.filter(
+                    patient=patient,
+                    doctor=doctor,
+                    appointment_date=appointment_date,
+                ).exists()
+
+                if duplicate_appointment:
                     continue
 
-                for _ in range(3):
-
-                    if created_count >= 20:
-                        break
-
-                    patient = choice(patients)
-                    doctor = choice(available_doctors)
-
-                    available_slots = TimeSlot.objects.filter(
-                        schedule__doctor=doctor,
-                        schedule__day=day_name,
-                        schedule__is_active=True,
+                available_slots = list(
+                    TimeSlot.objects.filter(
+                        schedule=schedule,
                         is_active=True,
-                    ).exclude(
-                        booked_count__gte=models.F("max_patient")
+                        booked_count__lt=models.F(
+                            "max_patient"
+                        )
                     )
+                )
 
-                    slot = available_slots.order_by("?").first()
+                if not available_slots:
+                    continue
 
-                    if not slot:
-                        continue
+                slot = choice(available_slots)
 
-                    already_exists = Appointment.objects.filter(
-                        patient=patient,
-                        doctor=doctor,
-                        appointment_date=appointment_date,
-                    ).exists()
+                # Additional safety check:
+                # Same patient + doctor + date + slot
+                # should never be duplicated.
+                exact_duplicate = Appointment.objects.filter(
+                    patient=patient,
+                    doctor=doctor,
+                    appointment_date=appointment_date,
+                    slot=slot,
+                ).exists()
 
-                    if already_exists:
-                        continue
+                if exact_duplicate:
+                    continue
 
-                    Appointment.objects.create(
-                        patient=patient,
-                        doctor=doctor,
-                        slot=slot,
-                        appointment_date=appointment_date,
-                        reason=choice(appointment_reasons),
-                        symptoms=choice(appointment_symptoms),
-                        status=choice(appointment_statuses),
+                status = choice(
+                    appointment_statuses
+                )
+
+                appointment = Appointment.objects.create(
+                    patient=patient,
+                    doctor=doctor,
+                    slot=slot,
+                    appointment_date=appointment_date,
+                    reason=choice(
+                        appointment_reasons
+                    ),
+                    symptoms=choice(
+                        appointment_symptoms
+                    ),
+                    status=status,
+                )
+
+                # Safely update booked count
+                TimeSlot.objects.filter(
+                    pk=slot.pk,
+                    booked_count__lt=models.F(
+                        "max_patient"
                     )
+                ).update(
+                    booked_count=models.F(
+                        "booked_count"
+                    ) + 1
+                )
 
-                    slot.booked_count += 1
-                    slot.save(
-                        update_fields=["booked_count"]
-                    )
-
-                    created_count += 1
+                created_count += 1
 
         self.stdout.write(
             self.style.SUCCESS(
-                "✓ Sample appointments seeded successfully"
+                f"✓ {created_count} Sample appointments seeded successfully"
             )
         )
 
-        # ==================================================
-        # 7. PAYMENTS
-        # ==================================================
+    # ==================================================
+    # 8. PAYMENTS
+    # ==================================================
+
+    def seed_payments(self):
 
         payment_methods = [
             "Bkash",
@@ -872,33 +902,40 @@ class Command(BaseCommand):
             "Cash",
         ]
 
-        for appointment in Appointment.objects.all():
+        created_count = 0
+
+        for appointment in Appointment.objects.select_related(
+            "patient",
+            "doctor"
+        ).all():
 
             if appointment.status == "Pending":
+
                 payment_status = "Pending"
 
             elif appointment.status in [
                 "Confirmed",
                 "Completed",
             ]:
+
                 payment_status = "Paid"
 
             elif appointment.status in [
                 "Cancelled",
                 "Rejected",
             ]:
+
                 payment_status = "Failed"
 
             else:
+
                 payment_status = "Pending"
 
-            Payment.objects.get_or_create(
+            _, created = Payment.objects.get_or_create(
                 appointment=appointment,
                 defaults={
                     "patient": appointment.patient,
-                    "amount": Decimal(
-                        appointment.doctor.consultation_fee
-                    ),
+                    "amount": appointment.doctor.consultation_fee,
                     "payment_method": choice(
                         payment_methods
                     ),
@@ -910,62 +947,67 @@ class Command(BaseCommand):
                 }
             )
 
+            if created:
+                created_count += 1
+
         self.stdout.write(
             self.style.SUCCESS(
-                "✓ Payments seeded successfully"
+                f"✓ {created_count} Payments seeded successfully"
             )
         )
 
-        # ==================================================
-        # 8. DIAGNOSTIC CATEGORIES
-        # ==================================================
+    # ==================================================
+    # 9. DIAGNOSTIC CATEGORIES
+    # ==================================================
+
+    def seed_diagnostic_categories(self):
 
         categories = [
 
             (
                 "Blood Test",
-                "Blood related laboratory tests",
+                "Blood related laboratory tests."
             ),
 
             (
                 "Urine Test",
-                "Urine analysis and infection tests",
+                "Urine analysis and infection tests."
             ),
 
             (
                 "Imaging",
-                "Radiology and medical imaging services",
+                "Radiology and medical imaging services."
             ),
 
             (
                 "Heart Checkup",
-                "Cardiology diagnostic services",
+                "Cardiology diagnostic services."
             ),
 
             (
                 "Diabetes",
-                "Blood glucose and diabetes monitoring tests",
+                "Blood glucose and diabetes monitoring tests."
             ),
 
             (
                 "Hormone",
-                "Hormone and endocrine related tests",
+                "Hormone and endocrine related tests."
             ),
 
             (
                 "Liver Function",
-                "Liver health and function tests",
+                "Liver health and function tests."
             ),
 
             (
                 "Kidney Function",
-                "Kidney health and function tests",
+                "Kidney health and function tests."
             ),
         ]
 
         for name, description in categories:
 
-            TestCategory.objects.get_or_create(
+            TestCategory.objects.update_or_create(
                 name=name,
                 defaults={
                     "description": description
@@ -978,16 +1020,20 @@ class Command(BaseCommand):
             )
         )
 
-        # ==================================================
-        # 9. DIAGNOSTIC TESTS
-        # ==================================================
+    # ==================================================
+    # 10. DIAGNOSTIC TESTS
+    # ==================================================
+
+    def seed_diagnostic_tests(self):
 
         test_data = [
 
             {
                 "category": "Blood Test",
                 "name": "Complete Blood Count (CBC)",
-                "description": "Measures different components of blood including red and white blood cells.",
+                "description": (
+                    "Measures different components of blood."
+                ),
                 "price": 600,
                 "duration": "6 Hours",
             },
@@ -995,7 +1041,9 @@ class Command(BaseCommand):
             {
                 "category": "Blood Test",
                 "name": "Blood Group and Rh Factor",
-                "description": "Determines blood group and Rh factor.",
+                "description": (
+                    "Determines blood group and Rh factor."
+                ),
                 "price": 300,
                 "duration": "2 Hours",
             },
@@ -1003,7 +1051,9 @@ class Command(BaseCommand):
             {
                 "category": "Blood Test",
                 "name": "Hemoglobin",
-                "description": "Measures hemoglobin level in the blood.",
+                "description": (
+                    "Measures hemoglobin level in the blood."
+                ),
                 "price": 250,
                 "duration": "2 Hours",
             },
@@ -1011,7 +1061,9 @@ class Command(BaseCommand):
             {
                 "category": "Urine Test",
                 "name": "Urine R/E",
-                "description": "Routine examination of urine.",
+                "description": (
+                    "Routine examination of urine."
+                ),
                 "price": 350,
                 "duration": "4 Hours",
             },
@@ -1019,7 +1071,9 @@ class Command(BaseCommand):
             {
                 "category": "Urine Test",
                 "name": "Urine Culture",
-                "description": "Detects bacterial infection in urine.",
+                "description": (
+                    "Detects bacterial infection in urine."
+                ),
                 "price": 800,
                 "duration": "24 Hours",
             },
@@ -1027,7 +1081,9 @@ class Command(BaseCommand):
             {
                 "category": "Imaging",
                 "name": "X-Ray Chest",
-                "description": "Chest radiographic examination.",
+                "description": (
+                    "Chest radiographic examination."
+                ),
                 "price": 1000,
                 "duration": "30 Minutes",
             },
@@ -1035,7 +1091,9 @@ class Command(BaseCommand):
             {
                 "category": "Imaging",
                 "name": "MRI Brain",
-                "description": "Detailed magnetic resonance imaging of the brain.",
+                "description": (
+                    "Detailed magnetic resonance imaging of the brain."
+                ),
                 "price": 6500,
                 "duration": "2 Hours",
             },
@@ -1043,7 +1101,9 @@ class Command(BaseCommand):
             {
                 "category": "Imaging",
                 "name": "CT Scan",
-                "description": "Computed tomography scan.",
+                "description": (
+                    "Computed tomography scan."
+                ),
                 "price": 5000,
                 "duration": "2 Hours",
             },
@@ -1051,7 +1111,9 @@ class Command(BaseCommand):
             {
                 "category": "Heart Checkup",
                 "name": "ECG",
-                "description": "Records electrical activity of the heart.",
+                "description": (
+                    "Records electrical activity of the heart."
+                ),
                 "price": 700,
                 "duration": "20 Minutes",
             },
@@ -1059,7 +1121,9 @@ class Command(BaseCommand):
             {
                 "category": "Heart Checkup",
                 "name": "Echocardiogram",
-                "description": "Ultrasound examination of the heart.",
+                "description": (
+                    "Ultrasound examination of the heart."
+                ),
                 "price": 2500,
                 "duration": "45 Minutes",
             },
@@ -1067,7 +1131,9 @@ class Command(BaseCommand):
             {
                 "category": "Diabetes",
                 "name": "Random Blood Sugar",
-                "description": "Measures current blood glucose level.",
+                "description": (
+                    "Measures current blood glucose level."
+                ),
                 "price": 300,
                 "duration": "1 Hour",
             },
@@ -1075,7 +1141,9 @@ class Command(BaseCommand):
             {
                 "category": "Diabetes",
                 "name": "HbA1c",
-                "description": "Measures average blood sugar over approximately three months.",
+                "description": (
+                    "Measures average blood sugar over three months."
+                ),
                 "price": 900,
                 "duration": "6 Hours",
             },
@@ -1083,7 +1151,9 @@ class Command(BaseCommand):
             {
                 "category": "Hormone",
                 "name": "TSH",
-                "description": "Measures thyroid stimulating hormone level.",
+                "description": (
+                    "Measures thyroid stimulating hormone level."
+                ),
                 "price": 900,
                 "duration": "6 Hours",
             },
@@ -1091,7 +1161,9 @@ class Command(BaseCommand):
             {
                 "category": "Liver Function",
                 "name": "Liver Function Test (LFT)",
-                "description": "Evaluates liver health and function.",
+                "description": (
+                    "Evaluates liver health and function."
+                ),
                 "price": 1200,
                 "duration": "6 Hours",
             },
@@ -1099,11 +1171,12 @@ class Command(BaseCommand):
             {
                 "category": "Kidney Function",
                 "name": "Kidney Function Test (KFT)",
-                "description": "Evaluates kidney health and function.",
+                "description": (
+                    "Evaluates kidney health and function."
+                ),
                 "price": 1100,
                 "duration": "6 Hours",
             },
-
         ]
 
         for data in test_data:
@@ -1112,12 +1185,14 @@ class Command(BaseCommand):
                 name=data["category"]
             )
 
-            DiagnosticTest.objects.get_or_create(
+            DiagnosticTest.objects.update_or_create(
                 name=data["name"],
                 defaults={
                     "category": category,
                     "description": data["description"],
-                    "price": data["price"],
+                    "price": Decimal(
+                        str(data["price"])
+                    ),
                     "duration": data["duration"],
                     "is_available": True,
                 }
@@ -1129,15 +1204,30 @@ class Command(BaseCommand):
             )
         )
 
-        # ==================================================
-        # 10. TEST BOOKINGS
-        # ==================================================
+    # ==================================================
+    # 11. TEST BOOKINGS
+    # ==================================================
+
+    def seed_test_bookings(self):
+
+        patients = list(
+            PatientProfile.objects.all()
+        )
 
         tests = list(
             DiagnosticTest.objects.filter(
                 is_available=True
             )
         )
+
+        if not patients or not tests:
+
+            self.stdout.write(
+                self.style.WARNING(
+                    "⚠ No patients or tests found. Skipping test bookings."
+                )
+            )
+            return
 
         booking_statuses = [
             "Pending",
@@ -1158,48 +1248,53 @@ class Command(BaseCommand):
             time(16, 0),
         ]
 
-        if patients and tests:
+        created_count = 0
 
-            for i in range(15):
+        for offset in range(1, 16):
 
-                patient = choice(patients)
-                test = choice(tests)
+            patient = choice(patients)
+            diagnostic_test = choice(tests)
 
-                booking_date = (
-                    date.today()
-                    + timedelta(days=i + 1)
-                )
+            booking_date = (
+                date.today()
+                + timedelta(days=offset)
+            )
 
-                booking_number = (
-                    f"TEST-"
-                    f"{date.today().strftime('%Y%m%d')}-"
-                    f"{uuid.uuid4().hex[:6].upper()}"
-                )
+            booking_number = (
+                f"TEST-"
+                f"{booking_date.strftime('%Y%m%d')}-"
+                f"{uuid.uuid4().hex[:6].upper()}"
+            )
 
-                TestBooking.objects.get_or_create(
-                    booking_number=booking_number,
-                    defaults={
-                        "patient": patient,
-                        "diagnostic_test": test,
-                        "booking_date": booking_date,
-                        "booking_time": choice(
-                            booking_times
-                        ),
-                        "status": choice(
-                            booking_statuses
-                        ),
-                    }
-                )
+            _, created = TestBooking.objects.get_or_create(
+                booking_number=booking_number,
+                defaults={
+                    "patient": patient,
+                    "diagnostic_test": diagnostic_test,
+                    "booking_date": booking_date,
+                    "booking_time": choice(
+                        booking_times
+                    ),
+                    "status": choice(
+                        booking_statuses
+                    ),
+                }
+            )
+
+            if created:
+                created_count += 1
 
         self.stdout.write(
             self.style.SUCCESS(
-                "✓ Test bookings seeded successfully"
+                f"✓ {created_count} Test bookings seeded successfully"
             )
         )
 
-        # ==================================================
-        # 11. MEDICAL REPORTS
-        # ==================================================
+    # ==================================================
+    # 12. MEDICAL REPORTS
+    # ==================================================
+
+    def seed_medical_reports(self):
 
         report_titles = [
             "General Health Assessment",
@@ -1227,11 +1322,16 @@ class Command(BaseCommand):
 
         completed_appointments = Appointment.objects.filter(
             status="Completed"
+        ).select_related(
+            "patient",
+            "doctor"
         )
+
+        created_count = 0
 
         for appointment in completed_appointments:
 
-            MedicalReport.objects.get_or_create(
+            _, created = MedicalReport.objects.get_or_create(
                 appointment=appointment,
                 defaults={
                     "patient": appointment.patient,
@@ -1248,26 +1348,38 @@ class Command(BaseCommand):
                 }
             )
 
+            if created:
+                created_count += 1
+
         self.stdout.write(
             self.style.SUCCESS(
-                "✓ Medical reports seeded successfully"
+                f"✓ {created_count} Medical reports seeded successfully"
             )
         )
 
-        # ==================================================
-        # 12. NOTIFICATIONS
-        # ==================================================
+    # ==================================================
+    # 13. NOTIFICATIONS
+    # ==================================================
 
-        for appointment in Appointment.objects.all():
+    def seed_notifications(self):
 
-            Notification.objects.get_or_create(
+        created_count = 0
+
+        for appointment in Appointment.objects.select_related(
+            "patient__user",
+            "doctor__user",
+            "slot"
+        ):
+
+            _, created = Notification.objects.get_or_create(
                 user=appointment.patient.user,
                 title=f"Appointment {appointment.status}",
                 message=(
                     f"Your appointment with "
                     f"Dr. {appointment.doctor.user.get_full_name()} "
                     f"on {appointment.appointment_date} "
-                    f"at {appointment.slot.slot_time.strftime('%I:%M %p')} "
+                    f"at "
+                    f"{appointment.slot.slot_time.strftime('%I:%M %p')} "
                     f"is {appointment.status.lower()}."
                 ),
                 defaults={
@@ -1275,14 +1387,21 @@ class Command(BaseCommand):
                 }
             )
 
-        for payment in Payment.objects.all():
+            if created:
+                created_count += 1
 
-            Notification.objects.get_or_create(
+        for payment in Payment.objects.select_related(
+            "patient__user",
+            "appointment"
+        ):
+
+            _, created = Notification.objects.get_or_create(
                 user=payment.patient.user,
                 title="Payment Update",
                 message=(
                     f"Your payment of ৳{payment.amount} "
-                    f"for appointment {payment.appointment.booking_number} "
+                    f"for appointment "
+                    f"{payment.appointment.booking_number} "
                     f"is {payment.payment_status.lower()}."
                 ),
                 defaults={
@@ -1290,9 +1409,15 @@ class Command(BaseCommand):
                 }
             )
 
-        for booking in TestBooking.objects.all():
+            if created:
+                created_count += 1
 
-            Notification.objects.get_or_create(
+        for booking in TestBooking.objects.select_related(
+            "patient__user",
+            "diagnostic_test"
+        ):
+
+            _, created = Notification.objects.get_or_create(
                 user=booking.patient.user,
                 title="Diagnostic Test Booking",
                 message=(
@@ -1306,9 +1431,14 @@ class Command(BaseCommand):
                 }
             )
 
-        for report in MedicalReport.objects.all():
+            if created:
+                created_count += 1
 
-            Notification.objects.get_or_create(
+        for report in MedicalReport.objects.select_related(
+            "patient__user"
+        ):
+
+            _, created = Notification.objects.get_or_create(
                 user=report.patient.user,
                 title="Medical Report Available",
                 message=(
@@ -1321,15 +1451,20 @@ class Command(BaseCommand):
                 }
             )
 
+            if created:
+                created_count += 1
+
         self.stdout.write(
             self.style.SUCCESS(
-                "✓ Notifications seeded successfully"
+                f"✓ {created_count} Notifications seeded successfully"
             )
         )
 
-        # ==================================================
-        # COMPLETE
-        # ==================================================
+    # ==================================================
+    # 14. SUMMARY
+    # ==================================================
+
+    def print_summary(self):
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -1345,42 +1480,75 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
+                "=========================================="
+            )
+        )
+
+        self.stdout.write(
+            f"Departments: {Department.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Doctors: {Doctor.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Available Doctors: "
+            f"{Doctor.objects.filter(is_available=True).count()}"
+        )
+
+        self.stdout.write(
+            f"Patients: {PatientProfile.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Schedules: {DoctorSchedule.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Time Slots: {TimeSlot.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Active Slots: "
+            f"{TimeSlot.objects.filter(is_active=True).count()}"
+        )
+
+        self.stdout.write(
+            f"Appointments: {Appointment.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Payments: {Payment.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Diagnostic Categories: "
+            f"{TestCategory.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Diagnostic Tests: "
+            f"{DiagnosticTest.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Test Bookings: "
+            f"{TestBooking.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Medical Reports: "
+            f"{MedicalReport.objects.count()}"
+        )
+
+        self.stdout.write(
+            f"Notifications: "
+            f"{Notification.objects.count()}"
+        )
+
+        self.stdout.write(
+            self.style.SUCCESS(
                 "==========================================\n"
-            )
-        )
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Departments: {Department.objects.count()}"
-            )
-        )
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Doctors: {Doctor.objects.count()}"
-            )
-        )
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Patients: {PatientProfile.objects.count()}"
-            )
-        )
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Schedules: {DoctorSchedule.objects.count()}"
-            )
-        )
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Time Slots: {TimeSlot.objects.count()}"
-            )
-        )
-
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Appointments: {Appointment.objects.count()}"
             )
         )

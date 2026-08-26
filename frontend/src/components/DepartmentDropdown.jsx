@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 import {
-    getDepartments
-} from "../services/departmentService";
+    getDepartments,
+} from "../services/doctorService";
 
 
 function DepartmentDropdown({
@@ -36,16 +36,8 @@ function DepartmentDropdown({
                 const response =
                     await getDepartments();
 
-                const data = response.data;
-
-                // Support paginated and normal response
-                const departmentList =
-                    Array.isArray(data)
-                        ? data
-                        : data.results || [];
-
                 setDepartments(
-                    departmentList
+                    response.data || []
                 );
 
             }
@@ -83,14 +75,18 @@ function DepartmentDropdown({
 
         <div className="form-group">
 
-            <label>
+            <label htmlFor="department">
+
                 Department
+
             </label>
 
 
             <select
 
-                value={selectedDepartment}
+                id="department"
+
+                value={selectedDepartment || ""}
 
                 onChange={onDepartmentChange}
 

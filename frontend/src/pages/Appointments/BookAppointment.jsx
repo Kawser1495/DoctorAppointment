@@ -1,5 +1,13 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+    useState,
+    useEffect,
+    useMemo,
+} from "react";
+
+import {
+    useNavigate,
+    useLocation,
+} from "react-router-dom";
 
 import DepartmentDropdown from "../../components/DepartmentDropdown";
 
@@ -15,86 +23,285 @@ import {
 import "../../styles/appointment.css";
 
 
+// ==========================================================
+// Helper Functions
+// ==========================================================
+
+const normalizeArrayResponse = (data) => {
+
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (Array.isArray(data?.results)) {
+        return data.results;
+    }
+
+    return [];
+
+};
+
+
+const getTodayDate = () => {
+
+    const today = new Date();
+
+    const year = today.getFullYear();
+
+    const month = String(
+        today.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+        today.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+
+};
+
+
+const getErrorMessage = (serverData) => {
+
+    if (!serverData) {
+        return "Unable to connect to the server.";
+    }
+
+    if (typeof serverData === "string") {
+        return serverData;
+    }
+
+    if (serverData.detail) {
+
+        if (Array.isArray(serverData.detail)) {
+            return serverData.detail.join("\n");
+        }
+
+        return serverData.detail;
+    }
+
+    const messages = Object.entries(serverData)
+        .flatMap(([field, value]) => {
+
+            if (Array.isArray(value)) {
+                return value.map(
+                    (message) => `${field}: ${message}`
+                );
+            }
+
+            if (
+                value &&
+                typeof value === "object"
+            ) {
+                return Object.values(value).flat();
+            }
+
+            return value
+                ? [`${field}: ${value}`]
+                : [];
+
+        })
+        .filter(Boolean);
+
+    return (
+        messages.join("\n")
+        || "Appointment booking failed."
+    );
+
+};
+
+
+// ==========================================================
+// Component
+// ==========================================================
+
 function BookAppointment() {
 
-    // ==========================================
+    // ======================================================
     // Navigation
-    // ==========================================
+    // ======================================================
 
     const navigate = useNavigate();
 
+    const location = useLocation();
 
-    // ==========================================
+
+    // ======================================================
+    // Doctor Received From DoctorList
+    // ======================================================
+
+    const selectedDoctor = useMemo(
+        () => location.state?.selectedDoctor || null,
+        [location.state]
+    );
+
+
+    const selectedDoctorId = useMemo(
+        () => {
+
+            if (
+                selectedDoctor?.id === undefined
+                ||
+                selectedDoctor?.id === null
+            ) {
+                return "";
+            }
+
+            return String(selectedDoctor.id);
+
+        },
+        [selectedDoctor]
+    );
+
+
+    const initialDepartment = useMemo(
+        () => {
+
+            if (
+                selectedDoctor?.department === undefined
+                ||
+                selectedDoctor?.department === null
+            ) {
+                return "";
+            }
+
+            return String(selectedDoctor.department);
+
+        },
+        [selectedDoctor]
+    );
+
+
+    // ======================================================
     // Form State
-    // ==========================================
+    // ======================================================
 
-    const [department, setDepartment] = useState("");
-
-    const [doctors, setDoctors] = useState([]);
-
-    const [doctor, setDoctor] = useState("");
-
-    const [appointmentDate, setAppointmentDate] = useState("");
-
-    const [timeSlots, setTimeSlots] = useState([]);
-
-    const [timeSlot, setTimeSlot] = useState("");
-
-    const [reason, setReason] = useState("");
-
-    const [symptoms, setSymptoms] = useState("");
+    const [
+        department,
+        setDepartment,
+    ] = useState(initialDepartment);
 
 
-    // ==========================================
+    const [
+        doctors,
+        setDoctors,
+    ] = useState([]);
+
+
+    const [
+        doctor,
+        setDoctor,
+    ] = useState(selectedDoctorId);
+
+
+    const [
+        appointmentDate,
+        setAppointmentDate,
+    ] = useState("");
+
+
+    const [
+        timeSlots,
+        setTimeSlots,
+    ] = useState([]);
+
+
+    const [
+        timeSlot,
+        setTimeSlot,
+    ] = useState("");
+
+
+    const [
+        reason,
+        setReason,
+    ] = useState("");
+
+
+    const [
+        symptoms,
+        setSymptoms,
+    ] = useState("");
+
+
+    // ======================================================
     // Loading State
-    // ==========================================
+    // ======================================================
 
-    const [doctorLoading, setDoctorLoading] =
-        useState(false);
-
-    const [slotLoading, setSlotLoading] =
-        useState(false);
-
-    const [submitLoading, setSubmitLoading] =
-        useState(false);
+    const [
+        doctorLoading,
+        setDoctorLoading,
+    ] = useState(false);
 
 
-    // ==========================================
+    const [
+        slotLoading,
+        setSlotLoading,
+    ] = useState(false);
+
+
+    const [
+        submitLoading,
+        setSubmitLoading,
+    ] = useState(false);
+
+
+    // ======================================================
     // Error State
-    // ==========================================
+    // ======================================================
 
-    const [errors, setErrors] = useState({});
+    const [
+        errors,
+        setErrors,
+    ] = useState({});
 
-    const [apiError, setApiError] = useState("");
+
+    const [
+        apiError,
+        setApiError,
+    ] = useState("");
 
 
-    // ==========================================
+    // ======================================================
     // Load Doctors By Department
-    // ==========================================
+    // ======================================================
 
     useEffect(() => {
 
-        // Reset doctor and slots
-        setDoctors([]);
-        setDoctor("");
-        setTimeSlots([]);
-        setTimeSlot("");
-
-
-        if (!department) {
-
-            return;
-
-        }
+        let cancelled = false;
 
 
         const loadDoctors = async () => {
 
+            // No department selected
+            if (!department) {
+
+                if (!cancelled) {
+
+                    setDoctors([]);
+
+                    setDoctor("");
+
+                    setTimeSlots([]);
+
+                    setTimeSlot("");
+
+                }
+
+                return;
+
+            }
+
+
             try {
 
-                setDoctorLoading(true);
+                if (!cancelled) {
 
-                setApiError("");
+                    setDoctorLoading(true);
+
+                    setApiError("");
+
+                }
 
 
                 const response =
@@ -103,21 +310,54 @@ function BookAppointment() {
                     );
 
 
-                console.log(
-                    "Doctors API Response:",
-                    response.data
-                );
+                if (cancelled) {
+                    return;
+                }
 
 
                 const doctorList =
-                    response.data?.results || [];
+                    normalizeArrayResponse(
+                        response.data
+                    );
 
 
                 setDoctors(doctorList);
 
-            }
 
-            catch (error) {
+                // Keep doctor selected if user
+                // came from DoctorList page
+
+                if (selectedDoctorId) {
+
+                    const doctorExists =
+                        doctorList.some(
+                            (item) =>
+                                String(item.id)
+                                ===
+                                selectedDoctorId
+                        );
+
+
+                    if (doctorExists) {
+
+                        setDoctor(
+                            selectedDoctorId
+                        );
+
+                    } else {
+
+                        setDoctor("");
+
+                    }
+
+                }
+
+            } catch (error) {
+
+                if (cancelled) {
+                    return;
+                }
+
 
                 console.error(
                     "Doctor Load Error:",
@@ -125,18 +365,34 @@ function BookAppointment() {
                 );
 
 
+                console.error(
+                    "Doctor Server Response:",
+                    error.response?.data
+                );
+
+
                 setDoctors([]);
+
+                setDoctor("");
+
+                setTimeSlots([]);
+
+                setTimeSlot("");
 
 
                 setApiError(
+                    error.response?.data?.detail
+                    ||
                     "Failed to load doctors. Please try again."
                 );
 
-            }
+            } finally {
 
-            finally {
+                if (!cancelled) {
 
-                setDoctorLoading(false);
+                    setDoctorLoading(false);
+
+                }
 
             }
 
@@ -145,36 +401,62 @@ function BookAppointment() {
 
         loadDoctors();
 
-    }, [department]);
+
+        return () => {
+
+            cancelled = true;
+
+        };
 
 
-    // ==========================================
+    }, [
+        department,
+        selectedDoctorId,
+    ]);
+
+
+    // ======================================================
     // Load Available Time Slots
-    // Doctor + Date Required
-    // ==========================================
+    // ======================================================
 
     useEffect(() => {
 
-        // Reset previous slot
-        setTimeSlots([]);
-        setTimeSlot("");
-
-
-        // Doctor and date both required
-        if (!doctor || !appointmentDate) {
-
-            return;
-
-        }
+        let cancelled = false;
 
 
         const loadTimeSlots = async () => {
 
+            // Reset old slots first
+
+            if (!cancelled) {
+
+                setTimeSlots([]);
+
+                setTimeSlot("");
+
+            }
+
+
+            // Doctor and date are required
+
+            if (
+                !doctor
+                ||
+                !appointmentDate
+            ) {
+                return;
+            }
+
+
             try {
 
-                setSlotLoading(true);
+                if (!cancelled) {
 
-                setApiError("");
+                    setSlotLoading(true);
+
+                    setApiError("");
+
+                }
 
 
                 const response =
@@ -184,21 +466,39 @@ function BookAppointment() {
                     );
 
 
-                console.log(
-                    "Time Slot API Response:",
-                    response.data
-                );
+                if (cancelled) {
+                    return;
+                }
 
 
                 const slotList =
-                    response.data?.results || [];
+                    normalizeArrayResponse(
+                        response.data
+                    );
 
 
-                setTimeSlots(slotList);
+                // Only active and non-full slots
 
-            }
+                const availableSlots =
+                    slotList.filter(
+                        (slot) =>
+                            slot.is_active !== false
+                            &&
+                            slot.is_full !== true
+                    );
 
-            catch (error) {
+
+                setTimeSlots(
+                    availableSlots
+                );
+
+
+            } catch (error) {
+
+                if (cancelled) {
+                    return;
+                }
+
 
                 console.error(
                     "Time Slot Load Error:",
@@ -207,7 +507,7 @@ function BookAppointment() {
 
 
                 console.error(
-                    "Server Response:",
+                    "Time Slot Server Response:",
                     error.response?.data
                 );
 
@@ -215,29 +515,24 @@ function BookAppointment() {
                 setTimeSlots([]);
 
 
-                if (
-                    error.response?.data?.detail
-                ) {
+                const serverData =
+                    error.response?.data;
 
-                    setApiError(
-                        error.response.data.detail
-                    );
+
+                setApiError(
+                    getErrorMessage(
+                        serverData
+                    )
+                );
+
+
+            } finally {
+
+                if (!cancelled) {
+
+                    setSlotLoading(false);
 
                 }
-
-                else {
-
-                    setApiError(
-                        "No available time slots for this doctor on the selected date."
-                    );
-
-                }
-
-            }
-
-            finally {
-
-                setSlotLoading(false);
 
             }
 
@@ -246,35 +541,158 @@ function BookAppointment() {
 
         loadTimeSlots();
 
-    }, [doctor, appointmentDate]);
+
+        return () => {
+
+            cancelled = true;
+
+        };
 
 
-    // ==========================================
-    // Handle Department Change
-    // ==========================================
+    }, [
+        doctor,
+        appointmentDate,
+    ]);
 
-    const handleDepartmentChange = (e) => {
 
-        setDepartment(e.target.value);
+    // ======================================================
+    // Department Change
+    // ======================================================
 
-        setErrors((previous) => ({
+    const handleDepartmentChange = (
+        event
+    ) => {
 
-            ...previous,
+        const newDepartment =
+            event.target.value;
 
-            department: "",
 
-        }));
+        setDepartment(
+            newDepartment
+        );
+
+
+        setDoctor("");
+
+        setTimeSlots([]);
+
+        setTimeSlot("");
+
+
+        setErrors(
+            (previous) => ({
+                ...previous,
+                department: "",
+                doctor: "",
+                timeSlot: "",
+            })
+        );
+
+
+        setApiError("");
 
     };
 
 
-    // ==========================================
-    // Handle Submit
-    // ==========================================
+    // ======================================================
+    // Doctor Change
+    // ======================================================
 
-    const handleSubmit = async (e) => {
+    const handleDoctorChange = (
+        event
+    ) => {
 
-        e.preventDefault();
+        setDoctor(
+            event.target.value
+        );
+
+
+        setTimeSlots([]);
+
+        setTimeSlot("");
+
+
+        setErrors(
+            (previous) => ({
+                ...previous,
+                doctor: "",
+                timeSlot: "",
+            })
+        );
+
+
+        setApiError("");
+
+    };
+
+
+    // ======================================================
+    // Date Change
+    // ======================================================
+
+    const handleDateChange = (
+        event
+    ) => {
+
+        setAppointmentDate(
+            event.target.value
+        );
+
+
+        setTimeSlots([]);
+
+        setTimeSlot("");
+
+
+        setErrors(
+            (previous) => ({
+                ...previous,
+                appointmentDate: "",
+                timeSlot: "",
+            })
+        );
+
+
+        setApiError("");
+
+    };
+
+
+    // ======================================================
+    // Time Slot Change
+    // ======================================================
+
+    const handleTimeSlotChange = (
+        event
+    ) => {
+
+        setTimeSlot(
+            event.target.value
+        );
+
+
+        setErrors(
+            (previous) => ({
+                ...previous,
+                timeSlot: "",
+            })
+        );
+
+
+        setApiError("");
+
+    };
+
+
+    // ======================================================
+    // Submit Appointment
+    // ======================================================
+
+    const handleSubmit = async (
+        event
+    ) => {
+
+        event.preventDefault();
 
 
         const validationErrors = {};
@@ -320,22 +738,25 @@ function BookAppointment() {
         }
 
 
-        setErrors(validationErrors);
+        setErrors(
+            validationErrors
+        );
 
 
         // Stop if validation failed
+
         if (
-            Object.keys(validationErrors).length > 0
+            Object.keys(
+                validationErrors
+            ).length > 0
         ) {
-
             return;
-
         }
 
 
-        // ==========================================
-        // Appointment Payload
-        // ==========================================
+        // ==================================================
+        // Payload
+        // ==================================================
 
         const appointmentData = {
 
@@ -343,11 +764,14 @@ function BookAppointment() {
 
             slot: Number(timeSlot),
 
-            appointment_date: appointmentDate,
+            appointment_date:
+                appointmentDate,
 
-            reason: reason.trim(),
+            reason:
+                reason.trim(),
 
-            symptoms: symptoms.trim(),
+            symptoms:
+                symptoms.trim(),
 
         };
 
@@ -377,19 +801,19 @@ function BookAppointment() {
             );
 
 
-            alert(
-                response.data?.message ||
-                "Appointment booked successfully."
+            navigate(
+                "/appointments/success",
+                {
+                    state: {
+                        appointment:
+                            response.data,
+                    },
+                    replace: true,
+                }
             );
 
 
-            // Redirect
-            navigate("/appointments");
-
-
-        }
-
-        catch (error) {
+        } catch (error) {
 
             console.error(
                 "Appointment Booking Error:",
@@ -398,43 +822,19 @@ function BookAppointment() {
 
 
             console.error(
-                "Server Error:",
+                "Booking Server Response:",
                 error.response?.data
             );
 
 
-            if (
-                error.response?.data
-            ) {
-
-                const serverErrors =
-                    error.response.data;
-
-
-                const message =
-                    Object.values(serverErrors)
-                        .flat()
-                        .join("\n");
+            setApiError(
+                getErrorMessage(
+                    error.response?.data
+                )
+            );
 
 
-                setApiError(
-                    message ||
-                    "Appointment booking failed."
-                );
-
-            }
-
-            else {
-
-                setApiError(
-                    "Unable to connect to the server."
-                );
-
-            }
-
-        }
-
-        finally {
+        } finally {
 
             setSubmitLoading(false);
 
@@ -443,9 +843,22 @@ function BookAppointment() {
     };
 
 
-    // ==========================================
+    // ======================================================
+    // Selected Doctor Information
+    // ======================================================
+
+    const selectedDoctorData =
+        doctors.find(
+            (item) =>
+                String(item.id)
+                ===
+                String(doctor)
+        );
+
+
+    // ======================================================
     // Render
-    // ==========================================
+    // ======================================================
 
     return (
 
@@ -454,9 +867,7 @@ function BookAppointment() {
             <div className="appointment-container">
 
 
-                {/* ======================================
-                    Header
-                ====================================== */}
+                {/* Header */}
 
                 <div className="appointment-header">
 
@@ -472,9 +883,36 @@ function BookAppointment() {
                 </div>
 
 
-                {/* ======================================
-                    API Error
-                ====================================== */}
+                {/* Selected Doctor */}
+
+                {selectedDoctorData && (
+
+                    <div className="selected-doctor-info">
+
+                        <strong>
+                            Selected Doctor:
+                        </strong>
+
+                        {" "}
+
+                        {selectedDoctorData.doctor_name}
+
+                        {" — "}
+
+                        {selectedDoctorData.specialization
+                            || "Specialist"}
+
+                        {" — Consultation Fee: ৳"}
+
+                        {selectedDoctorData.consultation_fee
+                            ?? 0}
+
+                    </div>
+
+                )}
+
+
+                {/* API Error */}
 
                 {apiError && (
 
@@ -487,16 +925,20 @@ function BookAppointment() {
                 )}
 
 
-                <form onSubmit={handleSubmit}>
+                {/* Form */}
+
+                <form
+                    onSubmit={handleSubmit}
+                >
 
 
-                    {/* ==================================
-                        Department
-                    ================================== */}
+                    {/* Department */}
 
                     <DepartmentDropdown
 
-                        selectedDepartment={department}
+                        selectedDepartment={
+                            department
+                        }
 
                         onDepartmentChange={
                             handleDepartmentChange
@@ -516,16 +958,12 @@ function BookAppointment() {
                     )}
 
 
-                    {/* ==================================
-                        Doctor
-                    ================================== */}
+                    {/* Doctor */}
 
                     <div className="form-group">
 
                         <label>
-
                             Doctor
-
                         </label>
 
 
@@ -534,27 +972,14 @@ function BookAppointment() {
                             value={doctor}
 
                             disabled={
-                                !department ||
+                                !department
+                                ||
                                 doctorLoading
                             }
 
-                            onChange={(e) => {
-
-                                setDoctor(
-                                    e.target.value
-                                );
-
-                                setErrors(
-                                    (previous) => ({
-
-                                        ...previous,
-
-                                        doctor: "",
-
-                                    })
-                                );
-
-                            }}
+                            onChange={
+                                handleDoctorChange
+                            }
 
                         >
 
@@ -594,18 +1019,24 @@ function BookAppointment() {
 
                                     >
 
-                                        {doctorItem.doctor_name}
+                                        {
+                                            doctorItem.doctor_name
+                                        }
 
                                         {" — "}
 
                                         {
                                             doctorItem.specialization
+                                            ||
+                                            "Specialist"
                                         }
 
                                         {" — ৳"}
 
                                         {
                                             doctorItem.consultation_fee
+                                            ??
+                                            0
                                         }
 
                                     </option>
@@ -629,16 +1060,12 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* ==================================
-                        Appointment Date
-                    ================================== */}
+                    {/* Appointment Date */}
 
                     <div className="form-group">
 
                         <label>
-
                             Appointment Date
-
                         </label>
 
 
@@ -646,31 +1073,17 @@ function BookAppointment() {
 
                             type="date"
 
-                            value={appointmentDate}
-
-                            min={
-                                new Date()
-                                    .toISOString()
-                                    .split("T")[0]
+                            value={
+                                appointmentDate
                             }
 
-                            onChange={(e) => {
+                            min={
+                                getTodayDate()
+                            }
 
-                                setAppointmentDate(
-                                    e.target.value
-                                );
-
-                                setErrors(
-                                    (previous) => ({
-
-                                        ...previous,
-
-                                        appointmentDate: "",
-
-                                    })
-                                );
-
-                            }}
+                            onChange={
+                                handleDateChange
+                            }
 
                         />
 
@@ -690,46 +1103,32 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* ==================================
-                        Available Time
-                    ================================== */}
+                    {/* Available Time */}
 
                     <div className="form-group">
 
                         <label>
-
                             Available Time
-
                         </label>
 
 
                         <select
 
-                            value={timeSlot}
+                            value={
+                                timeSlot
+                            }
 
                             disabled={
-                                !doctor ||
-                                !appointmentDate ||
+                                !doctor
+                                ||
+                                !appointmentDate
+                                ||
                                 slotLoading
                             }
 
-                            onChange={(e) => {
-
-                                setTimeSlot(
-                                    e.target.value
-                                );
-
-                                setErrors(
-                                    (previous) => ({
-
-                                        ...previous,
-
-                                        timeSlot: "",
-
-                                    })
-                                );
-
-                            }}
+                            onChange={
+                                handleTimeSlotChange
+                            }
 
                         >
 
@@ -767,26 +1166,29 @@ function BookAppointment() {
 
                                         value={slot.id}
 
-                                        disabled={slot.is_full}
-
                                     >
 
-                                        {slot.slot_time}
+                                        {
+                                            slot.slot_time
+                                        }
 
                                         {" — "}
 
-                                        {slot.booked_count}/
-                                        {slot.max_patient}
+                                        {
+                                            slot.booked_count
+                                            ??
+                                            0
+                                        }
+
+                                        {" / "}
+
+                                        {
+                                            slot.max_patient
+                                            ??
+                                            0
+                                        }
 
                                         {" booked"}
-
-                                        {slot.is_full
-
-                                            ? " (FULL)"
-
-                                            : ""
-
-                                        }
 
                                     </option>
 
@@ -809,16 +1211,12 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* ==================================
-                        Reason
-                    ================================== */}
+                    {/* Reason */}
 
                     <div className="form-group">
 
                         <label>
-
                             Reason for Visit
-
                         </label>
 
 
@@ -832,23 +1230,23 @@ function BookAppointment() {
                                 "Describe the reason for your appointment..."
                             }
 
-                            onChange={(e) => {
+                            onChange={
+                                (event) => {
 
-                                setReason(
-                                    e.target.value
-                                );
+                                    setReason(
+                                        event.target.value
+                                    );
 
-                                setErrors(
-                                    (previous) => ({
 
-                                        ...previous,
+                                    setErrors(
+                                        (previous) => ({
+                                            ...previous,
+                                            reason: "",
+                                        })
+                                    );
 
-                                        reason: "",
-
-                                    })
-                                );
-
-                            }}
+                                }
+                            }
 
                         />
 
@@ -866,16 +1264,12 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* ==================================
-                        Symptoms
-                    ================================== */}
+                    {/* Symptoms */}
 
                     <div className="form-group">
 
                         <label>
-
                             Symptoms (Optional)
-
                         </label>
 
 
@@ -889,10 +1283,11 @@ function BookAppointment() {
                                 "Example: Fever, headache, chest pain..."
                             }
 
-                            onChange={(e) =>
-                                setSymptoms(
-                                    e.target.value
-                                )
+                            onChange={
+                                (event) =>
+                                    setSymptoms(
+                                        event.target.value
+                                    )
                             }
 
                         />
@@ -900,32 +1295,58 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* ==================================
-                        Submit
-                    ================================== */}
+                    {/* Buttons */}
 
-                    <button
+                    <div className="appointment-actions">
 
-                        type="submit"
+                        <button
 
-                        className="appointment-btn"
+                            type="button"
 
-                        disabled={submitLoading}
+                            className="appointment-cancel-btn"
 
-                    >
+                            disabled={
+                                submitLoading
+                            }
 
-                        {submitLoading
+                            onClick={
+                                () => navigate(-1)
+                            }
 
-                            ? "Booking Appointment..."
+                        >
 
-                            : "Confirm Appointment"
+                            Cancel
 
-                        }
+                        </button>
 
-                    </button>
+
+                        <button
+
+                            type="submit"
+
+                            className="appointment-btn"
+
+                            disabled={
+                                submitLoading
+                            }
+
+                        >
+
+                            {submitLoading
+
+                                ? "Booking Appointment..."
+
+                                : "Confirm Appointment"
+
+                            }
+
+                        </button>
+
+                    </div>
 
 
                 </form>
+
 
             </div>
 

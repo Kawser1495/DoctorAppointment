@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     DepartmentListView,
     DoctorListView,
+    DoctorDetailView,
     DoctorSearchView,
     DoctorByDepartmentView,
     AvailableTimeSlotAPIView,
@@ -19,13 +20,9 @@ urlpatterns = [
     # ======================================================
 
     path(
-
         "departments/",
-
         DepartmentListView.as_view(),
-
         name="department-list",
-
     ),
 
 
@@ -34,13 +31,20 @@ urlpatterns = [
     # ======================================================
 
     path(
-
         "doctors/",
-
         DoctorListView.as_view(),
-
         name="doctor-list",
+    ),
 
+
+    # ======================================================
+    # Single Doctor Details
+    # ======================================================
+
+    path(
+        "doctors/<int:pk>/",
+        DoctorDetailView.as_view(),
+        name="doctor-detail",
     ),
 
 
@@ -49,13 +53,9 @@ urlpatterns = [
     # ======================================================
 
     path(
-
         "search/",
-
         DoctorSearchView.as_view(),
-
         name="doctor-search",
-
     ),
 
 
@@ -64,13 +64,9 @@ urlpatterns = [
     # ======================================================
 
     path(
-
         "departments/<int:department_id>/doctors/",
-
         DoctorByDepartmentView.as_view(),
-
         name="doctor-by-department",
-
     ),
 
 
@@ -79,13 +75,9 @@ urlpatterns = [
     # ======================================================
 
     path(
-
         "time-slots/",
-
         AvailableTimeSlotAPIView.as_view(),
-
         name="available-time-slots",
-
     ),
 
 ]
