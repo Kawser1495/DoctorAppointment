@@ -21,11 +21,33 @@ class PaymentCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
 
+        if not hasattr(
+            self.request.user,
+            "patient_profile"
+        ):
+
+            raise PermissionError(
+                "Patient profile not found."
+            )
+
         serializer.save(
             patient=self.request.user.patient_profile
         )
 
     def create(self, request, *args, **kwargs):
+
+        if not hasattr(
+            request.user,
+            "patient_profile"
+        ):
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "Patient profile not found."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         response = super().create(
             request,
@@ -55,9 +77,32 @@ class PaymentListView(generics.ListAPIView):
 
     def get_queryset(self):
 
-        return Payment.objects.filter(
-            patient=self.request.user.patient_profile
-        ).order_by("-payment_date")
+        user = self.request.user
+
+        if not hasattr(
+            user,
+            "patient_profile"
+        ):
+
+            return Payment.objects.none()
+
+        return (
+            Payment.objects
+            .select_related(
+                "patient",
+                "patient__user",
+                "appointment",
+                "appointment__doctor",
+                "appointment__doctor__user",
+                "test_booking",
+            )
+            .filter(
+                patient=user.patient_profile
+            )
+            .order_by(
+                "-payment_date"
+            )
+        )
 
 
 # ==========================================================
@@ -72,8 +117,28 @@ class PaymentDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
 
-        return Payment.objects.filter(
-            patient=self.request.user.patient_profile
+        user = self.request.user
+
+        if not hasattr(
+            user,
+            "patient_profile"
+        ):
+
+            return Payment.objects.none()
+
+        return (
+            Payment.objects
+            .select_related(
+                "patient",
+                "patient__user",
+                "appointment",
+                "appointment__doctor",
+                "appointment__doctor__user",
+                "test_booking",
+            )
+            .filter(
+                patient=user.patient_profile
+            )
         )
 
 
@@ -93,8 +158,20 @@ class AdminPaymentListView(generics.ListAPIView):
 
             return Payment.objects.none()
 
-        return Payment.objects.all().order_by(
-            "-payment_date"
+        return (
+            Payment.objects
+            .select_related(
+                "patient",
+                "patient__user",
+                "appointment",
+                "appointment__doctor",
+                "appointment__doctor__user",
+                "test_booking",
+            )
+            .all()
+            .order_by(
+                "-payment_date"
+            )
         )
 
 
@@ -116,10 +193,6 @@ class PaymentStatusUpdateView(APIView):
 
     def patch(self, request, pk):
 
-        # ------------------------------------------
-        # Admin / Staff Permission
-        # ------------------------------------------
-
         if not request.user.is_staff:
 
             return Response(
@@ -130,26 +203,14 @@ class PaymentStatusUpdateView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # ------------------------------------------
-        # Get Payment
-        # ------------------------------------------
-
         payment = get_object_or_404(
             Payment,
             pk=pk
         )
 
-        # ------------------------------------------
-        # Get New Status
-        # ------------------------------------------
-
         new_status = request.data.get(
             "payment_status"
         )
-
-        # ------------------------------------------
-        # Validate Status
-        # ------------------------------------------
 
         if new_status not in self.VALID_STATUS:
 
@@ -161,10 +222,6 @@ class PaymentStatusUpdateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # ------------------------------------------
-        # Update Payment
-        # ------------------------------------------
-
         payment.payment_status = new_status
 
         payment.save(
@@ -172,10 +229,6 @@ class PaymentStatusUpdateView(APIView):
                 "payment_status"
             ]
         )
-
-        # ------------------------------------------
-        # Success Response
-        # ------------------------------------------
 
         return Response(
             {

@@ -2,7 +2,10 @@ from django.utils import timezone
 
 from rest_framework import serializers
 
-from .models import PatientProfile, FamilyMember
+from .models import (
+    PatientProfile,
+    FamilyMember,
+)
 
 
 # ==========================================================
@@ -174,10 +177,10 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
 
     def validate_age(self, value):
 
-        if value > 150:
+        if value < 0 or value > 130:
 
             raise serializers.ValidationError(
-                "Age must be 150 or below."
+                "Please enter a valid age between 0 and 130."
             )
 
         return value
@@ -189,6 +192,7 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
     def validate_phone_number(self, value):
 
         if value is None or value == "":
+
             return value
 
         value = value.strip()

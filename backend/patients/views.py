@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import NotFound, ValidationError
 
 from .models import PatientProfile, FamilyMember
+
 from .serializers import (
     PatientProfileSerializer,
     FamilyMemberSerializer,
@@ -113,7 +114,7 @@ class PatientProfileCreateView(
 
 
 # ==========================================================
-# Family Member List
+# Family Member List + Create
 #
 # GET:  /api/patients/family/
 # POST: /api/patients/family/
@@ -135,11 +136,25 @@ class FamilyMemberListCreateView(
             self.request.user
         )
 
+        try:
+
+            patient = (
+                self.request.user.patient_profile
+            )
+
+        except PatientProfile.DoesNotExist:
+
+            raise ValidationError(
+                {
+                    "detail":
+                    "Please create your patient profile first."
+                }
+            )
+
         return FamilyMember.objects.filter(
-            patient__user=self.request.user
-        ).select_related(
-            "patient",
-            "patient__user",
+            patient=patient
+        ).order_by(
+            "name"
         )
 
     def perform_create(self, serializer):
@@ -193,9 +208,21 @@ class FamilyMemberDetailView(
             self.request.user
         )
 
+        try:
+
+            patient = (
+                self.request.user.patient_profile
+            )
+
+        except PatientProfile.DoesNotExist:
+
+            raise ValidationError(
+                {
+                    "detail":
+                    "Please create your patient profile first."
+                }
+            )
+
         return FamilyMember.objects.filter(
-            patient__user=self.request.user
-        ).select_related(
-            "patient",
-            "patient__user",
+            patient=patient
         )

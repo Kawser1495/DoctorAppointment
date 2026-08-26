@@ -1,9 +1,4 @@
-import api from "./axios";
-
-
-// ==========================================================
-// Payment API
-// ==========================================================
+import api from "../services/api";
 
 
 // ==========================================================
@@ -11,9 +6,9 @@ import api from "./axios";
 // POST: /api/payments/create/
 // ==========================================================
 
-export const createPaymentApi = async (data) => {
+export const createPaymentApi = (data) => {
 
-    return await api.post(
+    return api.post(
         "payments/create/",
         data
     );
@@ -22,13 +17,13 @@ export const createPaymentApi = async (data) => {
 
 
 // ==========================================================
-// My Payment History
+// My Payments
 // GET: /api/payments/
 // ==========================================================
 
-export const getMyPaymentsApi = async () => {
+export const getMyPaymentsApi = () => {
 
-    return await api.get(
+    return api.get(
         "payments/"
     );
 
@@ -36,13 +31,13 @@ export const getMyPaymentsApi = async () => {
 
 
 // ==========================================================
-// Single Payment Details
-// GET: /api/payments/:id/
+// Payment Details
+// GET: /api/payments/<id>/
 // ==========================================================
 
-export const getPaymentDetailsApi = async (id) => {
+export const getPaymentDetailsApi = (id) => {
 
-    return await api.get(
+    return api.get(
         `payments/${id}/`
     );
 
@@ -50,13 +45,13 @@ export const getPaymentDetailsApi = async (id) => {
 
 
 // ==========================================================
-// Admin Payment Management
+// Admin Payments
 // GET: /api/payments/admin/
 // ==========================================================
 
-export const getAdminPaymentsApi = async () => {
+export const getAdminPaymentsApi = () => {
 
-    return await api.get(
+    return api.get(
         "payments/admin/"
     );
 
@@ -64,23 +59,20 @@ export const getAdminPaymentsApi = async () => {
 
 
 // ==========================================================
-// Admin Update Payment Status
-// PATCH: /api/payments/:id/status/
+// Update Payment Status
+// PATCH: /api/payments/<id>/status/
 // ==========================================================
 
-export const updatePaymentStatusApi = async (
+export const updatePaymentStatusApi = (
     id,
     payment_status
 ) => {
 
-    return await api.patch(
-
+    return api.patch(
         `payments/${id}/status/`,
-
         {
             payment_status,
         }
-
     );
 
 };
