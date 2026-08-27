@@ -14,6 +14,10 @@ from .serializers import (
 # Patient Role Helper
 # ==========================================================
 
+# ==========================================================
+# Patient Role Helper
+# ==========================================================
+
 def ensure_patient_user(user):
 
     if not user.is_authenticated:
@@ -25,12 +29,18 @@ def ensure_patient_user(user):
             }
         )
 
-    if getattr(user, "role", None) != "patient":
+    user_role = getattr(
+        user,
+        "role",
+        ""
+    )
+
+    if str(user_role).lower() != "patient":
 
         raise ValidationError(
             {
                 "detail":
-                "Only patient users can access this resource."
+                f"Only patient users can access this resource. Current role: {user_role}"
             }
         )
 

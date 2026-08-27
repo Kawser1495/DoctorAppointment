@@ -98,27 +98,28 @@ function FamilyMembers() {
 
         }
 
-        catch (err) {
+        catch (error) {
 
             console.error(
                 "Family Members Error:",
-                err
+                error
             );
 
+            console.error(
+                "Status:",
+                error.response?.status
+            );
 
-            if (err.response?.status === 401) {
+            console.error(
+                "Backend Error Data:",
+                error.response?.data
+            );
 
-                setError(
-                    "Authentication required. Please login again."
-                );
-
-            } else {
-
-                setError(
-                    "Unable to load family members. Please try again."
-                );
-
-            }
+            setError(
+                error.response?.data?.detail ||
+                error.response?.data?.message ||
+                "Unable to load family members. Please try again."
+            );
 
         }
 
