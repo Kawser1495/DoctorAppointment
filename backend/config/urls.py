@@ -84,6 +84,15 @@ urlpatterns = [
         "api/dashboard/",
         include("dashboard.urls"),
     ),
+    
+    
+    # ==========================================
+    # Notifications APIs
+    # ==========================================
+    path(
+        "api/notifications/",
+        include("notifications.urls"),
+    ),
 
 ]
 

@@ -5,6 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
+
+from notifications.models import Notification
+
 from doctors.models import TimeSlot
 
 from patients.models import PatientProfile
@@ -75,7 +78,9 @@ class BookAppointmentView(
             )
 
 
+            # ==================================================
             # Re-check after locking
+            # ==================================================
 
             if slot.booked_count >= slot.max_patient:
 
@@ -89,9 +94,11 @@ class BookAppointmentView(
                 })
 
 
-            # Create appointment
+            # ==================================================
+            # Create Appointment
+            # ==================================================
 
-            serializer.save(
+            appointment = serializer.save(
 
                 patient=patient,
 
@@ -100,7 +107,41 @@ class BookAppointmentView(
             )
 
 
+            # ==================================================
+            # Create Notification for Patient
+            # ==================================================
+
+            doctor_name = (
+                appointment.doctor.user.get_full_name()
+            )
+
+            if not doctor_name:
+
+                doctor_name = (
+                    appointment.doctor.user.username
+                )
+
+
+            Notification.objects.create(
+
+                user=self.request.user,
+
+                notification_type="Appointment",
+
+                title="Appointment Booked Successfully",
+
+                message=(
+                    f"Your appointment with Dr. {doctor_name} "
+                    f"has been booked successfully. "
+                    f"Your appointment is currently pending."
+                ),
+
+            )
+
+
+            # ==================================================
             # Increase booked count
+            # ==================================================
 
             slot.booked_count += 1
 
@@ -309,6 +350,10 @@ class CancelAppointmentView(
             )
 
 
+            # ==================================================
+            # Cancel Appointment
+            # ==================================================
+
             appointment.status = "Cancelled"
 
             appointment.save(
@@ -321,7 +366,40 @@ class CancelAppointmentView(
             )
 
 
+            # ==================================================
+            # Create Cancellation Notification
+            # ==================================================
+
+            doctor_name = (
+                appointment.doctor.user.get_full_name()
+            )
+
+            if not doctor_name:
+
+                doctor_name = (
+                    appointment.doctor.user.username
+                )
+
+
+            Notification.objects.create(
+
+                user=request.user,
+
+                notification_type="Appointment",
+
+                title="Appointment Cancelled",
+
+                message=(
+                    f"Your appointment with Dr. {doctor_name} "
+                    f"has been cancelled successfully."
+                ),
+
+            )
+
+
+            # ==================================================
             # Reduce booked count
+            # ==================================================
 
             if slot.booked_count > 0:
 
