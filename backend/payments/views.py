@@ -1,3 +1,4 @@
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 
 from rest_framework import generics, status
@@ -14,10 +15,19 @@ from .serializers import PaymentSerializer
 # POST: /api/payments/create/
 # ==========================================================
 
-class PaymentCreateView(generics.CreateAPIView):
+class PaymentCreateView(
+    generics.CreateAPIView
+):
 
     serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    # ======================================================
+    # Save Payment
+    # ======================================================
 
     def perform_create(self, serializer):
 
@@ -26,15 +36,35 @@ class PaymentCreateView(generics.CreateAPIView):
             "patient_profile"
         ):
 
-            raise PermissionError(
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError({
+
+                "patient":
                 "Patient profile not found."
-            )
+
+            })
 
         serializer.save(
+
             patient=self.request.user.patient_profile
+
         )
 
-    def create(self, request, *args, **kwargs):
+    # ======================================================
+    # Create Payment
+    # ======================================================
+
+    def create(
+        self,
+        request,
+        *args,
+        **kwargs
+    ):
+
+        # --------------------------------------------------
+        # Patient Profile Check
+        # --------------------------------------------------
 
         if not hasattr(
             request.user,
@@ -42,27 +72,107 @@ class PaymentCreateView(generics.CreateAPIView):
         ):
 
             return Response(
+
                 {
                     "success": False,
-                    "message": "Patient profile not found."
+
+                    "message":
+                    "Patient profile not found."
                 },
+
                 status=status.HTTP_403_FORBIDDEN
+
             )
 
-        response = super().create(
-            request,
-            *args,
-            **kwargs
-        )
+        # --------------------------------------------------
+        # Database Transaction
+        # --------------------------------------------------
 
-        return Response(
-            {
-                "success": True,
-                "message": "Payment created successfully.",
-                "data": response.data
-            },
-            status=status.HTTP_201_CREATED
-        )
+        try:
+
+            with transaction.atomic():
+
+                response = super().create(
+
+                    request,
+                    *args,
+                    **kwargs
+
+                )
+
+            return Response(
+
+                {
+                    "success": True,
+
+                    "message":
+                    "Payment submitted successfully.",
+
+                    "data":
+                    response.data
+
+                },
+
+                status=status.HTTP_201_CREATED
+
+            )
+
+        # --------------------------------------------------
+        # Duplicate Transaction ID
+        # --------------------------------------------------
+
+        except IntegrityError as error:
+
+            error_message = str(error).lower()
+
+            if (
+                "transaction_id" in error_message
+                or "unique" in error_message
+            ):
+
+                return Response(
+
+                    {
+                        "success": False,
+
+                        "message":
+                        "This Transaction ID has already been used.",
+
+                        "errors": {
+                            "transaction_id": [
+                                "This Transaction ID has already been used."
+                            ]
+                        }
+
+                    },
+
+                    status=status.HTTP_400_BAD_REQUEST
+
+                )
+
+            # ------------------------------------------------
+            # Other database error
+            # ------------------------------------------------
+
+            return Response(
+
+                {
+                    "success": False,
+
+                    "message":
+                    "Payment could not be processed.",
+
+                    "errors": {
+                        "database": [
+                            "A database error occurred while processing the payment."
+                        ]
+                    }
+
+                },
+
+                status=status.HTTP_400_BAD_REQUEST
+
+            )
 
 
 # ==========================================================
@@ -70,10 +180,15 @@ class PaymentCreateView(generics.CreateAPIView):
 # GET: /api/payments/
 # ==========================================================
 
-class PaymentListView(generics.ListAPIView):
+class PaymentListView(
+    generics.ListAPIView
+):
 
     serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
+
+    permission_classes = [
+        IsAuthenticated
+    ]
 
     def get_queryset(self):
 
@@ -110,10 +225,15 @@ class PaymentListView(generics.ListAPIView):
 # GET: /api/payments/<id>/
 # ==========================================================
 
-class PaymentDetailView(generics.RetrieveAPIView):
+class PaymentDetailView(
+    generics.RetrieveAPIView
+):
 
     serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
+
+    permission_classes = [
+        IsAuthenticated
+    ]
 
     def get_queryset(self):
 
@@ -147,10 +267,15 @@ class PaymentDetailView(generics.RetrieveAPIView):
 # GET: /api/payments/admin/
 # ==========================================================
 
-class AdminPaymentListView(generics.ListAPIView):
+class AdminPaymentListView(
+    generics.ListAPIView
+):
 
     serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
+
+    permission_classes = [
+        IsAuthenticated
+    ]
 
     def get_queryset(self):
 
@@ -180,62 +305,114 @@ class AdminPaymentListView(generics.ListAPIView):
 # PATCH: /api/payments/<id>/status/
 # ==========================================================
 
-class PaymentStatusUpdateView(APIView):
+class PaymentStatusUpdateView(
+    APIView
+):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated
+    ]
 
     VALID_STATUS = [
+
         "Pending",
         "Paid",
         "Failed",
         "Refunded"
+
     ]
 
-    def patch(self, request, pk):
+    def patch(
+        self,
+        request,
+        pk
+    ):
+
+        # --------------------------------------------------
+        # Admin Check
+        # --------------------------------------------------
 
         if not request.user.is_staff:
 
             return Response(
+
                 {
                     "success": False,
-                    "message": "Admin access required."
+
+                    "message":
+                    "Admin access required."
                 },
+
                 status=status.HTTP_403_FORBIDDEN
+
             )
 
+        # --------------------------------------------------
+        # Get Payment
+        # --------------------------------------------------
+
         payment = get_object_or_404(
+
             Payment,
             pk=pk
+
         )
 
+        # --------------------------------------------------
+        # New Status
+        # --------------------------------------------------
+
         new_status = request.data.get(
+
             "payment_status"
+
         )
 
         if new_status not in self.VALID_STATUS:
 
             return Response(
+
                 {
                     "success": False,
-                    "message": "Invalid payment status."
+
+                    "message":
+                    "Invalid payment status."
                 },
+
                 status=status.HTTP_400_BAD_REQUEST
+
             )
+
+        # --------------------------------------------------
+        # Update
+        # --------------------------------------------------
 
         payment.payment_status = new_status
 
         payment.save(
+
             update_fields=[
                 "payment_status"
             ]
+
         )
 
         return Response(
+
             {
                 "success": True,
-                "message": "Payment status updated successfully.",
-                "payment_id": payment.id,
-                "payment_status": payment.payment_status
+
+                "message":
+                "Payment status updated successfully.",
+
+                "payment_id":
+                payment.id,
+
+                "payment_status":
+                payment.payment_status
+
             },
+
             status=status.HTTP_200_OK
+
         )

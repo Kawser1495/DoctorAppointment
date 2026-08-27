@@ -5,20 +5,37 @@ import { createPayment } from "../../services/paymentService";
 
 import "../../styles/payment.css";
 
+
 function PaymentPage() {
 
     const navigate = useNavigate();
 
     const location = useLocation();
 
-    // Appointment data passed from previous page
+    // ==========================================================
+    // Appointment data received from BookAppointment page
+    // ==========================================================
+
     const appointment = location.state;
 
-    const [paymentMethod, setPaymentMethod] = useState("Bkash");
 
-    const [transactionId, setTransactionId] = useState("");
+    // ==========================================================
+    // State
+    // ==========================================================
 
-    const [loading, setLoading] = useState(false);
+    const [paymentMethod, setPaymentMethod] =
+        useState("Bkash");
+
+    const [transactionId, setTransactionId] =
+        useState("");
+
+    const [loading, setLoading] =
+        useState(false);
+
+
+    // ==========================================================
+    // Invalid Payment Request
+    // ==========================================================
 
     if (!appointment) {
 
@@ -38,67 +55,351 @@ function PaymentPage() {
 
     }
 
+
+    // ==========================================================
+    // Handle Payment
+    // ==========================================================
+
     const handlePayment = async () => {
 
-        if (!transactionId.trim()) {
+        const cleanTransactionId =
+            transactionId.trim();
 
-            alert("Transaction ID is required.");
+
+        // ======================================================
+        // Transaction ID Validation
+        // ======================================================
+
+        if (!cleanTransactionId) {
+
+            alert(
+                "Please enter the Transaction ID."
+            );
 
             return;
 
         }
 
+
+        if (cleanTransactionId.length < 4) {
+
+            alert(
+                "Transaction ID must be at least 4 characters."
+            );
+
+            return;
+
+        }
+
+
+        // ======================================================
+        // Amount
+        // ======================================================
+
+        const amount =
+            Number(
+                appointment.consultation_fee
+            );
+
+
+        if (!amount || amount <= 0) {
+
+            alert(
+                "Invalid payment amount."
+            );
+
+            return;
+
+        }
+
+
+        // ======================================================
+        // Payment Payload
+        // ======================================================
+
         const payload = {
 
-            appointment: appointment.id,
+            appointment:
+                appointment.id,
 
-            amount: Number(appointment.consultation_fee),
+            amount:
+                amount,
 
-            payment_method: paymentMethod,
+            payment_method:
+                paymentMethod,
 
-            transaction_id: transactionId.trim(),
+            transaction_id:
+                cleanTransactionId,
 
         };
+
+
+        console.log(
+            "Payment Payload:",
+            payload
+        );
+
+
+        // ======================================================
+        // API Request
+        // ======================================================
+
         try {
 
             setLoading(true);
 
-            const response = await createPayment(payload);
 
-            navigate("/payment-success", {
+            const response =
+                await createPayment(
+                    payload
+                );
 
-                state: {
 
-                    payment: response.data,
+            console.log(
+                "Payment Response:",
+                response.data
+            );
 
-                    appointment: appointment,
 
-                },
+            // ==================================================
+            // Backend response:
+            //
+            // {
+            //   success: true,
+            //   message: "...",
+            //   data: {...}
+            // }
+            // ==================================================
 
-            });
+            const paymentData =
+                response.data?.data ||
+                response.data;
+
+
+            // ==================================================
+            // Navigate to Payment Success
+            // ==================================================
+
+            navigate(
+                "/payment-success",
+                {
+
+                    state: {
+
+                        payment:
+                            paymentData,
+
+                        appointment:
+                            appointment,
+
+                    },
+
+                }
+            );
+
         }
+
+
+        // ======================================================
+        // Error Handling
+        // ======================================================
 
         catch (error) {
 
-            console.error(error);
+            console.error(
+                "Payment Error:",
+                error
+            );
+
+
+            // ==================================================
+            // Backend Error
+            // ==================================================
 
             if (error.response) {
 
-                const data = error.response.data;
+                const data =
+                    error.response.data;
 
-                if (data.appointment) {
 
-                    alert(data.appointment[0]);
+                console.log(
+                    "Backend Payment Error:",
+                    data
+                );
 
-                } else {
 
-                    alert(
-                        "Payment failed. Please try again."
-                    );
+                // ==================================================
+                // Transaction ID Error
+                // ==================================================
+
+                if (data.transaction_id) {
+
+                    const message =
+                        Array.isArray(
+                            data.transaction_id
+                        )
+                            ? data.transaction_id[0]
+                            : data.transaction_id;
+
+
+                    alert(message);
+
+                    return;
 
                 }
 
-            } else {
+
+                // ==================================================
+                // Appointment Error
+                // ==================================================
+
+                if (data.appointment) {
+
+                    const message =
+                        Array.isArray(
+                            data.appointment
+                        )
+                            ? data.appointment[0]
+                            : data.appointment;
+
+
+                    alert(message);
+
+                    return;
+
+                }
+
+
+                // ==================================================
+                // Amount Error
+                // ==================================================
+
+                if (data.amount) {
+
+                    const message =
+                        Array.isArray(
+                            data.amount
+                        )
+                            ? data.amount[0]
+                            : data.amount;
+
+
+                    alert(message);
+
+                    return;
+
+                }
+
+
+                // ==================================================
+                // Payment For Error
+                // ==================================================
+
+                if (data.payment_for) {
+
+                    const message =
+                        Array.isArray(
+                            data.payment_for
+                        )
+                            ? data.payment_for[0]
+                            : data.payment_for;
+
+
+                    alert(message);
+
+                    return;
+
+                }
+
+
+                // ==================================================
+                // Patient Error
+                // ==================================================
+
+                if (data.patient) {
+
+                    const message =
+                        Array.isArray(
+                            data.patient
+                        )
+                            ? data.patient[0]
+                            : data.patient;
+
+
+                    alert(message);
+
+                    return;
+
+                }
+
+
+                // ==================================================
+                // Authentication Error
+                // ==================================================
+
+                if (data.authentication) {
+
+                    const message =
+                        Array.isArray(
+                            data.authentication
+                        )
+                            ? data.authentication[0]
+                            : data.authentication;
+
+
+                    alert(message);
+
+                    return;
+
+                }
+
+
+                // ==================================================
+                // General Backend Message
+                // ==================================================
+
+                if (data.message) {
+
+                    alert(
+                        data.message
+                    );
+
+                    return;
+
+                }
+
+
+                // ==================================================
+                // Detail Message
+                // ==================================================
+
+                if (data.detail) {
+
+                    alert(
+                        data.detail
+                    );
+
+                    return;
+
+                }
+
+
+                // ==================================================
+                // Fallback
+                // ==================================================
+
+                alert(
+                    "Payment failed. Please check your information."
+                );
+
+            }
+
+
+            // ======================================================
+            // Server Connection Error
+            // ======================================================
+
+            else {
 
                 alert(
                     "Cannot connect to the server."
@@ -108,6 +409,11 @@ function PaymentPage() {
 
         }
 
+
+        // ======================================================
+        // Stop Loading
+        // ======================================================
+
         finally {
 
             setLoading(false);
@@ -116,11 +422,20 @@ function PaymentPage() {
 
     };
 
+
+    // ==========================================================
+    // UI
+    // ==========================================================
+
     return (
 
         <div className="container mt-5">
 
             <div className="card shadow">
+
+                {/* ==================================================
+                    Header
+                ================================================== */}
 
                 <div className="card-header bg-primary text-white">
 
@@ -132,7 +447,17 @@ function PaymentPage() {
 
                 </div>
 
+
+                {/* ==================================================
+                    Body
+                ================================================== */}
+
                 <div className="card-body">
+
+
+                    {/* ==================================================
+                        Appointment Information
+                    ================================================== */}
 
                     <h5>
 
@@ -140,14 +465,14 @@ function PaymentPage() {
 
                     </h5>
 
-                    <hr/>
+
+                    <hr />
+
 
                     <p>
 
                         <strong>
-
-                            Booking Number :
-
+                            Booking Number:
                         </strong>
 
                         {" "}
@@ -156,12 +481,11 @@ function PaymentPage() {
 
                     </p>
 
+
                     <p>
 
                         <strong>
-
-                            Doctor :
-
+                            Doctor:
                         </strong>
 
                         {" "}
@@ -170,12 +494,11 @@ function PaymentPage() {
 
                     </p>
 
+
                     <p>
 
                         <strong>
-
-                            Department :
-
+                            Department:
                         </strong>
 
                         {" "}
@@ -184,12 +507,11 @@ function PaymentPage() {
 
                     </p>
 
+
                     <p>
 
                         <strong>
-
-                            Date :
-
+                            Date:
                         </strong>
 
                         {" "}
@@ -198,12 +520,11 @@ function PaymentPage() {
 
                     </p>
 
+
                     <p>
 
                         <strong>
-
-                            Time :
-
+                            Time:
                         </strong>
 
                         {" "}
@@ -212,7 +533,13 @@ function PaymentPage() {
 
                     </p>
 
-                    <hr/>
+
+                    <hr />
+
+
+                    {/* ==================================================
+                        Amount
+                    ================================================== */}
 
                     <h4>
 
@@ -220,21 +547,31 @@ function PaymentPage() {
 
                     </h4>
 
+
                     <h2 className="text-success">
 
                         ৳ {appointment.consultation_fee}
 
                     </h2>
 
-                    <hr/>
+
+                    <hr />
+
+
+                    {/* ==================================================
+                        Payment Method
+                    ================================================== */}
 
                     <div className="mb-3">
 
-                        <label>
+                        <label
+                            className="form-label"
+                        >
 
                             Payment Method
 
                         </label>
+
 
                         <select
 
@@ -242,87 +579,95 @@ function PaymentPage() {
 
                             value={paymentMethod}
 
-                            onChange={(e)=>
-
+                            onChange={(e) =>
                                 setPaymentMethod(
-
                                     e.target.value
-
                                 )
-
                             }
+
+                            disabled={loading}
 
                         >
 
-                            <option>
-
+                            <option value="Bkash">
                                 Bkash
-
                             </option>
 
-                            <option>
-
+                            <option value="Nagad">
                                 Nagad
-
                             </option>
 
-                            <option>
-
+                            <option value="Rocket">
                                 Rocket
-
                             </option>
 
-                            <option>
-
+                            <option value="Card">
                                 Card
-
                             </option>
 
-                            <option>
-
+                            <option value="Cash">
                                 Cash
-
                             </option>
 
                         </select>
 
                     </div>
 
+
+                    {/* ==================================================
+                        Transaction ID
+                    ================================================== */}
+
                     <div className="mb-3">
 
-                        <label>
+                        <label
+                            className="form-label"
+                        >
 
                             Transaction ID
 
                         </label>
+
 
                         <input
 
                             type="text"
 
                             className="form-control"
-                            
+
                             required
 
                             placeholder="Enter Transaction ID"
 
                             value={transactionId}
 
-                            onChange={(e)=>
-
+                            onChange={(e) =>
                                 setTransactionId(
-
                                     e.target.value
-
                                 )
-
                             }
+
+                            disabled={loading}
 
                         />
 
+
+                        <small className="text-muted">
+
+                            Enter your payment transaction ID.
+
+                        </small>
+
                     </div>
 
+
+                    {/* ==================================================
+                        Confirm Payment Button
+                    ================================================== */}
+
                     <button
+
+                        type="button"
 
                         className="btn btn-success w-100"
 
@@ -332,9 +677,7 @@ function PaymentPage() {
 
                     >
 
-                        {
-
-                            loading
+                        {loading
 
                             ?
 
@@ -348,6 +691,7 @@ function PaymentPage() {
 
                     </button>
 
+
                 </div>
 
             </div>
@@ -357,5 +701,6 @@ function PaymentPage() {
     );
 
 }
+
 
 export default PaymentPage;

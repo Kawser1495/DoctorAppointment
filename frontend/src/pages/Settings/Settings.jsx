@@ -1,44 +1,33 @@
-import {
-    useEffect,
-    useState,
-} from "react";
+import "./Settings.css";
+import { useEffect, useState } from "react";
 
 import {
     getUserSettings,
     updateUserSettings,
 } from "../../services/settingsService";
 
+import "./Settings.css";
+
 
 function Settings() {
 
-    const [
-        settings,
-        setSettings
-    ] = useState(null);
+    const [formData, setFormData] = useState({
+        username: "",
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        role: "",
+    });
 
-    const [
-        loading,
-        setLoading
-    ] = useState(true);
-
-    const [
-        saving,
-        setSaving
-    ] = useState(false);
-
-    const [
-        message,
-        setMessage
-    ] = useState("");
-
-    const [
-        error,
-        setError
-    ] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
 
     // ======================================================
-    // Load Settings
+    // Load User Settings
     // ======================================================
 
     const loadSettings = async () => {
@@ -48,10 +37,18 @@ function Settings() {
             setLoading(true);
             setError("");
 
-            const data =
-                await getUserSettings();
+            const response = await getUserSettings();
 
-            setSettings(data);
+            const data = response?.data || response;
+
+            setFormData({
+                username: data?.username || "",
+                first_name: data?.first_name || "",
+                last_name: data?.last_name || "",
+                email: data?.email || "",
+                phone: data?.phone || "",
+                role: data?.role || "",
+            });
 
         } catch (error) {
 
@@ -67,7 +64,8 @@ function Settings() {
 
             setError(
                 error.response?.data?.detail ||
-                "Unable to load settings."
+                error.response?.data?.message ||
+                "Unable to load settings. Please try again."
             );
 
         } finally {
@@ -75,12 +73,11 @@ function Settings() {
             setLoading(false);
 
         }
-
     };
 
 
     // ======================================================
-    // Initial Load
+    // Load on Page Open
     // ======================================================
 
     useEffect(() => {
@@ -98,57 +95,76 @@ function Settings() {
 
         const {
             name,
-            value
+            value,
         } = event.target;
 
-        setSettings(
-            previous => ({
-                ...previous,
-                [name]: value,
-            })
-        );
+        setFormData((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
 
+        setError("");
+        setSuccess("");
     };
 
 
     // ======================================================
-    // Save Settings
+    // Save Changes
     // ======================================================
 
-    const handleSubmit = async (
-        event
-    ) => {
+    const handleSubmit = async (event) => {
 
         event.preventDefault();
 
         try {
 
             setSaving(true);
-            setMessage("");
             setError("");
+            setSuccess("");
+
+            const payload = {
+                username: formData.username,
+                first_name: formData.first_name,
+                last_name: formData.last_name,
+                email: formData.email,
+                phone: formData.phone,
+            };
+
+            const response =
+                await updateUserSettings(payload);
 
             const data =
-                await updateUserSettings({
+                response?.data || response;
 
-                    first_name:
-                        settings.first_name,
+            setFormData((previous) => ({
+                ...previous,
+                username:
+                    data?.username ??
+                    previous.username,
 
-                    last_name:
-                        settings.last_name,
+                first_name:
+                    data?.first_name ??
+                    previous.first_name,
 
-                    email:
-                        settings.email,
+                last_name:
+                    data?.last_name ??
+                    previous.last_name,
 
-                    phone:
-                        settings.phone,
+                email:
+                    data?.email ??
+                    previous.email,
 
-                });
+                phone:
+                    data?.phone ??
+                    previous.phone,
 
+                role:
+                    data?.role ??
+                    previous.role,
+            }));
 
-            setSettings(data);
-
-            setMessage(
-                "Settings updated successfully."
+            setSuccess(
+                "Your account settings have been updated successfully."
             );
 
         } catch (error) {
@@ -163,17 +179,50 @@ function Settings() {
                 error.response?.data
             );
 
-            setError(
-                error.response?.data?.detail ||
-                "Unable to update settings."
-            );
+            const backendError =
+                error.response?.data;
+
+            if (
+                backendError &&
+                typeof backendError === "object"
+            ) {
+
+                const firstError =
+                    Object.values(
+                        backendError
+                    )?.[0];
+
+                if (Array.isArray(firstError)) {
+
+                    setError(
+                        firstError[0]
+                    );
+
+                } else if (
+                    typeof firstError === "string"
+                ) {
+
+                    setError(firstError);
+
+                } else {
+
+                    setError(
+                        "Unable to update settings."
+                    );
+                }
+
+            } else {
+
+                setError(
+                    "Unable to update settings. Please try again."
+                );
+            }
 
         } finally {
 
             setSaving(false);
 
         }
-
     };
 
 
@@ -185,55 +234,24 @@ function Settings() {
 
         return (
 
-            <div className="page-container">
+            <div className="settings-page">
 
-                <h2>Settings</h2>
+                <div className="settings-container">
 
-                <p>
-                    Loading settings...
-                </p>
+                    <div className="settings-loading">
 
-            </div>
+                        <div className="settings-spinner"></div>
 
-        );
+                        <p>
+                            Loading your settings...
+                        </p>
 
-    }
+                    </div>
 
-
-    // ======================================================
-    // Error
-    // ======================================================
-
-    if (error && !settings) {
-
-        return (
-
-            <div className="page-container">
-
-                <h2>Settings</h2>
-
-                <div
-                    style={{
-                        padding: "15px",
-                        marginBottom: "15px",
-                        borderRadius: "8px",
-                        background: "#fee2e2",
-                        color: "#991b1b",
-                    }}
-                >
-                    ⚠️ {error}
                 </div>
 
-                <button
-                    onClick={loadSettings}
-                >
-                    Try Again
-                </button>
-
             </div>
-
         );
-
     }
 
 
@@ -243,297 +261,250 @@ function Settings() {
 
     return (
 
-        <div
-            className="page-container"
-            style={{
-                maxWidth: "800px",
-                margin: "0 auto",
-                padding: "30px",
-            }}
-        >
+        <div className="settings-page">
 
-            <h2>
-                Account Settings
-            </h2>
+            <div className="settings-container">
 
-            <p
-                style={{
-                    color: "#666",
-                    marginBottom: "25px",
-                }}
-            >
-                Manage your personal account information.
-            </p>
+                {/* ==================================================
+                    Header
+                ================================================== */}
 
+                <div className="settings-header">
 
-            {/* ==============================================
-                Success Message
-            ============================================== */}
+                    <div>
 
-            {message && (
+                        <h2>
+                            Account Settings
+                        </h2>
 
-                <div
-                    style={{
-                        padding: "12px 15px",
-                        marginBottom: "20px",
-                        borderRadius: "8px",
-                        background: "#dcfce7",
-                        color: "#166534",
-                    }}
-                >
-                    ✅ {message}
+                        <p>
+                            Manage your personal account information.
+                        </p>
+
+                    </div>
+
                 </div>
 
-            )}
+
+                {/* ==================================================
+                    Error
+                ================================================== */}
+
+                {error && (
+
+                    <div className="settings-alert settings-error">
+
+                        <span className="settings-alert-icon">
+                            ⚠️
+                        </span>
+
+                        <span>
+                            {error}
+                        </span>
+
+                    </div>
+
+                )}
 
 
-            {/* ==============================================
-                Error Message
-            ============================================== */}
+                {/* ==================================================
+                    Success
+                ================================================== */}
 
-            {error && (
+                {success && (
 
-                <div
-                    style={{
-                        padding: "12px 15px",
-                        marginBottom: "20px",
-                        borderRadius: "8px",
-                        background: "#fee2e2",
-                        color: "#991b1b",
-                    }}
+                    <div className="settings-alert settings-success">
+
+                        <span className="settings-alert-icon">
+                            ✓
+                        </span>
+
+                        <span>
+                            {success}
+                        </span>
+
+                    </div>
+
+                )}
+
+
+                {/* ==================================================
+                    Settings Form
+                ================================================== */}
+
+                <form
+                    className="settings-form"
+                    onSubmit={handleSubmit}
                 >
-                    ⚠️ {error}
-                </div>
 
-            )}
-
-
-            <form
-                onSubmit={handleSubmit}
-            >
-
-                {/* ==========================================
-                    Username
-                ========================================== */}
-
-                <div
-                    style={{
-                        marginBottom: "18px",
-                    }}
-                >
-
-                    <label>
+                    {/* ==================================================
                         Username
-                    </label>
+                    ================================================== */}
 
-                    <input
-                        type="text"
-                        value={
-                            settings?.username || ""
-                        }
-                        disabled
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                            marginTop: "6px",
-                        }}
-                    />
+                    <div className="settings-field">
 
-                </div>
+                        <label htmlFor="username">
+                            Username
+                        </label>
+
+                        <input
+                            className="settings-input"
+                            type="text"
+                            id="username"
+                            name="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            required
+                        />
+
+                        <small>
+                            You can update your username.
+                        </small>
+
+                    </div>
 
 
-                {/* ==========================================
-                    First Name
-                ========================================== */}
-
-                <div
-                    style={{
-                        marginBottom: "18px",
-                    }}
-                >
-
-                    <label>
+                    {/* ==================================================
                         First Name
-                    </label>
+                    ================================================== */}
 
-                    <input
-                        type="text"
-                        name="first_name"
-                        value={
-                            settings?.first_name || ""
-                        }
-                        onChange={
-                            handleChange
-                        }
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                            marginTop: "6px",
-                        }}
-                    />
+                    <div className="settings-field">
 
-                </div>
+                        <label htmlFor="first_name">
+                            First Name
+                        </label>
+
+                        <input
+                            className="settings-input"
+                            type="text"
+                            id="first_name"
+                            name="first_name"
+                            value={formData.first_name}
+                            onChange={handleChange}
+                        />
+
+                    </div>
 
 
-                {/* ==========================================
-                    Last Name
-                ========================================== */}
-
-                <div
-                    style={{
-                        marginBottom: "18px",
-                    }}
-                >
-
-                    <label>
+                    {/* ==================================================
                         Last Name
-                    </label>
+                    ================================================== */}
 
-                    <input
-                        type="text"
-                        name="last_name"
-                        value={
-                            settings?.last_name || ""
-                        }
-                        onChange={
-                            handleChange
-                        }
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                            marginTop: "6px",
-                        }}
-                    />
+                    <div className="settings-field">
 
-                </div>
+                        <label htmlFor="last_name">
+                            Last Name
+                        </label>
+
+                        <input
+                            className="settings-input"
+                            type="text"
+                            id="last_name"
+                            name="last_name"
+                            value={formData.last_name}
+                            onChange={handleChange}
+                        />
+
+                    </div>
 
 
-                {/* ==========================================
-                    Email
-                ========================================== */}
-
-                <div
-                    style={{
-                        marginBottom: "18px",
-                    }}
-                >
-
-                    <label>
+                    {/* ==================================================
                         Email
-                    </label>
+                    ================================================== */}
 
-                    <input
-                        type="email"
-                        name="email"
-                        value={
-                            settings?.email || ""
-                        }
-                        onChange={
-                            handleChange
-                        }
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                            marginTop: "6px",
-                        }}
-                    />
+                    <div className="settings-field">
 
-                </div>
+                        <label htmlFor="email">
+                            Email
+                        </label>
 
+                        <input
+                            className="settings-input"
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                        />
 
-                {/* ==========================================
-                    Phone
-                ========================================== */}
-
-                <div
-                    style={{
-                        marginBottom: "18px",
-                    }}
-                >
-
-                    <label>
-                        Phone Number
-                    </label>
-
-                    <input
-                        type="text"
-                        name="phone"
-                        value={
-                            settings?.phone || ""
-                        }
-                        onChange={
-                            handleChange
-                        }
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                            marginTop: "6px",
-                        }}
-                    />
-
-                </div>
+                    </div>
 
 
-                {/* ==========================================
-                    Role
-                ========================================== */}
+                    {/* ==================================================
+                        Phone
+                    ================================================== */}
 
-                <div
-                    style={{
-                        marginBottom: "18px",
-                    }}
-                >
+                    <div className="settings-field">
 
-                    <label>
+                        <label htmlFor="phone">
+                            Phone Number
+                        </label>
+
+                        <input
+                            className="settings-input"
+                            type="text"
+                            id="phone"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                        />
+
+                    </div>
+
+
+                    {/* ==================================================
                         Role
-                    </label>
+                    ================================================== */}
 
-                    <input
-                        type="text"
-                        value={
-                            settings?.role || ""
-                        }
-                        disabled
-                        style={{
-                            width: "100%",
-                            padding: "10px",
-                            marginTop: "6px",
-                        }}
-                    />
+                    <div className="settings-field">
 
-                </div>
+                        <label htmlFor="role">
+                            Role
+                        </label>
+
+                        <input
+                            className="settings-input settings-readonly"
+                            type="text"
+                            id="role"
+                            value={formData.role}
+                            disabled
+                        />
+
+                        <small>
+                            Your account role can only be changed by an administrator.
+                        </small>
+
+                    </div>
 
 
-                {/* ==========================================
-                    Save
-                ========================================== */}
+                    {/* ==================================================
+                        Save Button
+                    ================================================== */}
 
-                <button
-                    type="submit"
-                    disabled={saving}
-                    style={{
-                        padding: "11px 22px",
-                        border: "none",
-                        borderRadius: "8px",
-                        cursor: saving
-                            ? "not-allowed"
-                            : "pointer",
-                    }}
-                >
+                    <div className="settings-actions">
 
-                    {saving
-                        ? "Saving..."
-                        : "Save Changes"
-                    }
+                        <button
+                            className="settings-save-btn"
+                            type="submit"
+                            disabled={saving}
+                        >
 
-                </button>
+                            {saving
+                                ? "Saving..."
+                                : "Save Changes"
+                            }
 
-            </form>
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
 
         </div>
-
     );
-
 }
 
 

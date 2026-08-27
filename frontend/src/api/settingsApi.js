@@ -1,56 +1,65 @@
 import axios from "axios";
 
-
 const API_URL =
-    "http://127.0.0.1:8000/api/accounts/settings/";
+    "http://127.0.0.1:8000/api/accounts";
 
-
-const getAuthHeaders = () => {
-
-    const token =
-        localStorage.getItem("access_token");
-
-    return {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    };
-
-};
-
-
-// ==========================================================
-// Get User Settings
-// GET /api/accounts/settings/
-// ==========================================================
 
 export const getUserSettingsApi = async () => {
 
-    const response = await axios.get(
-        API_URL,
-        getAuthHeaders()
+    const accessToken =
+        localStorage.getItem("access");
+
+    return axios.get(
+        `${API_URL}/settings/`,
+        {
+            headers: {
+                Authorization:
+                    `Bearer ${accessToken}`,
+            },
+        }
     );
-
-    return response.data;
-
 };
 
-
-// ==========================================================
-// Update User Settings
-// PATCH /api/accounts/settings/
-// ==========================================================
 
 export const updateUserSettingsApi = async (
     data
 ) => {
 
-    const response = await axios.patch(
-        API_URL,
+    const accessToken =
+        localStorage.getItem("access");
+
+    return axios.patch(
+        `${API_URL}/settings/`,
         data,
-        getAuthHeaders()
+        {
+            headers: {
+                Authorization:
+                    `Bearer ${accessToken}`,
+                "Content-Type":
+                    "application/json",
+            },
+        }
     );
+};
 
-    return response.data;
 
+export const changePasswordApi = async (
+    data
+) => {
+
+    const accessToken =
+        localStorage.getItem("access");
+
+    return axios.post(
+        `${API_URL}/change-password/`,
+        data,
+        {
+            headers: {
+                Authorization:
+                    `Bearer ${accessToken}`,
+                "Content-Type":
+                    "application/json",
+            },
+        }
+    );
 };
