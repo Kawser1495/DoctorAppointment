@@ -12,6 +12,7 @@ function PaymentPage() {
 
     const location = useLocation();
 
+
     // ==========================================================
     // Appointment data received from BookAppointment page
     // ==========================================================
@@ -31,6 +32,25 @@ function PaymentPage() {
 
     const [loading, setLoading] =
         useState(false);
+
+
+    // ==========================================================
+    // Debug Appointment Data
+    // ==========================================================
+
+    console.log(
+        "Appointment received:",
+        appointment
+    );
+
+    if (appointment) {
+
+        console.log(
+            "Consultation Fee:",
+            appointment.consultation_fee
+        );
+
+    }
 
 
     // ==========================================================
@@ -61,6 +81,10 @@ function PaymentPage() {
     // ==========================================================
 
     const handlePayment = async () => {
+
+        // ======================================================
+        // Clean Transaction ID
+        // ======================================================
 
         const cleanTransactionId =
             transactionId.trim();
@@ -93,7 +117,7 @@ function PaymentPage() {
 
 
         // ======================================================
-        // Amount
+        // Consultation Fee
         // ======================================================
 
         const amount =
@@ -102,10 +126,22 @@ function PaymentPage() {
             );
 
 
-        if (!amount || amount <= 0) {
+        // ======================================================
+        // Amount Validation
+        // ======================================================
+
+        if (
+            !Number.isFinite(amount) ||
+            amount <= 0
+        ) {
+
+            console.error(
+                "Invalid consultation fee:",
+                appointment.consultation_fee
+            );
 
             alert(
-                "Invalid payment amount."
+                "Invalid payment amount. Please go back and select the appointment again."
             );
 
             return;
@@ -133,6 +169,10 @@ function PaymentPage() {
 
         };
 
+
+        // ======================================================
+        // Debug Payload
+        // ======================================================
 
         console.log(
             "Payment Payload:",
@@ -165,9 +205,9 @@ function PaymentPage() {
             // Backend response:
             //
             // {
-            //   success: true,
-            //   message: "...",
-            //   data: {...}
+            //     success: true,
+            //     message: "...",
+            //     data: {...}
             // }
             // ==================================================
 
@@ -503,7 +543,27 @@ function PaymentPage() {
 
                         {" "}
 
-                        {appointment.department}
+                        {
+                            appointment.department_name ||
+                            appointment.department ||
+                            "N/A"
+                        }
+
+                    </p>
+
+
+                    <p>
+
+                        <strong>
+                            Specialization:
+                        </strong>
+
+                        {" "}
+
+                        {
+                            appointment.specialization ||
+                            "N/A"
+                        }
 
                     </p>
 
@@ -677,16 +737,10 @@ function PaymentPage() {
 
                     >
 
-                        {loading
-
-                            ?
-
-                            "Processing Payment..."
-
-                            :
-
-                            "Confirm Payment"
-
+                        {
+                            loading
+                                ? "Processing Payment..."
+                                : "Confirm Payment"
                         }
 
                     </button>

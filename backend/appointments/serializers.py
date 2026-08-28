@@ -1,10 +1,8 @@
-from django.db import transaction
-
 from django.utils import timezone
 
 from rest_framework import serializers
 
-from doctors.models import Doctor, TimeSlot
+from doctors.models import TimeSlot
 
 from .models import Appointment
 
@@ -20,31 +18,32 @@ class AppointmentSerializer(
     doctor_name = serializers.SerializerMethodField()
 
     department_name = serializers.CharField(
-
         source="doctor.department.name",
-
         read_only=True,
-
     )
 
     specialization = serializers.CharField(
-
         source="doctor.specialization",
-
         read_only=True,
+    )
 
+    # ======================================================
+    # Consultation Fee
+    # ======================================================
+
+    consultation_fee = serializers.DecimalField(
+        source="doctor.consultation_fee",
+        max_digits=10,
+        decimal_places=2,
+        read_only=True,
     )
 
     slot_time = serializers.TimeField(
-
         source="slot.slot_time",
-
         read_only=True,
-
     )
 
     patient_name = serializers.SerializerMethodField()
-
 
     class Meta:
 
@@ -69,6 +68,8 @@ class AppointmentSerializer(
             "department_name",
 
             "specialization",
+
+            "consultation_fee",
 
             "slot",
 
@@ -98,12 +99,13 @@ class AppointmentSerializer(
 
             "status",
 
+            "consultation_fee",
+
             "created_at",
 
             "updated_at",
 
         ]
-
 
     # ======================================================
     # Doctor Name
@@ -111,14 +113,17 @@ class AppointmentSerializer(
 
     def get_doctor_name(self, obj):
 
-        full_name = obj.doctor.user.get_full_name().strip()
+        full_name = (
+            obj.doctor.user
+            .get_full_name()
+            .strip()
+        )
 
         if full_name:
 
             return f"Dr. {full_name}"
 
         return f"Dr. {obj.doctor.user.username}"
-
 
     # ======================================================
     # Patient Name
@@ -130,8 +135,10 @@ class AppointmentSerializer(
 
             return obj.family_member.name
 
-        return obj.patient.user.get_full_name()
-
+        return (
+            obj.patient.user
+            .get_full_name()
+        )
 
     # ======================================================
     # Validation
@@ -147,7 +154,6 @@ class AppointmentSerializer(
             "appointment_date"
         )
 
-
         # --------------------------------------------------
         # Date cannot be in the past
         # --------------------------------------------------
@@ -161,9 +167,8 @@ class AppointmentSerializer(
 
             })
 
-
         # --------------------------------------------------
-        # Doctor must be available
+        # Doctor availability
         # --------------------------------------------------
 
         if not doctor.is_available:
@@ -175,9 +180,8 @@ class AppointmentSerializer(
 
             })
 
-
         # --------------------------------------------------
-        # Slot must belong to selected doctor
+        # Slot belongs to doctor
         # --------------------------------------------------
 
         if slot.schedule.doctor_id != doctor.id:
@@ -189,15 +193,13 @@ class AppointmentSerializer(
 
             })
 
-
         # --------------------------------------------------
-        # Check doctor's schedule for selected weekday
+        # Doctor schedule weekday
         # --------------------------------------------------
 
         day_name = appointment_date.strftime(
             "%A"
         )
-
 
         if slot.schedule.day != day_name:
 
@@ -208,9 +210,8 @@ class AppointmentSerializer(
 
             })
 
-
         # --------------------------------------------------
-        # Schedule must be active
+        # Schedule active
         # --------------------------------------------------
 
         if not slot.schedule.is_active:
@@ -222,9 +223,8 @@ class AppointmentSerializer(
 
             })
 
-
         # --------------------------------------------------
-        # Slot must be active
+        # Slot active
         # --------------------------------------------------
 
         if not slot.is_active:
@@ -236,9 +236,8 @@ class AppointmentSerializer(
 
             })
 
-
         # --------------------------------------------------
-        # Slot full check
+        # Slot full
         # --------------------------------------------------
 
         if slot.booked_count >= slot.max_patient:
@@ -250,18 +249,24 @@ class AppointmentSerializer(
 
             })
 
-
         # --------------------------------------------------
-        # Get current patient
+        # Current patient
         # --------------------------------------------------
 
-        request = self.context.get("request")
+        request = self.context.get(
+            "request"
+        )
 
-        if request and request.user.is_authenticated:
+        if (
+            request
+            and request.user.is_authenticated
+        ):
 
             try:
 
-                patient = request.user.patient_profile
+                patient = (
+                    request.user.patient_profile
+                )
 
             except AttributeError:
 
@@ -272,31 +277,27 @@ class AppointmentSerializer(
 
                 })
 
-
             # ----------------------------------------------
-            # Duplicate appointment check
+            # Duplicate appointment
             # ----------------------------------------------
 
-            already_exists = Appointment.objects.filter(
+            already_exists = (
+                Appointment.objects.filter(
 
-                patient=patient,
+                    patient=patient,
 
-                doctor=doctor,
+                    doctor=doctor,
 
-                appointment_date=appointment_date,
+                    appointment_date=appointment_date,
 
-            ).exclude(
-
-                status__in=[
-
-                    "Cancelled",
-
-                    "Rejected",
-
-                ]
-
+                )
+                .exclude(
+                    status__in=[
+                        "Cancelled",
+                        "Rejected",
+                    ]
+                )
             )
-
 
             if already_exists.exists():
 
@@ -306,6 +307,5 @@ class AppointmentSerializer(
                     "You already have an appointment with this doctor on this date."
 
                 })
-
 
         return attrs
