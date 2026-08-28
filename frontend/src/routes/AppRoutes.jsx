@@ -7,6 +7,7 @@ import {
 import ProtectedRoute from "./ProtectedRoute";
 import GuestRoute from "./GuestRoute";
 
+
 // ==========================================================
 // Authentication
 // ==========================================================
@@ -15,11 +16,13 @@ import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
 import Logout from "../pages/Auth/Logout";
 
+
 // ==========================================================
 // Dashboard
 // ==========================================================
 
 import Dashboard from "../pages/Dashboard/Dashboard";
+
 
 // ==========================================================
 // Appointments
@@ -30,27 +33,40 @@ import MyAppointments from "../pages/Appointments/MyAppointments";
 import AppointmentDetails from "../pages/Appointments/AppointmentDetails";
 import AppointmentSuccess from "../pages/Appointments/AppointmentSuccess";
 
+
 // ==========================================================
 // Doctors
 // ==========================================================
 
 import DoctorList from "../pages/Doctors/DoctorList";
 
+
 // ==========================================================
 // Diagnostics
 // ==========================================================
 
-import DiagnosticTests from "../pages/Diagnostics/DiagnosticTests";
-
+import DiagnosticTests
+    from "../pages/Diagnostics/DiagnosticTests";
 
 import DiagnosticTestBooking
     from "../pages/Diagnostics/DiagnosticTestBooking";
+
+import MyDiagnosticBookings
+    from "../pages/Diagnostics/MyDiagnosticBookings";
+
+import DiagnosticBookingDetails
+    from "../pages/Diagnostics/DiagnosticBookingDetails";
+
+import DiagnosticPayment
+    from "../pages/Diagnostics/DiagnosticPayment";
+
 
 // ==========================================================
 // Reports
 // ==========================================================
 
 import MedicalReports from "../pages/Reports/MedicalReports";
+
 
 // ==========================================================
 // Payments
@@ -63,11 +79,13 @@ import PaymentDetails from "../pages/Payments/PaymentDetails";
 import PaymentReceipt from "../pages/Payments/PaymentReceipt";
 import PaymentInvoice from "../pages/Payments/PaymentInvoice";
 
+
 // ==========================================================
 // Admin
 // ==========================================================
 
 import AdminPayments from "../pages/Admin/AdminPayments";
+
 
 // ==========================================================
 // Family
@@ -75,11 +93,13 @@ import AdminPayments from "../pages/Admin/AdminPayments";
 
 import FamilyMembers from "../pages/Family/FamilyMembers";
 
+
 // ==========================================================
 // Notifications
 // ==========================================================
 
 import Notifications from "../pages/Notifications/Notifications";
+
 
 // ==========================================================
 // Settings
@@ -88,11 +108,18 @@ import Notifications from "../pages/Notifications/Notifications";
 import Settings from "../pages/Settings/Settings";
 
 
+// ==========================================================
+// App Routes
+// ==========================================================
+
 export default function AppRoutes() {
+
     return (
+
         <BrowserRouter>
 
             <Routes>
+
 
                 {/* ==================================================
                     Guest Routes
@@ -208,7 +235,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Diagnostics
+                    Diagnostics - Test List
                 ================================================== */}
 
                 <Route
@@ -221,14 +248,59 @@ export default function AppRoutes() {
                 />
 
 
-                <Route
-                    path="/diagnostics"
-                    element={<DiagnosticTests />}
-                />
+                {/* ==================================================
+                    Diagnostics - Book Test
+                ================================================== */}
 
                 <Route
                     path="/diagnostics/book/:testId"
-                    element={<DiagnosticTestBooking />}
+                    element={
+                        <ProtectedRoute>
+                            <DiagnosticTestBooking />
+                        </ProtectedRoute>
+                    }
+                />
+
+
+                {/* ==================================================
+                    My Diagnostic Bookings
+                ================================================== */}
+
+                <Route
+                    path="/my-diagnostic-bookings"
+                    element={
+                        <ProtectedRoute>
+                            <MyDiagnosticBookings />
+                        </ProtectedRoute>
+                    }
+                />
+
+
+                {/* ==================================================
+                    Diagnostic Booking Details
+                ================================================== */}
+
+                <Route
+                    path="/my-diagnostic-bookings/:id"
+                    element={
+                        <ProtectedRoute>
+                            <DiagnosticBookingDetails />
+                        </ProtectedRoute>
+                    }
+                />
+
+
+                {/* ==================================================
+                    Diagnostic Payment
+                ================================================== */}
+
+                <Route
+                    path="/diagnostic-payment/:id"
+                    element={
+                        <ProtectedRoute>
+                            <DiagnosticPayment />
+                        </ProtectedRoute>
+                    }
                 />
 
 
@@ -250,8 +322,6 @@ export default function AppRoutes() {
                     Payments
                 ================================================== */}
 
-                {/* Payment Creation */}
-
                 <Route
                     path="/payment"
                     element={
@@ -260,8 +330,6 @@ export default function AppRoutes() {
                         </ProtectedRoute>
                     }
                 />
-
-                {/* Payment History */}
 
                 <Route
                     path="/payments"
@@ -272,8 +340,6 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* Payment Details */}
-
                 <Route
                     path="/payments/:id"
                     element={
@@ -282,8 +348,6 @@ export default function AppRoutes() {
                         </ProtectedRoute>
                     }
                 />
-
-                {/* Payment Receipt */}
 
                 <Route
                     path="/payments/:id/receipt"
@@ -294,8 +358,6 @@ export default function AppRoutes() {
                     }
                 />
 
-                {/* Payment Invoice */}
-
                 <Route
                     path="/payments/:id/invoice"
                     element={
@@ -304,8 +366,6 @@ export default function AppRoutes() {
                         </ProtectedRoute>
                     }
                 />
-
-                {/* Payment Success */}
 
                 <Route
                     path="/payment-success"
@@ -404,5 +464,7 @@ export default function AppRoutes() {
             </Routes>
 
         </BrowserRouter>
+
     );
+
 }

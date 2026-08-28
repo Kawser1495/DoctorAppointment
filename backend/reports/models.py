@@ -8,15 +8,10 @@ from diagnostics.models import TestBooking
 
 class MedicalReport(models.Model):
 
-
     REPORT_TYPE_CHOICES = (
-
         ("Medical", "Medical"),
-
         ("Diagnostic", "Diagnostic"),
-
     )
-
 
     # ======================================================
     # Report Type
@@ -25,9 +20,8 @@ class MedicalReport(models.Model):
     report_type = models.CharField(
         max_length=20,
         choices=REPORT_TYPE_CHOICES,
-        default="Medical"
+        default="Medical",
     )
-
 
     # ======================================================
     # Patient
@@ -36,14 +30,12 @@ class MedicalReport(models.Model):
     patient = models.ForeignKey(
         PatientProfile,
         on_delete=models.CASCADE,
-        related_name="medical_reports"
+        related_name="medical_reports",
     )
-
 
     # ======================================================
     # Doctor
-    #
-    # Optional for Diagnostic Reports
+    # Optional for Diagnostic Report
     # ======================================================
 
     doctor = models.ForeignKey(
@@ -51,14 +43,12 @@ class MedicalReport(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="medical_reports"
+        related_name="medical_reports",
     )
-
 
     # ======================================================
     # Appointment
-    #
-    # Optional for Diagnostic Reports
+    # Medical report normally comes from appointment
     # ======================================================
 
     appointment = models.ForeignKey(
@@ -66,14 +56,11 @@ class MedicalReport(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="medical_reports"
+        related_name="medical_reports",
     )
 
-
     # ======================================================
-    # Diagnostic Test Booking
-    #
-    # Used for Diagnostic Reports
+    # Diagnostic Booking
     # ======================================================
 
     test_booking = models.OneToOneField(
@@ -81,63 +68,54 @@ class MedicalReport(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="medical_report"
+        related_name="medical_report",
     )
-
 
     # ======================================================
     # Report Title
     # ======================================================
 
     report_title = models.CharField(
-        max_length=150
+        max_length=150,
     )
-
 
     # ======================================================
     # Report File
+    # PDF / JPG / PNG etc.
     # ======================================================
 
     report_file = models.FileField(
-        upload_to="medical_reports/",
+        upload_to="medical_reports/%Y/%m/",
         blank=True,
         null=True,
     )
-
 
     # ======================================================
     # Prescription
     # ======================================================
 
     prescription = models.TextField(
-        blank=True
+        blank=True,
     )
 
-
     # ======================================================
-    # Remarks / Result Summary
+    # Remarks
     # ======================================================
 
     remarks = models.TextField(
-        blank=True
+        blank=True,
     )
 
-
     # ======================================================
-    # Uploaded Time
+    # Uploaded At
     # ======================================================
 
     uploaded_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
-
     class Meta:
-
-        ordering = [
-            "-uploaded_at"
-        ]
-
+        ordering = ["-uploaded_at"]
 
     def __str__(self):
 

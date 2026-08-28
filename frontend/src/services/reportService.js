@@ -1,11 +1,6 @@
 import api from "./api";
 
 
-// ==========================================================
-// Get My Medical Reports
-// GET: /api/reports/patient/
-// ==========================================================
-
 export const getMedicalReports = async () => {
 
     const response = await api.get(
@@ -17,17 +12,23 @@ export const getMedicalReports = async () => {
 };
 
 
-// ==========================================================
-// Get Single Medical Report
-// GET: /api/reports/<id>/
-// ==========================================================
-
 export const getMedicalReportDetails = async (
     reportId
 ) => {
 
     const response = await api.get(
         `reports/${reportId}/`
+    );
+
+    return response.data;
+
+};
+
+
+export const getDoctorMedicalReports = async () => {
+
+    const response = await api.get(
+        "reports/doctor/"
     );
 
     return response.data;

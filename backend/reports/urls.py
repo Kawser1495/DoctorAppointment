@@ -12,21 +12,30 @@ app_name = "reports"
 
 urlpatterns = [
 
-    # Patient Reports
+    # ======================================================
+    # Patient
+    # ======================================================
+
     path(
         "patient/",
         PatientMedicalReportListView.as_view(),
         name="patient-reports",
     ),
 
-    # Report Details
+    # ======================================================
+    # Single Report
+    # ======================================================
+
     path(
         "<int:pk>/",
         MedicalReportDetailView.as_view(),
         name="report-detail",
     ),
 
-    # Doctor Reports
+    # ======================================================
+    # Doctor
+    # ======================================================
+
     path(
         "doctor/",
         DoctorMedicalReportListView.as_view(),

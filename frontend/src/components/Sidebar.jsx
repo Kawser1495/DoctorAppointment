@@ -6,6 +6,7 @@ import {
     FaCalendarCheck,
     FaUserMd,
     FaFlask,
+    FaClipboardList,
     FaFileMedical,
     FaMoneyBillWave,
     FaUsers,
@@ -16,75 +17,98 @@ import {
 
 import "./Sidebar.css";
 
+
 function Sidebar() {
 
     const menuItems = [
+
         {
             name: "Dashboard",
             path: "/dashboard",
             icon: <FaHome />,
         },
+
         {
             name: "Book Appointment",
             path: "/appointments/book",
             icon: <FaCalendarCheck />,
         },
+
         {
             name: "My Appointments",
             path: "/appointments",
             icon: <FaCalendarCheck />,
         },
+
         {
             name: "Doctors",
             path: "/doctors",
             icon: <FaUserMd />,
         },
+
         {
             name: "Diagnostic Tests",
             path: "/tests",
             icon: <FaFlask />,
         },
+
+        // ==========================================
+        // NEW: My Diagnostic Bookings
+        // ==========================================
+
+        {
+            name: "My Diagnostic Bookings",
+            path: "/my-diagnostic-bookings",
+            icon: <FaClipboardList />,
+        },
+
         {
             name: "Medical Reports",
             path: "/reports",
             icon: <FaFileMedical />,
         },
+
         {
             name: "Payments",
             path: "/payments",
             icon: <FaMoneyBillWave />,
         },
+
         {
             name: "Family Members",
             path: "/family",
             icon: <FaUsers />,
         },
+
         {
             name: "Notifications",
             path: "/notifications",
             icon: <FaBell />,
         },
+
         {
             name: "Settings",
             path: "/settings",
             icon: <FaCog />,
         },
+
         {
             name: "Logout",
             path: "/logout",
             icon: <FaSignOutAlt />,
         },
+
     ];
+
 
     return (
 
         <div className="sidebar">
 
             <h2 className="logo">
-
                 Doctor Appointment
-
             </h2>
+
 
             <div className="menu">
 
@@ -105,9 +129,7 @@ function Sidebar() {
                     >
 
                         <span className="icon">
-
                             {item.icon}
-
                         </span>
 
                         {item.name}
@@ -123,5 +145,6 @@ function Sidebar() {
     );
 
 }
+
 
 export default Sidebar;

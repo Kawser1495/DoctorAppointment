@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from .models import Payment
 from .serializers import PaymentSerializer
+from notifications.models import Notification
 
 
 # ==========================================================
@@ -416,3 +417,5 @@ class PaymentStatusUpdateView(
             status=status.HTTP_200_OK
 
         )
+
+        

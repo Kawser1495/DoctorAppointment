@@ -20,6 +20,8 @@ from .serializers import (
     TestBookingSerializer,
 )
 
+from notifications.models import Notification
+
 
 # ==========================================================
 # Test Category List
@@ -139,6 +141,10 @@ class TestBookingCreateView(
 
     def perform_create(self, serializer):
 
+        # --------------------------------------------------
+        # Patient Profile Check
+        # --------------------------------------------------
+
         if not hasattr(
             self.request.user,
             "patient_profile"
@@ -153,10 +159,54 @@ class TestBookingCreateView(
 
             })
 
+        # --------------------------------------------------
+        # Get Patient
+        # --------------------------------------------------
+
         patient = self.request.user.patient_profile
 
-        serializer.save(
+        # --------------------------------------------------
+        # Save Diagnostic Booking
+        # --------------------------------------------------
+
+        booking = serializer.save(
             patient=patient
+        )
+
+        # --------------------------------------------------
+        # Create Notification
+        # IMPORTANT:
+        # Notification will be created ONLY ONCE
+        # when a new booking is created.
+        # --------------------------------------------------
+
+        Notification.objects.create(
+
+            user=self.request.user,
+
+            notification_type="Diagnostic Booking",
+
+            title="Diagnostic Test Booking Successful",
+
+            message=(
+
+                f"Your diagnostic test "
+                f"'{booking.diagnostic_test.name}' "
+                f"has been booked successfully. "
+
+                f"Booking Number: "
+                f"{booking.booking_number}. "
+
+                f"Booking Date: "
+                f"{booking.booking_date}. "
+
+                f"Booking Time: "
+                f"{booking.booking_time}."
+
+            ),
+
+            is_read=False,
+
         )
 
     def create(
@@ -181,7 +231,8 @@ class TestBookingCreateView(
                 "message":
                 "Diagnostic test booked successfully.",
 
-                "data": response.data,
+                "data":
+                response.data,
 
             },
 
@@ -346,6 +397,10 @@ class TestBookingCancelView(APIView):
 
             )
 
+        # --------------------------------------------------
+        # Get Booking
+        # --------------------------------------------------
+
         booking = get_object_or_404(
 
             TestBooking,
@@ -378,7 +433,7 @@ class TestBookingCancelView(APIView):
             )
 
         # --------------------------------------------------
-        # Completed
+        # Completed Booking Cannot Be Cancelled
         # --------------------------------------------------
 
         if booking.status == "Completed":
@@ -399,7 +454,7 @@ class TestBookingCancelView(APIView):
             )
 
         # --------------------------------------------------
-        # Cancel
+        # Cancel Booking
         # --------------------------------------------------
 
         booking.status = "Cancelled"
@@ -409,6 +464,33 @@ class TestBookingCancelView(APIView):
                 "status",
                 "updated_at",
             ]
+        )
+
+        # --------------------------------------------------
+        # Create Cancellation Notification
+        # --------------------------------------------------
+
+        Notification.objects.create(
+
+            user=request.user,
+
+            notification_type="Diagnostic Booking",
+
+            title="Diagnostic Test Booking Cancelled",
+
+            message=(
+
+                f"Your diagnostic test booking "
+                f"'{booking.diagnostic_test.name}' "
+                f"has been cancelled. "
+
+                f"Booking Number: "
+                f"{booking.booking_number}."
+
+            ),
+
+            is_read=False,
+
         )
 
         return Response(

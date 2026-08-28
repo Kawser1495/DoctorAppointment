@@ -1,0 +1,541 @@
+/* =========================================================
+   MY DIAGNOSTIC BOOKINGS PAGE
+========================================================= */
+
+.diagnostic-page {
+    flex: 1;
+    padding: 30px;
+    min-height: 100vh;
+    background: #f5f7fb;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.diagnostic-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 25px;
+    padding: 25px 30px;
+
+    background: #ffffff;
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+
+.page-title-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+
+.page-icon {
+    width: 55px;
+    height: 55px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 24px;
+
+    color: #ffffff;
+    background: #06b6d4;
+
+    border-radius: 14px;
+}
+
+
+.diagnostic-page-header h1 {
+    margin: 0 0 6px;
+
+    font-size: 26px;
+    font-weight: 700;
+
+    color: #1f2937;
+}
+
+
+.diagnostic-page-header p {
+    margin: 0;
+
+    font-size: 14px;
+
+    color: #6b7280;
+}
+
+
+/* =========================================================
+   BOOKING COUNT
+========================================================= */
+
+.booking-count {
+    min-width: 130px;
+
+    padding: 12px 20px;
+
+    text-align: center;
+
+    background: #ecfeff;
+
+    border: 1px solid #a5f3fc;
+
+    border-radius: 12px;
+}
+
+
+.booking-count span {
+    display: block;
+
+    font-size: 12px;
+
+    color: #0891b2;
+
+    margin-bottom: 5px;
+}
+
+
+.booking-count strong {
+    font-size: 26px;
+
+    color: #0e7490;
+}
+
+
+/* =========================================================
+   MAIN CARD
+========================================================= */
+
+.diagnostic-booking-card {
+
+    background: #ffffff;
+
+    border-radius: 16px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+
+.booking-card-header {
+
+    padding: 22px 25px;
+
+    border-bottom:
+        1px solid #e5e7eb;
+}
+
+
+.booking-card-header h2 {
+
+    margin: 0 0 5px;
+
+    font-size: 20px;
+
+    color: #1f2937;
+}
+
+
+.booking-card-header p {
+
+    margin: 0;
+
+    font-size: 14px;
+
+    color: #6b7280;
+}
+
+
+/* =========================================================
+   TABLE WRAPPER
+========================================================= */
+
+.diagnostic-table-wrapper {
+
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.diagnostic-table {
+
+    width: 100%;
+
+    min-width: 1050px;
+
+    border-collapse: collapse;
+}
+
+
+/* =========================================================
+   TABLE HEADER
+========================================================= */
+
+.diagnostic-table thead {
+
+    background: #f8fafc;
+}
+
+
+.diagnostic-table th {
+
+    padding: 16px 18px;
+
+    text-align: left;
+
+    white-space: nowrap;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    color: #475569;
+
+    border-bottom:
+        1px solid #e5e7eb;
+}
+
+
+/* =========================================================
+   TABLE BODY
+========================================================= */
+
+.diagnostic-table td {
+
+    padding: 16px 18px;
+
+    font-size: 14px;
+
+    color: #374151;
+
+    white-space: nowrap;
+
+    border-bottom:
+        1px solid #f0f0f0;
+}
+
+
+.diagnostic-table tbody tr {
+
+    transition:
+        background 0.2s ease;
+}
+
+
+.diagnostic-table tbody tr:hover {
+
+    background: #f8fafc;
+}
+
+
+.diagnostic-table tbody tr:last-child td {
+
+    border-bottom: none;
+}
+
+
+/* =========================================================
+   BOOKING NUMBER
+========================================================= */
+
+.booking-number {
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    color: #0891b2;
+
+    background: #ecfeff;
+
+    padding: 7px 10px;
+
+    border-radius: 7px;
+}
+
+
+/* =========================================================
+   TEST NAME
+========================================================= */
+
+.test-name {
+
+    color: #1f2937;
+
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   CATEGORY
+========================================================= */
+
+.category-badge {
+
+    display: inline-block;
+
+    padding: 6px 10px;
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+    color: #6d28d9;
+
+    background: #f3e8ff;
+
+    border-radius: 20px;
+}
+
+
+/* =========================================================
+   STATUS BADGES
+========================================================= */
+
+.diagnostic-status {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 7px 12px;
+
+    border-radius: 20px;
+
+    font-size: 12px;
+
+    font-weight: 600;
+}
+
+
+/* Pending */
+
+.diagnostic-status.pending {
+
+    color: #92400e;
+
+    background: #fef3c7;
+}
+
+
+/* Confirmed */
+
+.diagnostic-status.confirmed {
+
+    color: #1d4ed8;
+
+    background: #dbeafe;
+}
+
+
+/* Completed */
+
+.diagnostic-status.completed {
+
+    color: #166534;
+
+    background: #dcfce7;
+}
+
+
+/* Cancelled */
+
+.diagnostic-status.cancelled {
+
+    color: #b91c1c;
+
+    background: #fee2e2;
+}
+
+
+/* =========================================================
+   ACTION BUTTON
+========================================================= */
+
+.action-column {
+
+    text-align: center;
+}
+
+
+.view-details-btn {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 9px 14px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    color: #ffffff;
+
+    background: #0d6efd;
+
+    transition:
+        all 0.2s ease;
+}
+
+
+.view-details-btn:hover {
+
+    transform:
+        translateY(-1px);
+
+    background: #0b5ed7;
+
+    box-shadow:
+        0 5px 12px rgba(13, 110, 253, 0.2);
+}
+
+
+/* =========================================================
+   NO BOOKINGS
+========================================================= */
+
+.no-diagnostic-booking {
+
+    padding: 70px 20px;
+
+    text-align: center;
+}
+
+
+.no-diagnostic-booking svg {
+
+    font-size: 45px;
+
+    color: #94a3b8;
+
+    margin-bottom: 15px;
+}
+
+
+.no-diagnostic-booking h3 {
+
+    margin: 0 0 8px;
+
+    color: #334155;
+}
+
+
+.no-diagnostic-booking p {
+
+    margin: 0;
+
+    color: #94a3b8;
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.diagnostic-loading {
+
+    margin: 50px auto;
+
+    padding: 25px;
+
+    max-width: 400px;
+
+    text-align: center;
+
+    background: #ffffff;
+
+    border-radius: 12px;
+
+    color: #64748b;
+
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 768px) {
+
+    .diagnostic-page {
+
+        padding: 18px;
+    }
+
+
+    .diagnostic-page-header {
+
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 20px;
+
+        padding: 20px;
+    }
+
+
+    .booking-count {
+
+        width: 100%;
+    }
+
+
+    .diagnostic-page-header h1 {
+
+        font-size: 21px;
+    }
+
+
+    .booking-card-header {
+
+        padding: 18px;
+    }
+
+
+    .view-details-btn span {
+
+        display: none;
+    }
+
+
+    .view-details-btn {
+
+        width: 38px;
+        height: 38px;
+
+        padding: 0;
+    }
+
+}

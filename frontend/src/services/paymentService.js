@@ -1,15 +1,9 @@
 import {
-
     createPaymentApi,
-
     getMyPaymentsApi,
-
     getPaymentDetailsApi,
-
     getAdminPaymentsApi,
-
     updatePaymentStatusApi,
-
 } from "../api/paymentApi";
 
 
@@ -62,19 +56,13 @@ export const getAdminPayments = async () => {
 // ==========================================================
 
 export const updatePaymentStatus = async (
-
     id,
-
     payment_status
-
 ) => {
 
     return await updatePaymentStatusApi(
-
         id,
-
         payment_status
-
     );
 
 };

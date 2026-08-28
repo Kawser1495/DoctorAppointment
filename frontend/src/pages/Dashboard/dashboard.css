@@ -1,0 +1,121 @@
+/* ========================================= */
+/* Diagnostic Booking Details */
+/* ========================================= */
+
+.diagnostic-booking-section {
+    margin-top: 30px;
+    margin-bottom: 30px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.section-header {
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.section-header p {
+    margin-top: 5px;
+    margin-bottom: 0;
+    color: #777;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.diagnostic-booking-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 750px;
+}
+
+.diagnostic-booking-table th,
+.diagnostic-booking-table td {
+    padding: 14px;
+    text-align: left;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.diagnostic-booking-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.diagnostic-booking-table td {
+    vertical-align: middle;
+}
+
+.diagnostic-booking-table tbody tr:hover {
+    background: #f9f9f9;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+/* ========================================= */
+/* Pending */
+/* ========================================= */
+
+.status-badge.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+
+/* ========================================= */
+/* Confirmed */
+/* ========================================= */
+
+.status-badge.confirmed {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+
+/* ========================================= */
+/* Completed */
+/* ========================================= */
+
+.status-badge.completed {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+
+/* ========================================= */
+/* Cancelled */
+/* ========================================= */
+
+.status-badge.cancelled {
+    background: #f8d7da;
+    color: #842029;
+}
+
+
+/* ========================================= */
+/* No Booking */
+/* ========================================= */
+
+.no-booking {
+    text-align: center;
+    padding: 40px;
+    color: #777;
+    background: #f8f9fa;
+    border-radius: 8px;
+}

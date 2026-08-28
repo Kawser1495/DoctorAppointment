@@ -1,20 +1,20 @@
-from django.shortcuts import get_object_or_404
-
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 
 from .models import MedicalReport
 from .serializers import MedicalReportSerializer
 
 
 # ==========================================================
-# Patient Medical Report List
-#
+# Patient Medical Reports
 # GET:
 # /api/reports/patient/
 # ==========================================================
 
-class PatientMedicalReportListView(generics.ListAPIView):
+class PatientMedicalReportListView(
+    generics.ListAPIView
+):
 
     serializer_class = MedicalReportSerializer
 
@@ -26,20 +26,39 @@ class PatientMedicalReportListView(generics.ListAPIView):
 
         user = self.request.user
 
-        if not hasattr(user, "patient_profile"):
+        # --------------------------------------------------
+        # Only Patient
+        # --------------------------------------------------
+
+        if not hasattr(
+            user,
+            "patient_profile"
+        ):
             return MedicalReport.objects.none()
+
+        patient = user.patient_profile
+
+        # --------------------------------------------------
+        # Patient's Reports
+        # --------------------------------------------------
 
         return (
             MedicalReport.objects
             .select_related(
                 "patient",
                 "patient__user",
+
                 "doctor",
                 "doctor__user",
+
                 "appointment",
+                "appointment__family_member",
+
+                "test_booking",
+                "test_booking__diagnostic_test",
             )
             .filter(
-                patient=user.patient_profile
+                patient=patient
             )
             .order_by(
                 "-uploaded_at"
@@ -48,7 +67,7 @@ class PatientMedicalReportListView(generics.ListAPIView):
 
 
 # ==========================================================
-# Patient Medical Report Details
+# Patient Report Details
 #
 # GET:
 # /api/reports/<id>/
@@ -68,16 +87,35 @@ class MedicalReportDetailView(
 
         user = self.request.user
 
-        if not hasattr(user, "patient_profile"):
+        if not hasattr(
+            user,
+            "patient_profile"
+        ):
             return MedicalReport.objects.none()
 
-        return MedicalReport.objects.filter(
-            patient=user.patient_profile
+        return (
+            MedicalReport.objects
+            .select_related(
+                "patient",
+                "patient__user",
+
+                "doctor",
+                "doctor__user",
+
+                "appointment",
+                "appointment__family_member",
+
+                "test_booking",
+                "test_booking__diagnostic_test",
+            )
+            .filter(
+                patient=user.patient_profile
+            )
         )
 
 
 # ==========================================================
-# Doctor Medical Report List
+# Doctor Medical Reports
 #
 # GET:
 # /api/reports/doctor/
@@ -97,20 +135,31 @@ class DoctorMedicalReportListView(
 
         user = self.request.user
 
-        if not hasattr(user, "doctor_profile"):
+        if not hasattr(
+            user,
+            "doctor_profile"
+        ):
             return MedicalReport.objects.none()
+
+        doctor = user.doctor_profile
 
         return (
             MedicalReport.objects
             .select_related(
                 "patient",
                 "patient__user",
+
                 "doctor",
                 "doctor__user",
+
                 "appointment",
+                "appointment__family_member",
+
+                "test_booking",
+                "test_booking__diagnostic_test",
             )
             .filter(
-                doctor=user.doctor_profile
+                doctor=doctor
             )
             .order_by(
                 "-uploaded_at"

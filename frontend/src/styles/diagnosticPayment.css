@@ -1,0 +1,427 @@
+.diagnostic-payment-page {
+    flex: 1;
+    min-height: 100vh;
+    padding: 30px;
+    background: #f5f7fb;
+}
+
+
+.back-booking-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-bottom: 25px;
+    padding: 10px 16px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #ffffff;
+    color: #475569;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+
+.back-booking-btn:hover {
+    background: #f1f5f9;
+}
+
+
+.payment-page-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    margin-bottom: 25px;
+}
+
+
+.payment-title-icon {
+    width: 55px;
+    height: 55px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 14px;
+
+    background: #0d6efd;
+    color: white;
+
+    font-size: 22px;
+}
+
+
+.payment-page-title h1 {
+    margin: 0 0 5px;
+
+    font-size: 27px;
+
+    color: #1e293b;
+}
+
+
+.payment-page-title p {
+    margin: 0;
+
+    color: #64748b;
+}
+
+
+/* =========================================
+   GRID
+========================================= */
+
+.diagnostic-payment-grid {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        minmax(350px, 0.8fr);
+
+    gap: 25px;
+}
+
+
+/* =========================================
+   CARDS
+========================================= */
+
+.payment-summary-card,
+.payment-method-card {
+    padding: 25px;
+
+    background: white;
+
+    border-radius: 16px;
+
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+
+.payment-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin-bottom: 25px;
+
+    padding-bottom: 18px;
+
+    border-bottom:
+        1px solid #e5e7eb;
+
+    color: #0d6efd;
+}
+
+
+.payment-card-header h2 {
+    margin: 0;
+
+    font-size: 20px;
+
+    color: #1e293b;
+}
+
+
+/* =========================================
+   SUMMARY
+========================================= */
+
+.payment-summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+
+    padding: 15px 0;
+
+    border-bottom:
+        1px solid #f1f5f9;
+}
+
+
+.payment-summary-row span {
+    color: #64748b;
+}
+
+
+.payment-summary-row strong {
+    text-align: right;
+
+    color: #1e293b;
+}
+
+
+.payment-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-top: 20px;
+    padding: 18px;
+
+    background: #ecfdf5;
+
+    border-radius: 12px;
+}
+
+
+.payment-total span {
+    font-weight: 600;
+
+    color: #047857;
+}
+
+
+.payment-total strong {
+    font-size: 24px;
+
+    color: #059669;
+}
+
+
+/* =========================================
+   PAYMENT METHOD
+========================================= */
+
+.payment-method-text {
+    margin-bottom: 20px;
+
+    color: #64748b;
+}
+
+
+.payment-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    margin-bottom: 12px;
+    padding: 15px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+
+    cursor: pointer;
+}
+
+
+.payment-option:hover {
+    background: #f8fafc;
+    border-color: #0d6efd;
+}
+
+
+.payment-option input {
+    width: 18px;
+    height: 18px;
+}
+
+
+.payment-option span {
+    font-weight: 500;
+
+    color: #334155;
+}
+
+
+/* =========================================
+   PAY BUTTON
+========================================= */
+
+.pay-now-btn {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    margin-top: 25px;
+    padding: 15px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #0d6efd;
+    color: white;
+
+    font-size: 16px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+.pay-now-btn:hover {
+    background: #0b5ed7;
+}
+
+
+/* =========================================
+   LOADING / ERROR
+========================================= */
+
+.payment-loading,
+.payment-error {
+    max-width: 500px;
+
+    margin: 60px auto;
+    padding: 35px;
+
+    text-align: center;
+
+    background: white;
+
+    border-radius: 15px;
+
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+
+.payment-error button {
+    margin-top: 15px;
+    padding: 10px 18px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #0d6efd;
+    color: white;
+
+    cursor: pointer;
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 900px) {
+
+    .diagnostic-payment-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 768px) {
+
+    .diagnostic-payment-page {
+        padding: 18px;
+    }
+
+    .payment-page-title h1 {
+        font-size: 22px;
+    }
+
+    .payment-summary-row {
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .payment-summary-row strong {
+        text-align: left;
+    }
+
+}
+
+
+.diagnostic-payment-page {
+    min-height: 100vh;
+    padding: 40px;
+    background: #f5f7fb;
+}
+
+.payment-card {
+    max-width: 800px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.payment-header {
+    margin-bottom: 30px;
+}
+
+.payment-header h1 {
+    margin-bottom: 8px;
+}
+
+.payment-header p {
+    color: #777;
+}
+
+.booking-information {
+    border-top: 1px solid #eee;
+    border-bottom: 1px solid #eee;
+    padding: 20px 0;
+}
+
+.booking-information h3 {
+    margin-bottom: 20px;
+}
+
+.payment-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.payment-row:last-child {
+    border-bottom: none;
+}
+
+.payment-row span {
+    color: #666;
+}
+
+.payment-amount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    font-size: 20px;
+}
+
+.payment-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.back-button,
+.pay-button {
+    border: none;
+    padding: 12px 22px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.back-button {
+    background: #e9ecef;
+}
+
+.pay-button {
+    background: #0d6efd;
+    color: white;
+}

@@ -1,15 +1,15 @@
-import api from "../services/api";
+import api from "./axios";
 
 
 // ==========================================================
 // Create Payment
-// POST: /api/payments/create/
+// POST /api/payments/create/
 // ==========================================================
 
 export const createPaymentApi = (data) => {
 
     return api.post(
-        "payments/create/",
+        "/payments/create/",
         data
     );
 
@@ -18,13 +18,13 @@ export const createPaymentApi = (data) => {
 
 // ==========================================================
 // My Payments
-// GET: /api/payments/
+// GET /api/payments/
 // ==========================================================
 
 export const getMyPaymentsApi = () => {
 
     return api.get(
-        "payments/"
+        "/payments/"
     );
 
 };
@@ -32,13 +32,13 @@ export const getMyPaymentsApi = () => {
 
 // ==========================================================
 // Payment Details
-// GET: /api/payments/<id>/
+// GET /api/payments/:id/
 // ==========================================================
 
 export const getPaymentDetailsApi = (id) => {
 
     return api.get(
-        `payments/${id}/`
+        `/payments/${id}/`
     );
 
 };
@@ -46,13 +46,13 @@ export const getPaymentDetailsApi = (id) => {
 
 // ==========================================================
 // Admin Payments
-// GET: /api/payments/admin/
+// GET /api/payments/admin/
 // ==========================================================
 
 export const getAdminPaymentsApi = () => {
 
     return api.get(
-        "payments/admin/"
+        "/payments/admin/"
     );
 
 };
@@ -60,7 +60,7 @@ export const getAdminPaymentsApi = () => {
 
 // ==========================================================
 // Update Payment Status
-// PATCH: /api/payments/<id>/status/
+// PATCH /api/payments/:id/status/
 // ==========================================================
 
 export const updatePaymentStatusApi = (
@@ -69,7 +69,7 @@ export const updatePaymentStatusApi = (
 ) => {
 
     return api.patch(
-        `payments/${id}/status/`,
+        `/payments/${id}/status/`,
         {
             payment_status,
         }
