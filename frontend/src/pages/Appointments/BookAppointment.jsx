@@ -20,6 +20,10 @@ import {
     bookAppointment,
 } from "../../services/appointmentService";
 
+import {
+    fetchFamilyMembers,
+} from "../../services/patientService";
+
 import "../../styles/appointment.css";
 
 
@@ -38,7 +42,6 @@ const normalizeArrayResponse = (data) => {
     }
 
     return [];
-
 };
 
 
@@ -57,7 +60,6 @@ const getTodayDate = () => {
     ).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
-
 };
 
 
@@ -84,8 +86,10 @@ const getErrorMessage = (serverData) => {
         .flatMap(([field, value]) => {
 
             if (Array.isArray(value)) {
+
                 return value.map(
-                    (message) => `${field}: ${message}`
+                    (message) =>
+                        `${field}: ${message}`
                 );
             }
 
@@ -93,6 +97,7 @@ const getErrorMessage = (serverData) => {
                 value &&
                 typeof value === "object"
             ) {
+
                 return Object.values(value).flat();
             }
 
@@ -107,7 +112,6 @@ const getErrorMessage = (serverData) => {
         messages.join("\n")
         || "Appointment booking failed."
     );
-
 };
 
 
@@ -116,10 +120,6 @@ const getErrorMessage = (serverData) => {
 // ==========================================================
 
 function BookAppointment() {
-
-    // ======================================================
-    // Navigation
-    // ======================================================
 
     const navigate = useNavigate();
 
@@ -131,7 +131,9 @@ function BookAppointment() {
     // ======================================================
 
     const selectedDoctor = useMemo(
-        () => location.state?.selectedDoctor || null,
+        () =>
+            location.state?.selectedDoctor
+            || null,
         [location.state]
     );
 
@@ -147,8 +149,9 @@ function BookAppointment() {
                 return "";
             }
 
-            return String(selectedDoctor.id);
-
+            return String(
+                selectedDoctor.id
+            );
         },
         [selectedDoctor]
     );
@@ -165,8 +168,9 @@ function BookAppointment() {
                 return "";
             }
 
-            return String(selectedDoctor.department);
-
+            return String(
+                selectedDoctor.department
+            );
         },
         [selectedDoctor]
     );
@@ -225,6 +229,34 @@ function BookAppointment() {
 
 
     // ======================================================
+    // Family Member
+    // ======================================================
+
+    const [
+        familyMembers,
+        setFamilyMembers,
+    ] = useState([]);
+
+
+    const [
+        appointmentFor,
+        setAppointmentFor,
+    ] = useState("self");
+
+
+    const [
+        familyMember,
+        setFamilyMember,
+    ] = useState("");
+
+
+    const [
+        familyLoading,
+        setFamilyLoading,
+    ] = useState(false);
+
+
+    // ======================================================
     // Loading State
     // ======================================================
 
@@ -263,6 +295,84 @@ function BookAppointment() {
 
 
     // ======================================================
+    // Load Family Members
+    // ======================================================
+
+    useEffect(() => {
+
+        let cancelled = false;
+
+
+        const loadFamilyMembers = async () => {
+
+            try {
+
+                setFamilyLoading(true);
+
+
+                const response =
+                    await fetchFamilyMembers();
+
+
+                if (cancelled) {
+                    return;
+                }
+
+
+                const members =
+                    normalizeArrayResponse(
+                        response.data
+                    );
+
+
+                setFamilyMembers(
+                    members
+                );
+
+            } catch (error) {
+
+                if (cancelled) {
+                    return;
+                }
+
+
+                console.error(
+                    "Family Member Load Error:",
+                    error
+                );
+
+
+                console.error(
+                    "Family Member Server Response:",
+                    error.response?.data
+                );
+
+
+                setFamilyMembers([]);
+
+
+            } finally {
+
+                if (!cancelled) {
+                    setFamilyLoading(false);
+                }
+
+            }
+
+        };
+
+
+        loadFamilyMembers();
+
+
+        return () => {
+            cancelled = true;
+        };
+
+    }, []);
+
+
+    // ======================================================
     // Load Doctors By Department
     // ======================================================
 
@@ -273,7 +383,6 @@ function BookAppointment() {
 
         const loadDoctors = async () => {
 
-            // No department selected
             if (!department) {
 
                 if (!cancelled) {
@@ -289,7 +398,6 @@ function BookAppointment() {
                 }
 
                 return;
-
             }
 
 
@@ -321,11 +429,10 @@ function BookAppointment() {
                     );
 
 
-                setDoctors(doctorList);
+                setDoctors(
+                    doctorList
+                );
 
-
-                // Keep doctor selected if user
-                // came from DoctorList page
 
                 if (selectedDoctorId) {
 
@@ -349,7 +456,6 @@ function BookAppointment() {
                         setDoctor("");
 
                     }
-
                 }
 
             } catch (error) {
@@ -389,9 +495,7 @@ function BookAppointment() {
             } finally {
 
                 if (!cancelled) {
-
                     setDoctorLoading(false);
-
                 }
 
             }
@@ -403,11 +507,8 @@ function BookAppointment() {
 
 
         return () => {
-
             cancelled = true;
-
         };
-
 
     }, [
         department,
@@ -426,8 +527,6 @@ function BookAppointment() {
 
         const loadTimeSlots = async () => {
 
-            // Reset old slots first
-
             if (!cancelled) {
 
                 setTimeSlots([]);
@@ -436,8 +535,6 @@ function BookAppointment() {
 
             }
 
-
-            // Doctor and date are required
 
             if (
                 !doctor
@@ -477,8 +574,6 @@ function BookAppointment() {
                     );
 
 
-                // Only active and non-full slots
-
                 const availableSlots =
                     slotList.filter(
                         (slot) =>
@@ -491,7 +586,6 @@ function BookAppointment() {
                 setTimeSlots(
                     availableSlots
                 );
-
 
             } catch (error) {
 
@@ -506,32 +600,19 @@ function BookAppointment() {
                 );
 
 
-                console.error(
-                    "Time Slot Server Response:",
-                    error.response?.data
-                );
-
-
                 setTimeSlots([]);
-
-
-                const serverData =
-                    error.response?.data;
 
 
                 setApiError(
                     getErrorMessage(
-                        serverData
+                        error.response?.data
                     )
                 );
-
 
             } finally {
 
                 if (!cancelled) {
-
                     setSlotLoading(false);
-
                 }
 
             }
@@ -543,16 +624,72 @@ function BookAppointment() {
 
 
         return () => {
-
             cancelled = true;
-
         };
-
 
     }, [
         doctor,
         appointmentDate,
     ]);
+
+
+    // ======================================================
+    // Appointment For Change
+    // ======================================================
+
+    const handleAppointmentForChange = (
+        event
+    ) => {
+
+        const value =
+            event.target.value;
+
+
+        setAppointmentFor(
+            value
+        );
+
+
+        if (value === "self") {
+
+            setFamilyMember("");
+
+        }
+
+
+        setErrors(
+            (previous) => ({
+                ...previous,
+                familyMember: "",
+            })
+        );
+
+    };
+
+
+    // ======================================================
+    // Family Member Change
+    // ======================================================
+
+    const handleFamilyMemberChange = (
+        event
+    ) => {
+
+        setFamilyMember(
+            event.target.value
+        );
+
+
+        setErrors(
+            (previous) => ({
+                ...previous,
+                familyMember: "",
+            })
+        );
+
+        setApiError("");
+
+    };
 
 
     // ======================================================
@@ -730,6 +867,18 @@ function BookAppointment() {
         }
 
 
+        if (
+            appointmentFor === "family"
+            &&
+            !familyMember
+        ) {
+
+            validationErrors.familyMember =
+                "Please select a family member.";
+
+        }
+
+
         if (!reason.trim()) {
 
             validationErrors.reason =
@@ -743,8 +892,6 @@ function BookAppointment() {
         );
 
 
-        // Stop if validation failed
-
         if (
             Object.keys(
                 validationErrors
@@ -755,14 +902,16 @@ function BookAppointment() {
 
 
         // ==================================================
-        // Payload
+        // Appointment Payload
         // ==================================================
 
         const appointmentData = {
 
-            doctor: Number(doctor),
+            doctor:
+                Number(doctor),
 
-            slot: Number(timeSlot),
+            slot:
+                Number(timeSlot),
 
             appointment_date:
                 appointmentDate,
@@ -774,6 +923,22 @@ function BookAppointment() {
                 symptoms.trim(),
 
         };
+
+
+        // ==================================================
+        // Add Family Member
+        // ==================================================
+
+        if (
+            appointmentFor === "family"
+            &&
+            familyMember
+        ) {
+
+            appointmentData.family_member =
+                Number(familyMember);
+
+        }
 
 
         console.log(
@@ -808,6 +973,7 @@ function BookAppointment() {
                         appointment:
                             response.data,
                     },
+
                     replace: true,
                 }
             );
@@ -857,6 +1023,19 @@ function BookAppointment() {
 
 
     // ======================================================
+    // Selected Family Member
+    // ======================================================
+
+    const selectedFamilyMember =
+        familyMembers.find(
+            (member) =>
+                String(member.id)
+                ===
+                String(familyMember)
+        );
+
+
+    // ======================================================
     // Render
     // ======================================================
 
@@ -867,7 +1046,9 @@ function BookAppointment() {
             <div className="appointment-container">
 
 
-                {/* Header */}
+                {/* ==================================================
+                    Header
+                ================================================== */}
 
                 <div className="appointment-header">
 
@@ -876,14 +1057,161 @@ function BookAppointment() {
                     </h2>
 
                     <p>
-                        Select your department, doctor,
-                        preferred date and available time.
+                        Select who the appointment is for,
+                        doctor, date and available time.
                     </p>
 
                 </div>
 
 
-                {/* Selected Doctor */}
+                {/* ==================================================
+                    Appointment For
+                ================================================== */}
+
+                <div className="form-group">
+
+                    <label>
+                        Appointment For
+                    </label>
+
+
+                    <select
+                        value={appointmentFor}
+                        onChange={
+                            handleAppointmentForChange
+                        }
+                        disabled={submitLoading}
+                    >
+
+                        <option value="self">
+                            Myself
+                        </option>
+
+                        <option value="family">
+                            Family Member
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                {/* ==================================================
+                    Family Member
+                ================================================== */}
+
+                {appointmentFor === "family" && (
+
+                    <div className="form-group">
+
+                        <label>
+                            Select Family Member
+                        </label>
+
+
+                        <select
+
+                            value={familyMember}
+
+                            onChange={
+                                handleFamilyMemberChange
+                            }
+
+                            disabled={
+                                familyLoading
+                                ||
+                                submitLoading
+                            }
+
+                        >
+
+                            <option value="">
+
+                                {
+                                    familyLoading
+                                        ? "Loading Family Members..."
+                                        : familyMembers.length === 0
+                                            ? "No Family Members Found"
+                                            : "Select Family Member"
+                                }
+
+                            </option>
+
+
+                            {familyMembers.map(
+                                (member) => (
+
+                                    <option
+                                        key={member.id}
+                                        value={member.id}
+                                    >
+
+                                        {member.name}
+
+                                        {" — "}
+
+                                        {member.relation}
+
+                                        {" — Age "}
+
+                                        {member.age}
+
+                                    </option>
+
+                                )
+                            )}
+
+                        </select>
+
+
+                        {errors.familyMember && (
+
+                            <p className="error-text">
+
+                                {errors.familyMember}
+
+                            </p>
+
+                        )}
+
+                    </div>
+
+                )}
+
+
+                {/* ==================================================
+                    Selected Person
+                ================================================== */}
+
+                {appointmentFor === "family"
+                    &&
+                    selectedFamilyMember
+                    && (
+
+                        <div className="selected-doctor-info">
+
+                            <strong>
+                                Appointment Patient:
+                            </strong>
+
+                            {" "}
+
+                            {selectedFamilyMember.name}
+
+                            {" ("}
+
+                            {selectedFamilyMember.relation}
+
+                            {")"}
+
+                        </div>
+
+                    )}
+
+
+                {/* ==================================================
+                    Selected Doctor
+                ================================================== */}
 
                 {selectedDoctorData && (
 
@@ -899,20 +1227,26 @@ function BookAppointment() {
 
                         {" — "}
 
-                        {selectedDoctorData.specialization
-                            || "Specialist"}
+                        {
+                            selectedDoctorData.specialization
+                            || "Specialist"
+                        }
 
                         {" — Consultation Fee: ৳"}
 
-                        {selectedDoctorData.consultation_fee
-                            ?? 0}
+                        {
+                            selectedDoctorData.consultation_fee
+                            ?? 0
+                        }
 
                     </div>
 
                 )}
 
 
-                {/* API Error */}
+                {/* ==================================================
+                    API Error
+                ================================================== */}
 
                 {apiError && (
 
@@ -925,14 +1259,18 @@ function BookAppointment() {
                 )}
 
 
-                {/* Form */}
+                {/* ==================================================
+                    Form
+                ================================================== */}
 
                 <form
                     onSubmit={handleSubmit}
                 >
 
 
-                    {/* Department */}
+                    {/* ==================================================
+                        Department
+                    ================================================== */}
 
                     <DepartmentDropdown
 
@@ -958,7 +1296,9 @@ function BookAppointment() {
                     )}
 
 
-                    {/* Doctor */}
+                    {/* ==================================================
+                        Doctor
+                    ================================================== */}
 
                     <div className="form-group">
 
@@ -1035,8 +1375,7 @@ function BookAppointment() {
 
                                         {
                                             doctorItem.consultation_fee
-                                            ??
-                                            0
+                                            ?? 0
                                         }
 
                                     </option>
@@ -1060,7 +1399,9 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* Appointment Date */}
+                    {/* ==================================================
+                        Appointment Date
+                    ================================================== */}
 
                     <div className="form-group">
 
@@ -1103,7 +1444,9 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* Available Time */}
+                    {/* ==================================================
+                        Available Time
+                    ================================================== */}
 
                     <div className="form-group">
 
@@ -1162,9 +1505,13 @@ function BookAppointment() {
 
                                     <option
 
-                                        key={slot.id}
+                                        key={
+                                            slot.id
+                                        }
 
-                                        value={slot.id}
+                                        value={
+                                            slot.id
+                                        }
 
                                     >
 
@@ -1176,16 +1523,14 @@ function BookAppointment() {
 
                                         {
                                             slot.booked_count
-                                            ??
-                                            0
+                                            ?? 0
                                         }
 
                                         {" / "}
 
                                         {
                                             slot.max_patient
-                                            ??
-                                            0
+                                            ?? 0
                                         }
 
                                         {" booked"}
@@ -1211,7 +1556,9 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* Reason */}
+                    {/* ==================================================
+                        Reason
+                    ================================================== */}
 
                     <div className="form-group">
 
@@ -1264,7 +1611,9 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* Symptoms */}
+                    {/* ==================================================
+                        Symptoms
+                    ================================================== */}
 
                     <div className="form-group">
 
@@ -1295,7 +1644,9 @@ function BookAppointment() {
                     </div>
 
 
-                    {/* Buttons */}
+                    {/* ==================================================
+                        Buttons
+                    ================================================== */}
 
                     <div className="appointment-actions">
 
@@ -1332,12 +1683,10 @@ function BookAppointment() {
 
                         >
 
-                            {submitLoading
-
-                                ? "Booking Appointment..."
-
-                                : "Confirm Appointment"
-
+                            {
+                                submitLoading
+                                    ? "Booking Appointment..."
+                                    : "Confirm Appointment"
                             }
 
                         </button>
@@ -1346,7 +1695,6 @@ function BookAppointment() {
 
 
                 </form>
-
 
             </div>
 

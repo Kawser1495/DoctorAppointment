@@ -1,11 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import {
+    useState,
+    useEffect,
+    useCallback,
+} from "react";
 
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 import WelcomeBanner from "../../components/WelcomeBanner";
 import DashboardCard from "../../components/DashboardCard";
 
-import { getDashboardData } from "../../api/dashboardApi";
+import {
+    getDashboardData,
+} from "../../api/dashboardApi";
 
 import {
     FaCalendarCheck,
@@ -16,60 +22,114 @@ import {
     FaMoneyBillWave,
     FaUsers,
     FaBell,
+    FaFlask,
 } from "react-icons/fa";
 
 import "../../styles/dashboard.css";
 
+
 function Dashboard() {
 
-    // ==========================================
+    // ======================================================
     // Dashboard State
-    // ==========================================
+    // ======================================================
 
-    const [dashboardData, setDashboardData] = useState({
-        total_appointments: 0,
-        pending_appointments: 0,
-        completed_appointments: 0,
-        total_doctors: 0,
-        total_reports: 0,
-        total_payments: 0,
-        family_members: 0,
-        notifications: 0,
-    });
+    const [dashboardData, setDashboardData] =
+        useState({
 
-    const [loading, setLoading] = useState(true);
+            // Appointments
+            total_appointments: 0,
+            pending_appointments: 0,
+            completed_appointments: 0,
 
-    // ==========================================
+            // Diagnostic Bookings
+            total_diagnostic_bookings: 0,
+            pending_diagnostic_bookings: 0,
+            completed_diagnostic_bookings: 0,
+
+            // Other
+            total_doctors: 0,
+            total_reports: 0,
+            total_payments: 0,
+            family_members: 0,
+
+            // Notifications
+            total_notifications: 0,
+            unread_notifications: 0,
+        });
+
+
+    const [loading, setLoading] =
+        useState(true);
+
+
+    // ======================================================
     // Load Dashboard Data
-    // ==========================================
+    // ======================================================
 
-    const loadDashboard = useCallback(async () => {
+    const loadDashboard =
+        useCallback(async () => {
 
-        try {
+            try {
 
-            const response = await getDashboardData();
+                setLoading(true);
 
-            const data = response.data.data || response.data;
 
-            setDashboardData(data);
+                const response =
+                    await getDashboardData();
 
-            console.log("Dashboard Data:", data);
 
-        } catch (error) {
+                console.log(
+                    "Full Dashboard Response:",
+                    response
+                );
 
-            console.error("Dashboard API Error:", error);
 
-        } finally {
+                const data =
+                    response?.data?.data ||
+                    response?.data ||
+                    {};
 
-            setLoading(false);
 
-        }
+                console.log(
+                    "Dashboard Data:",
+                    data
+                );
 
-    }, []);
 
-    // ==========================================
-    // Load On Component Mount
-    // ==========================================
+                setDashboardData(
+                    previousData => ({
+
+                        ...previousData,
+
+                        ...data,
+
+                    })
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Dashboard API Error:",
+                    error
+                );
+
+            }
+
+            finally {
+
+                setLoading(false);
+
+            }
+
+        }, []);
+
+
+    // ======================================================
+    // Load Dashboard
+    // ======================================================
 
     useEffect(() => {
 
@@ -77,9 +137,10 @@ function Dashboard() {
 
     }, [loadDashboard]);
 
-    // ==========================================
+
+    // ======================================================
     // Loading
-    // ==========================================
+    // ======================================================
 
     if (loading) {
 
@@ -87,7 +148,9 @@ function Dashboard() {
 
             <div className="text-center mt-5">
 
-                <h4>Loading Dashboard...</h4>
+                <h4>
+                    Loading Dashboard...
+                </h4>
 
             </div>
 
@@ -95,9 +158,10 @@ function Dashboard() {
 
     }
 
-    // ==========================================
+
+    // ======================================================
     // UI
-    // ==========================================
+    // ======================================================
 
     return (
 
@@ -113,63 +177,119 @@ function Dashboard() {
 
                     <WelcomeBanner />
 
+
                     <div className="card-container">
+
+
+                        {/* ==================================
+                            Appointment Cards
+                        ================================== */}
 
                         <DashboardCard
                             title="Appointments"
-                            value={dashboardData.total_appointments}
+                            value={
+                                dashboardData.total_appointments
+                            }
                             color="#0D6EFD"
                             icon={<FaCalendarCheck />}
                         />
 
+
                         <DashboardCard
                             title="Pending"
-                            value={dashboardData.pending_appointments}
+                            value={
+                                dashboardData.pending_appointments
+                            }
                             color="#F59E0B"
                             icon={<FaClock />}
                         />
 
+
                         <DashboardCard
                             title="Completed"
-                            value={dashboardData.completed_appointments}
+                            value={
+                                dashboardData.completed_appointments
+                            }
                             color="#10B981"
                             icon={<FaCheckCircle />}
                         />
 
+
+                        {/* ==================================
+                            NEW: Diagnostic Test Booking
+                        ================================== */}
+
+                        <DashboardCard
+                            title="Diagnostic Bookings"
+                            value={
+                                dashboardData.total_diagnostic_bookings
+                            }
+                            color="#06B6D4"
+                            icon={<FaFlask />}
+                        />
+
+
+                        {/* ==================================
+                            Other Cards
+                        ================================== */}
+
                         <DashboardCard
                             title="Doctors"
-                            value={dashboardData.total_doctors}
+                            value={
+                                dashboardData.total_doctors
+                            }
                             color="#8B5CF6"
                             icon={<FaUserMd />}
                         />
 
+
                         <DashboardCard
                             title="Medical Reports"
-                            value={dashboardData.total_reports}
+                            value={
+                                dashboardData.total_reports
+                            }
                             color="#EF4444"
                             icon={<FaFileMedical />}
                         />
 
+
                         <DashboardCard
                             title="Payments"
-                            value={dashboardData.total_payments}
+                            value={
+                                Number(
+                                    dashboardData.total_payments || 0
+                                ).toFixed(2)
+                            }
                             color="#14B8A6"
                             icon={<FaMoneyBillWave />}
                         />
 
+
                         <DashboardCard
                             title="Family Members"
-                            value={dashboardData.family_members}
+                            value={
+                                dashboardData.family_members
+                            }
                             color="#EC4899"
                             icon={<FaUsers />}
                         />
 
+
+                        {/* ==================================
+                            Notifications
+
+                            Shows unread notifications
+                        ================================== */}
+
                         <DashboardCard
                             title="Notifications"
-                            value={dashboardData.notifications}
+                            value={
+                                dashboardData.unread_notifications
+                            }
                             color="#6366F1"
                             icon={<FaBell />}
                         />
+
 
                     </div>
 
@@ -182,5 +302,6 @@ function Dashboard() {
     );
 
 }
+
 
 export default Dashboard;

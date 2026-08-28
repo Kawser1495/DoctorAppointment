@@ -3,6 +3,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from doctors.models import TimeSlot
+from patients.models import FamilyMember
 
 from .models import Appointment
 
@@ -38,12 +39,30 @@ class AppointmentSerializer(
         read_only=True,
     )
 
+    # ======================================================
+    # Slot Time
+    # ======================================================
+
     slot_time = serializers.TimeField(
         source="slot.slot_time",
         read_only=True,
     )
 
+    # ======================================================
+    # Patient Name
+    # ======================================================
+
     patient_name = serializers.SerializerMethodField()
+
+    # ======================================================
+    # Family Member Name
+    # ======================================================
+
+    family_member_name = serializers.SerializerMethodField()
+
+    # ======================================================
+    # Meta
+    # ======================================================
 
     class Meta:
 
@@ -55,11 +74,25 @@ class AppointmentSerializer(
 
             "booking_number",
 
+            # ----------------------------------------------
+            # Patient
+            # ----------------------------------------------
+
             "patient",
 
             "patient_name",
 
+            # ----------------------------------------------
+            # Family Member
+            # ----------------------------------------------
+
             "family_member",
+
+            "family_member_name",
+
+            # ----------------------------------------------
+            # Doctor
+            # ----------------------------------------------
 
             "doctor",
 
@@ -71,9 +104,17 @@ class AppointmentSerializer(
 
             "consultation_fee",
 
+            # ----------------------------------------------
+            # Slot
+            # ----------------------------------------------
+
             "slot",
 
             "slot_time",
+
+            # ----------------------------------------------
+            # Appointment
+            # ----------------------------------------------
 
             "appointment_date",
 
@@ -82,6 +123,10 @@ class AppointmentSerializer(
             "symptoms",
 
             "status",
+
+            # ----------------------------------------------
+            # Timestamps
+            # ----------------------------------------------
 
             "created_at",
 
@@ -97,6 +142,10 @@ class AppointmentSerializer(
 
             "patient",
 
+            "patient_name",
+
+            "family_member_name",
+
             "status",
 
             "consultation_fee",
@@ -107,9 +156,9 @@ class AppointmentSerializer(
 
         ]
 
-    # ======================================================
+    # ==========================================================
     # Doctor Name
-    # ======================================================
+    # ==========================================================
 
     def get_doctor_name(self, obj):
 
@@ -125,38 +174,108 @@ class AppointmentSerializer(
 
         return f"Dr. {obj.doctor.user.username}"
 
-    # ======================================================
+    # ==========================================================
     # Patient Name
-    # ======================================================
+    # ==========================================================
 
     def get_patient_name(self, obj):
+
+        # ------------------------------------------------------
+        # If appointment is for family member
+        # ------------------------------------------------------
 
         if obj.family_member:
 
             return obj.family_member.name
 
-        return (
+        # ------------------------------------------------------
+        # Otherwise appointment is for logged-in patient
+        # ------------------------------------------------------
+
+        full_name = (
             obj.patient.user
             .get_full_name()
+            .strip()
         )
 
-    # ======================================================
+        if full_name:
+
+            return full_name
+
+        return obj.patient.user.username
+
+    # ==========================================================
+    # Family Member Name
+    # ==========================================================
+
+    def get_family_member_name(self, obj):
+
+        if obj.family_member:
+
+            return obj.family_member.name
+
+        return None
+
+    # ==========================================================
     # Validation
-    # ======================================================
+    # ==========================================================
 
     def validate(self, attrs):
 
-        doctor = attrs.get("doctor")
+        # ======================================================
+        # Get submitted values
+        # ======================================================
 
-        slot = attrs.get("slot")
+        doctor = attrs.get(
+            "doctor"
+        )
+
+        slot = attrs.get(
+            "slot"
+        )
 
         appointment_date = attrs.get(
             "appointment_date"
         )
 
-        # --------------------------------------------------
-        # Date cannot be in the past
-        # --------------------------------------------------
+        family_member = attrs.get(
+            "family_member"
+        )
+
+        # ======================================================
+        # Required validation
+        # ======================================================
+
+        if not doctor:
+
+            raise serializers.ValidationError({
+
+                "doctor":
+                "Please select a doctor."
+
+            })
+
+        if not slot:
+
+            raise serializers.ValidationError({
+
+                "slot":
+                "Please select an available time slot."
+
+            })
+
+        if not appointment_date:
+
+            raise serializers.ValidationError({
+
+                "appointment_date":
+                "Please select an appointment date."
+
+            })
+
+        # ======================================================
+        # Appointment date cannot be in the past
+        # ======================================================
 
         if appointment_date < timezone.localdate():
 
@@ -167,9 +286,9 @@ class AppointmentSerializer(
 
             })
 
-        # --------------------------------------------------
+        # ======================================================
         # Doctor availability
-        # --------------------------------------------------
+        # ======================================================
 
         if not doctor.is_available:
 
@@ -180,9 +299,9 @@ class AppointmentSerializer(
 
             })
 
-        # --------------------------------------------------
-        # Slot belongs to doctor
-        # --------------------------------------------------
+        # ======================================================
+        # Slot belongs to selected doctor
+        # ======================================================
 
         if slot.schedule.doctor_id != doctor.id:
 
@@ -193,9 +312,9 @@ class AppointmentSerializer(
 
             })
 
-        # --------------------------------------------------
+        # ======================================================
         # Doctor schedule weekday
-        # --------------------------------------------------
+        # ======================================================
 
         day_name = appointment_date.strftime(
             "%A"
@@ -206,13 +325,16 @@ class AppointmentSerializer(
             raise serializers.ValidationError({
 
                 "appointment_date":
-                f"Selected doctor does not have this time slot on {day_name}."
+                (
+                    f"Selected doctor does not have this "
+                    f"time slot on {day_name}."
+                )
 
             })
 
-        # --------------------------------------------------
+        # ======================================================
         # Schedule active
-        # --------------------------------------------------
+        # ======================================================
 
         if not slot.schedule.is_active:
 
@@ -223,9 +345,9 @@ class AppointmentSerializer(
 
             })
 
-        # --------------------------------------------------
+        # ======================================================
         # Slot active
-        # --------------------------------------------------
+        # ======================================================
 
         if not slot.is_active:
 
@@ -236,9 +358,9 @@ class AppointmentSerializer(
 
             })
 
-        # --------------------------------------------------
+        # ======================================================
         # Slot full
-        # --------------------------------------------------
+        # ======================================================
 
         if slot.booked_count >= slot.max_patient:
 
@@ -249,63 +371,152 @@ class AppointmentSerializer(
 
             })
 
-        # --------------------------------------------------
-        # Current patient
-        # --------------------------------------------------
+        # ======================================================
+        # Current logged-in patient
+        # ======================================================
 
         request = self.context.get(
             "request"
         )
 
-        if (
-            request
-            and request.user.is_authenticated
-        ):
+        if not request or not request.user.is_authenticated:
 
-            try:
+            raise serializers.ValidationError({
 
-                patient = (
-                    request.user.patient_profile
+                "patient":
+                "Authentication is required."
+
+            })
+
+        # ======================================================
+        # Get PatientProfile
+        # ======================================================
+
+        try:
+
+            patient = (
+                request.user.patient_profile
+            )
+
+        except AttributeError:
+
+            raise serializers.ValidationError({
+
+                "patient":
+                (
+                    "Patient profile not found. "
+                    "Please complete your profile first."
                 )
 
-            except AttributeError:
+            })
+
+        # ======================================================
+        # Family Member Validation
+        # ======================================================
+
+        if family_member:
+
+            # --------------------------------------------------
+            # Family member must belong to logged-in patient
+            # --------------------------------------------------
+
+            if family_member.patient_id != patient.id:
 
                 raise serializers.ValidationError({
 
-                    "patient":
-                    "Patient profile not found. Please complete your profile first."
+                    "family_member":
+                    (
+                        "You can only book appointments "
+                        "for your own family members."
+                    )
 
                 })
 
-            # ----------------------------------------------
-            # Duplicate appointment
-            # ----------------------------------------------
+        # ======================================================
+        # Duplicate Appointment Validation
+        # ======================================================
 
-            already_exists = (
-                Appointment.objects.filter(
+        # ------------------------------------------------------
+        # Family member appointment
+        # ------------------------------------------------------
 
-                    patient=patient,
+        if family_member:
 
-                    doctor=doctor,
+            already_exists = Appointment.objects.filter(
 
-                    appointment_date=appointment_date,
+                patient=patient,
 
-                )
-                .exclude(
-                    status__in=[
-                        "Cancelled",
-                        "Rejected",
-                    ]
-                )
+                family_member=family_member,
+
+                doctor=doctor,
+
+                appointment_date=appointment_date,
+
+            ).exclude(
+
+                status__in=[
+                    "Cancelled",
+                    "Rejected",
+                ]
+
             )
 
-            if already_exists.exists():
+        # ------------------------------------------------------
+        # Own appointment
+        # ------------------------------------------------------
+
+        else:
+
+            already_exists = Appointment.objects.filter(
+
+                patient=patient,
+
+                family_member__isnull=True,
+
+                doctor=doctor,
+
+                appointment_date=appointment_date,
+
+            ).exclude(
+
+                status__in=[
+                    "Cancelled",
+                    "Rejected",
+                ]
+
+            )
+
+        # ======================================================
+        # Duplicate Found
+        # ======================================================
+
+        if already_exists.exists():
+
+            if family_member:
 
                 raise serializers.ValidationError({
 
                     "non_field_errors":
-                    "You already have an appointment with this doctor on this date."
+                    (
+                        f"{family_member.name} already has "
+                        "an appointment with this doctor "
+                        "on this date."
+                    )
 
                 })
+
+            raise serializers.ValidationError({
+
+                "non_field_errors":
+                (
+                    "You already have an appointment "
+                    "with this doctor on this date."
+                )
+
+            })
+
+        # ======================================================
+        # Return Validated Data
+        # ======================================================
 
         return attrs

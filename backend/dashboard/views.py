@@ -13,7 +13,7 @@ from patients.models import PatientProfile, FamilyMember
 from appointments.models import Appointment
 from reports.models import MedicalReport
 from payments.models import Payment
-from diagnostics.models import DiagnosticTest
+from diagnostics.models import DiagnosticTest, TestBooking
 from notifications.models import Notification
 
 from .serializers import DashboardSerializer
@@ -125,6 +125,44 @@ class DashboardAPIView(APIView):
             status="Cancelled"
         ).count()
 
+
+        # ======================================================
+        # Diagnostic Test Bookings
+        # ======================================================
+
+        diagnostic_bookings = TestBooking.objects.filter(
+            patient=patient
+        )
+
+        total_diagnostic_bookings = (
+            diagnostic_bookings.count()
+        )
+
+        pending_diagnostic_bookings = (
+            diagnostic_bookings.filter(
+                status="Pending"
+            ).count()
+        )
+
+        confirmed_diagnostic_bookings = (
+            diagnostic_bookings.filter(
+                status="Confirmed"
+            ).count()
+        )
+
+        completed_diagnostic_bookings = (
+            diagnostic_bookings.filter(
+                status="Completed"
+            ).count()
+        )
+
+        cancelled_diagnostic_bookings = (
+            diagnostic_bookings.filter(
+                status="Cancelled"
+            ).count()
+        )
+
+
         # ------------------------------------------------------
         # Payments
         # ------------------------------------------------------
@@ -158,6 +196,7 @@ class DashboardAPIView(APIView):
             or Decimal("0.00")
         )
 
+
         # ------------------------------------------------------
         # Reports
         # ------------------------------------------------------
@@ -165,6 +204,7 @@ class DashboardAPIView(APIView):
         total_reports = MedicalReport.objects.filter(
             patient=patient
         ).count()
+
 
         # ------------------------------------------------------
         # Family Members
@@ -174,12 +214,15 @@ class DashboardAPIView(APIView):
             patient=patient
         ).count()
 
+
         # ------------------------------------------------------
         # Notifications
         # ------------------------------------------------------
 
         notifications = Notification.objects.filter(
             user=user
+        ).order_by(
+            "-created_at"
         )
 
         total_notifications = notifications.count()
@@ -187,6 +230,7 @@ class DashboardAPIView(APIView):
         unread_notifications = notifications.filter(
             is_read=False
         ).count()
+
 
         # ------------------------------------------------------
         # Upcoming Appointment
@@ -238,6 +282,7 @@ class DashboardAPIView(APIView):
                 "status": upcoming.status,
             }
 
+
         # ------------------------------------------------------
         # Recent Appointments
         # ------------------------------------------------------
@@ -262,22 +307,80 @@ class DashboardAPIView(APIView):
             recent_appointments.append(
                 {
                     "id": appointment.id,
-                    "booking_number": (
-                        appointment.booking_number
-                    ),
+
+                    "booking_number":
+                        appointment.booking_number,
+
                     "doctor_name": (
                         f"Dr. "
                         f"{appointment.doctor.user.get_full_name()}"
                     ),
-                    "appointment_date": (
-                        appointment.appointment_date
-                    ),
-                    "slot_time": (
-                        appointment.slot.slot_time
-                    ),
-                    "status": appointment.status,
+
+                    "appointment_date":
+                        appointment.appointment_date,
+
+                    "slot_time":
+                        appointment.slot.slot_time,
+
+                    "status":
+                        appointment.status,
                 }
             )
+
+
+        # ======================================================
+        # Recent Diagnostic Bookings
+        # ======================================================
+
+        recent_diagnostic_bookings = []
+
+        recent_diagnostics = (
+            diagnostic_bookings
+            .select_related(
+                "diagnostic_test",
+                "diagnostic_test__category",
+                "family_member",
+            )
+            .order_by(
+                "-booking_date",
+                "-booking_time",
+                "-created_at",
+            )[:5]
+        )
+
+        for booking in recent_diagnostics:
+
+            recent_diagnostic_bookings.append(
+                {
+                    "id": booking.id,
+
+                    "booking_number":
+                        booking.booking_number,
+
+                    "test_name":
+                        booking.diagnostic_test.name,
+
+                    "category_name":
+                        booking.diagnostic_test.category.name,
+
+                    "booking_date":
+                        booking.booking_date,
+
+                    "booking_time":
+                        booking.booking_time,
+
+                    "status":
+                        booking.status,
+
+                    "family_member_name":
+                        (
+                            booking.family_member.name
+                            if booking.family_member
+                            else None
+                        ),
+                }
+            )
+
 
         # ------------------------------------------------------
         # Recent Payments
@@ -292,21 +395,60 @@ class DashboardAPIView(APIView):
             recent_payments.append(
                 {
                     "id": payment.id,
-                    "amount": payment.amount,
-                    "payment_method": (
-                        payment.payment_method
-                    ),
-                    "transaction_id": (
-                        payment.transaction_id
-                    ),
-                    "payment_status": (
-                        payment.payment_status
-                    ),
-                    "payment_date": (
-                        payment.payment_date
-                    ),
+
+                    "amount":
+                        payment.amount,
+
+                    "payment_method":
+                        payment.payment_method,
+
+                    "transaction_id":
+                        payment.transaction_id,
+
+                    "payment_status":
+                        payment.payment_status,
+
+                    "payment_date":
+                        payment.payment_date,
                 }
             )
+            
+            
+        # ==================================================
+        # Create Notification
+        # ==================================================
+
+        Notification.objects.create(
+
+            user=request.user,
+
+            notification_type="Diagnostic Booking",
+
+            title="Diagnostic Test Booking Successful",
+
+            message=(
+
+                f"Your diagnostic test "
+                f"'{booking.diagnostic_test.name}' "
+                f"has been booked successfully. "
+
+                f"Booking Number: "
+                f"{booking.booking_number}. "
+
+                f"Booking Date: "
+                f"{booking.booking_date}. "
+
+                f"Booking Time: "
+                f"{booking.booking_time}."
+
+            ),
+
+            is_read=False,
+
+        )
+
+
+
 
         # ------------------------------------------------------
         # Recent Notifications
@@ -319,21 +461,34 @@ class DashboardAPIView(APIView):
             recent_notifications.append(
                 {
                     "id": notification.id,
-                    "notification_type": (
-                        notification.notification_type
-                    ),
-                    "title": notification.title,
-                    "message": notification.message,
-                    "is_read": notification.is_read,
-                    "created_at": notification.created_at,
+
+                    "notification_type":
+                        notification.notification_type,
+
+                    "title":
+                        notification.title,
+
+                    "message":
+                        notification.message,
+
+                    "is_read":
+                        notification.is_read,
+
+                    "created_at":
+                        notification.created_at,
                 }
             )
 
-        # ------------------------------------------------------
+
+        # ======================================================
         # Dashboard Data
-        # ------------------------------------------------------
+        # ======================================================
 
         data = {
+
+            # --------------------------------------------------
+            # Appointment Statistics
+            # --------------------------------------------------
 
             "total_appointments":
                 total_appointments,
@@ -350,6 +505,31 @@ class DashboardAPIView(APIView):
             "cancelled_appointments":
                 cancelled_appointments,
 
+
+            # --------------------------------------------------
+            # Diagnostic Test Statistics
+            # --------------------------------------------------
+
+            "total_diagnostic_bookings":
+                total_diagnostic_bookings,
+
+            "pending_diagnostic_bookings":
+                pending_diagnostic_bookings,
+
+            "confirmed_diagnostic_bookings":
+                confirmed_diagnostic_bookings,
+
+            "completed_diagnostic_bookings":
+                completed_diagnostic_bookings,
+
+            "cancelled_diagnostic_bookings":
+                cancelled_diagnostic_bookings,
+
+
+            # --------------------------------------------------
+            # Payment Statistics
+            # --------------------------------------------------
+
             "total_payments":
                 total_payments,
 
@@ -359,11 +539,21 @@ class DashboardAPIView(APIView):
             "pending_payments":
                 pending_payments,
 
+
+            # --------------------------------------------------
+            # Other Statistics
+            # --------------------------------------------------
+
             "total_reports":
                 total_reports,
 
             "family_members":
                 family_members,
+
+
+            # --------------------------------------------------
+            # Notification Statistics
+            # --------------------------------------------------
 
             "total_notifications":
                 total_notifications,
@@ -371,11 +561,19 @@ class DashboardAPIView(APIView):
             "unread_notifications":
                 unread_notifications,
 
+
+            # --------------------------------------------------
+            # Dashboard Lists
+            # --------------------------------------------------
+
             "upcoming_appointment":
                 upcoming_appointment,
 
             "recent_appointments":
                 recent_appointments,
+
+            "recent_diagnostic_bookings":
+                recent_diagnostic_bookings,
 
             "recent_payments":
                 recent_payments,
@@ -384,9 +582,11 @@ class DashboardAPIView(APIView):
                 recent_notifications,
         }
 
+
         serializer = DashboardSerializer(
             data
         )
+
 
         return Response(
             {
