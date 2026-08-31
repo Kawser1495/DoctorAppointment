@@ -1,41 +1,79 @@
-from datetime import datetime, date, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
+
+from django.db import transaction
 
 from .models import TimeSlot
 
 
+# ==========================================================
+# Generate Time Slots Automatically
+# ==========================================================
+
+@transaction.atomic
 def generate_time_slots(schedule):
 
-    # ======================================================
-    # Do not generate slots for inactive schedule
-    # ======================================================
+    """
+    Automatically generate time slots based on:
 
-    if not schedule.is_active:
+    - start_time
+    - end_time
+    - slot_duration_minutes
+    - max_patient_per_slot
 
-        return {
-            "created": 0,
-            "message": "Schedule is inactive."
-        }
+    Example:
+
+    Start: 09:00 AM
+    End:   12:00 PM
+    Duration: 30 minutes
+
+    Generated:
+
+    09:00 AM
+    09:30 AM
+    10:00 AM
+    10:30 AM
+    11:00 AM
+    11:30 AM
+    """
+
+    today = datetime.today().date()
 
     current_datetime = datetime.combine(
-        date.today(),
-        schedule.start_time
+        today,
+        schedule.start_time,
     )
 
     end_datetime = datetime.combine(
-        date.today(),
-        schedule.end_time
+        today,
+        schedule.end_time,
     )
 
-    created_count = 0
-    updated_count = 0
+    expected_slot_times = []
 
     # ======================================================
-    # Generate slots
+    # Generate expected slot times
     # ======================================================
 
     while current_datetime < end_datetime:
 
         slot_time = current_datetime.time()
+
+        expected_slot_times.append(
+            slot_time
+        )
+
+        current_datetime += timedelta(
+            minutes=schedule.slot_duration_minutes
+        )
+
+    # ======================================================
+    # Create or Update Required Slots
+    # ======================================================
+
+    for slot_time in expected_slot_times:
 
         slot, created = TimeSlot.objects.get_or_create(
 
@@ -48,45 +86,64 @@ def generate_time_slots(schedule):
                 "max_patient":
                     schedule.max_patient_per_slot,
 
-                "booked_count":
-                    0,
-
                 "is_active":
-                    True,
+                    schedule.is_active,
 
             }
+
         )
 
-        if created:
+        # --------------------------------------------------
+        # Update slot configuration
+        # --------------------------------------------------
 
-            created_count += 1
+        if not created:
 
-        else:
-
-            # Update only capacity if slot already exists
             slot.max_patient = (
                 schedule.max_patient_per_slot
             )
 
-            slot.is_active = True
+            slot.is_active = (
+                schedule.is_active
+            )
+
+            # Make sure booked count is not invalid
+            if (
+                slot.booked_count >
+                slot.max_patient
+            ):
+
+                slot.max_patient = (
+                    slot.booked_count
+                )
 
             slot.save()
 
-            updated_count += 1
+    # ======================================================
+    # Handle Old Slots
+    # ======================================================
 
-        current_datetime += timedelta(
+    old_slots = TimeSlot.objects.filter(
+        schedule=schedule
+    ).exclude(
+        slot_time__in=expected_slot_times
+    )
 
-            minutes=schedule.slot_duration_minutes
+    for slot in old_slots:
 
-        )
+        # --------------------------------------------------
+        # If slot has appointments, keep it but deactivate
+        # --------------------------------------------------
 
-    return {
+        if slot.booked_count > 0:
 
-        "created": created_count,
+            slot.is_active = False
 
-        "updated": updated_count,
+            slot.save()
 
-        "message":
-            "Time slots generated successfully."
+        else:
 
-    }
+            # Safe to delete unused slot
+            slot.delete()
+
+    return expected_slot_times

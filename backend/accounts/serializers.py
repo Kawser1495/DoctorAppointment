@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import CustomUser
+
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
 )
@@ -8,10 +9,15 @@ from rest_framework_simplejwt.serializers import (
 
 # ==========================================================
 # Register Serializer
-# ==========================================================
-
-# ==========================================================
-# Register Serializer
+#
+# POST:
+# /api/accounts/register/
+#
+# Creates:
+# - CustomUser
+#
+# PatientProfile is automatically created by:
+# patients/signals.py
 # ==========================================================
 
 class RegisterSerializer(
@@ -21,7 +27,7 @@ class RegisterSerializer(
     # ======================================================
     # Username / Name
     #
-    # Allow names like:
+    # Examples:
     # Dr. Sohan
     # Md. Kawser Talukder
     # Abdul Karim
@@ -81,17 +87,17 @@ class RegisterSerializer(
                 "Name cannot be empty."
             )
 
-        # ----------------------------------------------
+        # --------------------------------------------------
         # Multiple spaces → single space
-        # ----------------------------------------------
+        # --------------------------------------------------
 
         value = " ".join(
             value.split()
         )
 
-        # ----------------------------------------------
+        # --------------------------------------------------
         # Minimum length
-        # ----------------------------------------------
+        # --------------------------------------------------
 
         if len(value) < 2:
 
@@ -99,16 +105,16 @@ class RegisterSerializer(
                 "Name must contain at least 2 characters."
             )
 
-        # ----------------------------------------------
-        # Allow:
+        # --------------------------------------------------
+        # Allowed characters
         #
         # Letters
         # Spaces
-        # Dot .
-        # Hyphen -
-        # Underscore _
-        # Apostrophe '
-        # ----------------------------------------------
+        # Dot
+        # Hyphen
+        # Underscore
+        # Apostrophe
+        # --------------------------------------------------
 
         import re
 
@@ -118,62 +124,74 @@ class RegisterSerializer(
         ):
 
             raise serializers.ValidationError(
-                "Name can contain letters, spaces, dot, hyphen, underscore and apostrophe only."
+                "Name can contain letters, spaces, "
+                "dot, hyphen, underscore and apostrophe only."
+            )
+
+        return value
+
+    # ======================================================
+    # Email Validation
+    # ======================================================
+
+    def validate_email(self, value):
+
+        value = value.strip().lower()
+
+        if not value:
+
+            raise serializers.ValidationError(
+                "Email cannot be empty."
+            )
+
+        return value
+
+    # ======================================================
+    # Phone Validation
+    # ======================================================
+
+    def validate_phone(self, value):
+
+        if value is None:
+
+            return value
+
+        value = value.strip()
+
+        if not value:
+
+            raise serializers.ValidationError(
+                "Phone number cannot be empty."
+            )
+
+        if not value.isdigit():
+
+            raise serializers.ValidationError(
+                "Phone number must contain only digits."
+            )
+
+        if len(value) < 10 or len(value) > 15:
+
+            raise serializers.ValidationError(
+                "Phone number must contain 10 to 15 digits."
             )
 
         return value
 
     # ======================================================
     # Create User
+    #
+    # PatientProfile is NOT created here.
+    #
+    # patients/signals.py automatically creates it
+    # after CustomUser is successfully created.
     # ======================================================
-
-    def create(
-        self,
-        validated_data
-    ):
-
-        user = CustomUser.objects.create_user(
-
-            **validated_data,
-
-            role="patient",
-
-        )
-
-        return user
-
-    class Meta:
-
-        model = CustomUser
-
-        fields = [
-            "username",
-            "email",
-            "phone",
-            "password",
-        ]
-
-        extra_kwargs = {
-
-            "email": {
-                "required": True,
-            },
-
-            "phone": {
-                "required": True,
-            },
-
-        }
-
 
     def create(self, validated_data):
 
         user = CustomUser.objects.create_user(
-
             **validated_data,
-
             role="patient",
-
         )
 
         return user
@@ -183,10 +201,10 @@ class RegisterSerializer(
 # User Settings Serializer
 #
 # GET:
-# User profile information
+# /api/accounts/settings/
 #
 # PATCH:
-# Update user profile information
+# /api/accounts/settings/
 # ==========================================================
 
 class UserSettingsSerializer(
@@ -194,7 +212,6 @@ class UserSettingsSerializer(
 ):
 
     full_name = serializers.SerializerMethodField()
-
 
     class Meta:
 
@@ -226,7 +243,6 @@ class UserSettingsSerializer(
 
         ]
 
-
         read_only_fields = [
 
             "id",
@@ -243,7 +259,6 @@ class UserSettingsSerializer(
 
         ]
 
-
     # ======================================================
     # Full Name
     # ======================================================
@@ -257,7 +272,6 @@ class UserSettingsSerializer(
             return full_name
 
         return obj.username
-
 
     # ======================================================
     # Username Validation
@@ -275,7 +289,6 @@ class UserSettingsSerializer(
 
         return value
 
-
     # ======================================================
     # Email Validation
     # ======================================================
@@ -291,7 +304,6 @@ class UserSettingsSerializer(
             )
 
         return value
-
 
     # ======================================================
     # Phone Validation
@@ -326,6 +338,9 @@ class UserSettingsSerializer(
 
 # ==========================================================
 # Change Password Serializer
+#
+# POST:
+# /api/accounts/change-password/
 # ==========================================================
 
 class ChangePasswordSerializer(
@@ -333,33 +348,20 @@ class ChangePasswordSerializer(
 ):
 
     current_password = serializers.CharField(
-
         write_only=True,
-
         trim_whitespace=False,
-
     )
-
 
     new_password = serializers.CharField(
-
         write_only=True,
-
         min_length=8,
-
         trim_whitespace=False,
-
     )
-
 
     confirm_password = serializers.CharField(
-
         write_only=True,
-
         trim_whitespace=False,
-
     )
-
 
     # ======================================================
     # Validate Password
@@ -371,21 +373,17 @@ class ChangePasswordSerializer(
             "request"
         ].user
 
-
         current_password = attrs.get(
             "current_password"
         )
-
 
         new_password = attrs.get(
             "new_password"
         )
 
-
         confirm_password = attrs.get(
             "confirm_password"
         )
-
 
         # --------------------------------------------------
         # Check Current Password
@@ -396,16 +394,11 @@ class ChangePasswordSerializer(
         ):
 
             raise serializers.ValidationError(
-
                 {
-
                     "current_password":
                     "Current password is incorrect."
-
                 }
-
             )
-
 
         # --------------------------------------------------
         # Check New Password Match
@@ -414,16 +407,11 @@ class ChangePasswordSerializer(
         if new_password != confirm_password:
 
             raise serializers.ValidationError(
-
                 {
-
                     "confirm_password":
                     "New passwords do not match."
-
                 }
-
             )
-
 
         # --------------------------------------------------
         # Same Password Check
@@ -432,22 +420,17 @@ class ChangePasswordSerializer(
         if current_password == new_password:
 
             raise serializers.ValidationError(
-
                 {
-
                     "new_password":
-                    "New password must be different from your current password."
-
+                    "New password must be different "
+                    "from your current password."
                 }
-
             )
 
-
         return attrs
-    
-    
-    
-    # ==========================================================
+
+
+# ==========================================================
 # Custom Login Token Serializer
 # ==========================================================
 
@@ -465,25 +448,32 @@ class CustomTokenObtainPairSerializer(
         # --------------------------------------------------
 
         token["user_id"] = user.id
+
         token["username"] = user.username
+
         token["role"] = user.role
 
         return token
 
+    # ======================================================
+    # Login Response
+    # ======================================================
 
     def validate(self, attrs):
 
         data = super().validate(attrs)
 
         # --------------------------------------------------
-        # Return User Information to Frontend
+        # Return User Information
         # --------------------------------------------------
 
         data["user"] = {
 
-            "id": self.user.id,
+            "id":
+                self.user.id,
 
-            "username": self.user.username,
+            "username":
+                self.user.username,
 
             "first_name":
                 self.user.first_name,
@@ -522,27 +512,47 @@ class AdminUserSerializer(
         model = CustomUser
 
         fields = [
+
             "id",
+
             "username",
+
             "first_name",
+
             "last_name",
+
             "full_name",
+
             "email",
+
             "phone",
+
             "role",
+
             "is_active",
+
             "is_verified",
+
             "date_joined",
+
             "created_at",
+
             "updated_at",
+
         ]
 
         read_only_fields = [
+
             "id",
+
             "full_name",
+
             "date_joined",
+
             "created_at",
+
             "updated_at",
+
         ]
 
     # ======================================================
@@ -554,6 +564,7 @@ class AdminUserSerializer(
         full_name = obj.get_full_name()
 
         if full_name:
+
             return full_name
 
         return obj.username

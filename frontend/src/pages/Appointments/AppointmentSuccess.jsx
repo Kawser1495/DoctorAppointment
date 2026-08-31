@@ -21,21 +21,27 @@ export default function AppointmentSuccess() {
             <div className="success-card">
 
 
-                {/* Success Icon */}
+                {/* ==================================================
+                    Success Icon
+                ================================================== */}
 
                 <div className="success-icon">
                     ✅
                 </div>
 
 
-                {/* Title */}
+                {/* ==================================================
+                    Title
+                ================================================== */}
 
                 <h2>
                     Appointment Booked Successfully
                 </h2>
 
 
-                {/* Message */}
+                {/* ==================================================
+                    Message
+                ================================================== */}
 
                 <p>
                     Your appointment request has been submitted
@@ -56,7 +62,9 @@ export default function AppointmentSuccess() {
                 <div className="success-buttons">
 
 
-                    {/* My Appointments */}
+                    {/* ==================================================
+                        My Appointments
+                    ================================================== */}
 
                     <Link
                         to="/appointments"
@@ -68,10 +76,12 @@ export default function AppointmentSuccess() {
                     </Link>
 
 
-                    {/* Dashboard */}
+                    {/* ==================================================
+                        Patient Dashboard
+                    ================================================== */}
 
                     <Link
-                        to="/dashboard"
+                        to="/patient/dashboard"
                         className="btn btn-secondary"
                     >
 
@@ -79,7 +89,9 @@ export default function AppointmentSuccess() {
 
                     </Link>
 
+
                 </div>
+
 
             </div>
 

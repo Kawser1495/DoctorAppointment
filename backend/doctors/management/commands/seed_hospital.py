@@ -1,10 +1,11 @@
 from datetime import date, datetime, timedelta, time
 from decimal import Decimal
-from random import choice
+import random
 import uuid
 
 from django.core.management.base import BaseCommand
-from django.db import models, transaction
+from django.db import transaction
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from accounts.models import CustomUser
@@ -31,7 +32,8 @@ from notifications.models import Notification
 
 
 class Command(BaseCommand):
-    help = "Seed realistic and conflict-safe hospital management system data"
+
+    help = "Seed realistic, safe and idempotent hospital management system demo data"
 
     DEFAULT_DOCTOR_PASSWORD = "Doctor@123"
     DEFAULT_PATIENT_PASSWORD = "Patient@123"
@@ -39,8 +41,8 @@ class Command(BaseCommand):
     SLOT_DURATION_MINUTES = 30
     MAX_PATIENT_PER_SLOT = 5
 
-    APPOINTMENT_TARGET = 30
-    TEST_BOOKING_TARGET = 15
+    DEFAULT_APPOINTMENT_TARGET = 30
+    DEFAULT_TEST_BOOKING_TARGET = 15
 
     # ==================================================
     # COMMAND ARGUMENTS
@@ -51,7 +53,28 @@ class Command(BaseCommand):
         parser.add_argument(
             "--reset-passwords",
             action="store_true",
-            help="Reset passwords of seeded users."
+            help="Reset passwords for seeded demo users."
+        )
+
+        parser.add_argument(
+            "--appointments",
+            type=int,
+            default=self.DEFAULT_APPOINTMENT_TARGET,
+            help="Target number of appointments."
+        )
+
+        parser.add_argument(
+            "--test-bookings",
+            type=int,
+            default=self.DEFAULT_TEST_BOOKING_TARGET,
+            help="Target number of diagnostic test bookings."
+        )
+
+        parser.add_argument(
+            "--random-seed",
+            type=int,
+            default=None,
+            help="Optional random seed for reproducible demo data."
         )
 
     # ==================================================
@@ -61,52 +84,104 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
 
-        self.reset_passwords = options.get(
-            "reset_passwords",
-            False
+        self.reset_passwords = options["reset_passwords"]
+
+        self.appointment_target = max(
+            0,
+            options["appointments"]
         )
 
-        self.stdout.write(
-            self.style.WARNING(
-                "\n=========================================="
+        self.test_booking_target = max(
+            0,
+            options["test_bookings"]
+        )
+
+        random_seed = options.get("random_seed")
+
+        if random_seed is not None:
+            random.seed(random_seed)
+
+        self.print_header()
+
+        try:
+
+            self.seed_departments()
+            self.seed_doctors()
+            self.seed_patients()
+
+            self.seed_doctor_schedules()
+            self.seed_time_slots()
+
+            self.seed_appointments()
+            self.sync_slot_booked_counts()
+
+            self.seed_payments()
+
+            self.seed_diagnostic_categories()
+            self.seed_diagnostic_tests()
+            self.seed_test_bookings()
+
+            self.seed_medical_reports()
+            self.seed_notifications()
+
+            self.print_summary()
+
+        except Exception as error:
+
+            self.stdout.write(
+                self.style.ERROR(
+                    f"\n❌ Seeder failed: {error}"
+                )
             )
-        )
 
-        self.stdout.write(
-            self.style.WARNING(
-                " Starting Hospital Database Seeder..."
-            )
-        )
-
-        self.stdout.write(
-            self.style.WARNING(
-                "==========================================\n"
-            )
-        )
-
-        self.seed_departments()
-        self.seed_doctors()
-        self.seed_patients()
-        self.seed_doctor_schedules()
-        self.seed_time_slots()
-
-        self.sync_slot_booked_counts()
-
-        self.seed_appointments()
-
-        self.sync_slot_booked_counts()
-
-        self.seed_payments()
-        self.seed_diagnostic_categories()
-        self.seed_diagnostic_tests()
-        self.seed_test_bookings()
-        self.seed_medical_reports()
-        self.seed_notifications()
-
-        self.print_summary()
+            raise
 
     # ==================================================
-    # HELPER METHODS
+    # DISPLAY HELPERS
+    # ==================================================
+
+    def print_header(self):
+
+        self.stdout.write("")
+
+        self.stdout.write(
+            self.style.WARNING(
+                "=" * 55
+            )
+        )
+
+        self.stdout.write(
+            self.style.WARNING(
+                " STARTING HOSPITAL DATABASE SEEDER"
+            )
+        )
+
+        self.stdout.write(
+            self.style.WARNING(
+                "=" * 55
+            )
+        )
+
+        self.stdout.write("")
+
+    def success(self, message):
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"✓ {message}"
+            )
+        )
+
+    def warning(self, message):
+
+        self.stdout.write(
+            self.style.WARNING(
+                f"⚠ {message}"
+            )
+        )
+
+    # ==================================================
+    # USER HELPER
     # ==================================================
 
     def get_or_create_user(
@@ -120,26 +195,31 @@ class Command(BaseCommand):
         phone=None,
     ):
 
-        # Search existing user by username
-        user = CustomUser.objects.filter(
-            username=username
-        ).first()
+        user = (
+            CustomUser.objects
+            .filter(username=username)
+            .first()
+        )
 
-        # Search by email if username not found
-        if not user:
-            user = CustomUser.objects.filter(
-                email=email
-            ).first()
+        if not user and email:
 
-        # Search by phone if still not found
+            user = (
+                CustomUser.objects
+                .filter(email=email)
+                .first()
+            )
+
         if not user and phone:
-            user = CustomUser.objects.filter(
-                phone=phone
-            ).first()
+
+            user = (
+                CustomUser.objects
+                .filter(phone=phone)
+                .first()
+            )
 
         created = False
 
-        if not user:
+        if user is None:
 
             user = CustomUser(
                 username=username,
@@ -153,44 +233,47 @@ class Command(BaseCommand):
                 user.phone = phone
 
             user.set_password(password)
+
             user.save()
 
             created = True
 
         else:
 
-            # Update basic information
             user.first_name = first_name
             user.last_name = last_name
             user.email = email
             user.role = role
 
-            # Handle phone safely
             if phone:
 
-                existing_phone_user = (
+                phone_owner = (
                     CustomUser.objects
                     .filter(phone=phone)
                     .exclude(pk=user.pk)
                     .first()
                 )
 
-                if existing_phone_user:
+                if phone_owner:
 
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"⚠ Phone conflict: {phone} is already "
-                            f"used by {existing_phone_user.username}"
-                        )
+                    self.warning(
+                        f"Phone {phone} already belongs to "
+                        f"{phone_owner.username}"
                     )
 
                 else:
+
                     user.phone = phone
+
+            # Reset password only when explicitly requested
+            if self.reset_passwords:
+
+                user.set_password(password)
 
             user.save()
 
         return user, created
-    
+
     # ==================================================
     # 1. DEPARTMENTS
     # ==================================================
@@ -250,19 +333,26 @@ class Command(BaseCommand):
             ),
         ]
 
+        created_count = 0
+
         for name, description in departments_data:
 
-            Department.objects.update_or_create(
-                name=name,
-                defaults={
-                    "description": description
-                }
+            _, created = (
+                Department.objects.update_or_create(
+                    name=name,
+                    defaults={
+                        "description": description
+                    }
+                )
             )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {len(departments_data)} Departments ready"
-            )
+            if created:
+                created_count += 1
+
+        self.success(
+            f"Departments ready "
+            f"({len(departments_data)} total, "
+            f"{created_count} new)"
         )
 
     # ==================================================
@@ -404,9 +494,11 @@ class Command(BaseCommand):
             },
         ]
 
+        created_count = 0
+
         for data in doctor_data:
 
-            user, _ = self.get_or_create_user(
+            user, user_created = self.get_or_create_user(
                 username=data["username"],
                 first_name=data["first_name"],
                 last_name=data["last_name"],
@@ -419,23 +511,29 @@ class Command(BaseCommand):
                 name=data["department"]
             )
 
-            Doctor.objects.update_or_create(
-                user=user,
-                defaults={
-                    "department": department,
-                    "specialization": data["specialization"],
-                    "qualification": data["qualification"],
-                    "experience": data["experience"],
-                    "consultation_fee": Decimal(str(data["fee"])),
-                    "biography": data["biography"],
-                    "is_available": True,
-                }
+            _, doctor_created = (
+                Doctor.objects.update_or_create(
+                    user=user,
+                    defaults={
+                        "department": department,
+                        "specialization": data["specialization"],
+                        "qualification": data["qualification"],
+                        "experience": data["experience"],
+                        "consultation_fee": Decimal(
+                            str(data["fee"])
+                        ),
+                        "biography": data["biography"],
+                        "is_available": True,
+                    }
+                )
             )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {len(doctor_data)} Doctors ready"
-            )
+            if user_created or doctor_created:
+                created_count += 1
+
+        self.success(
+            f"Doctors ready "
+            f"({len(doctor_data)} total)"
         )
 
     # ==================================================
@@ -575,10 +673,8 @@ class Command(BaseCommand):
                 }
             )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {len(patient_data)} Patients ready"
-            )
+        self.success(
+            f"Patients ready ({len(patient_data)} total)"
         )
 
     # ==================================================
@@ -652,7 +748,9 @@ class Command(BaseCommand):
             ],
         }
 
-        for doctor in Doctor.objects.select_related("department"):
+        for doctor in Doctor.objects.select_related(
+            "department"
+        ):
 
             schedules = schedule_patterns.get(
                 doctor.department.name,
@@ -665,17 +763,17 @@ class Command(BaseCommand):
                     doctor=doctor,
                     day=day,
                     defaults={
-                        "start_time": time.fromisoformat(start_time),
-                        "end_time": time.fromisoformat(end_time),
+                        "start_time": time.fromisoformat(
+                            start_time
+                        ),
+                        "end_time": time.fromisoformat(
+                            end_time
+                        ),
                         "is_active": True,
                     }
                 )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                "✓ Doctor schedules ready"
-            )
-        )
+        self.success("Doctor schedules ready")
 
     # ==================================================
     # 5. TIME SLOTS
@@ -705,13 +803,17 @@ class Command(BaseCommand):
 
                 slot_time = current.time()
 
-                _, created = TimeSlot.objects.update_or_create(
-                    schedule=schedule,
-                    slot_time=slot_time,
-                    defaults={
-                        "max_patient": self.MAX_PATIENT_PER_SLOT,
-                        "is_active": True,
-                    }
+                _, created = (
+                    TimeSlot.objects.update_or_create(
+                        schedule=schedule,
+                        slot_time=slot_time,
+                        defaults={
+                            "max_patient": (
+                                self.MAX_PATIENT_PER_SLOT
+                            ),
+                            "is_active": True,
+                        }
+                    )
                 )
 
                 if created:
@@ -721,13 +823,51 @@ class Command(BaseCommand):
                     minutes=self.SLOT_DURATION_MINUTES
                 )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ Time slots ready "
-                f"({created_count} new slots, "
-                f"{self.SLOT_DURATION_MINUTES} minute interval)"
-            )
+        self.success(
+            f"Time slots ready "
+            f"({created_count} new, "
+            f"{self.SLOT_DURATION_MINUTES} minute interval)"
         )
+
+    # ==================================================
+    # APPOINTMENT SLOT AVAILABILITY
+    # ==================================================
+
+    def get_available_slots(
+        self,
+        schedule,
+        appointment_date
+    ):
+
+        slots = TimeSlot.objects.filter(
+            schedule=schedule,
+            is_active=True
+        )
+
+        available_slots = []
+
+        for slot in slots:
+
+            booked_count = (
+                Appointment.objects
+                .filter(
+                    slot=slot,
+                    appointment_date=appointment_date,
+                )
+                .exclude(
+                    status__in=[
+                        "Cancelled",
+                        "Rejected",
+                    ]
+                )
+                .count()
+            )
+
+            if booked_count < slot.max_patient:
+
+                available_slots.append(slot)
+
+        return available_slots
 
     # ==================================================
     # 6. SYNC SLOT COUNTS
@@ -735,39 +875,45 @@ class Command(BaseCommand):
 
     def sync_slot_booked_counts(self):
 
+        """
+        booked_count is kept as an approximate overall count.
+
+        IMPORTANT:
+        Actual appointment capacity is checked by
+        appointment_date in get_available_slots().
+        """
+
         updated_count = 0
 
         for slot in TimeSlot.objects.all():
 
-            count = Appointment.objects.filter(
-                slot=slot
-            ).exclude(
-                status__in=[
-                    "Cancelled",
-                    "Rejected",
-                ]
-            ).count()
-
-            count = min(
-                count,
-                slot.max_patient
+            count = (
+                Appointment.objects
+                .filter(slot=slot)
+                .exclude(
+                    status__in=[
+                        "Cancelled",
+                        "Rejected",
+                    ]
+                )
+                .count()
             )
 
             if slot.booked_count != count:
 
-                TimeSlot.objects.filter(
-                    pk=slot.pk
-                ).update(
-                    booked_count=count
+                slot.booked_count = count
+
+                slot.save(
+                    update_fields=[
+                        "booked_count"
+                    ]
                 )
 
                 updated_count += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ Slot booking counts synchronized "
-                f"({updated_count} updated)"
-            )
+        self.success(
+            f"Slot booking counts synchronized "
+            f"({updated_count} updated)"
         )
 
     # ==================================================
@@ -782,11 +928,10 @@ class Command(BaseCommand):
 
         if not patients:
 
-            self.stdout.write(
-                self.style.WARNING(
-                    "⚠ No patients found."
-                )
+            self.warning(
+                "No patients found. Skipping appointments."
             )
+
             return
 
         appointment_statuses = [
@@ -818,27 +963,25 @@ class Command(BaseCommand):
             "Routine health concern",
         ]
 
-        created_count = 0
-
         existing_count = Appointment.objects.count()
 
-        if existing_count >= self.APPOINTMENT_TARGET:
+        if existing_count >= self.appointment_target:
 
-            self.stdout.write(
-                self.style.WARNING(
-                    f"⚠ Appointment target already reached "
-                    f"({existing_count})"
-                )
+            self.warning(
+                f"Appointment target already reached "
+                f"({existing_count}/{self.appointment_target})"
             )
 
             return
 
         target = (
-            self.APPOINTMENT_TARGET
+            self.appointment_target
             - existing_count
         )
 
-        for offset in range(1, 90):
+        created_count = 0
+
+        for offset in range(1, 120):
 
             if created_count >= target:
                 break
@@ -866,87 +1009,78 @@ class Command(BaseCommand):
                 continue
 
             attempts = 0
+            max_attempts = 100
 
             while (
                 created_count < target
-                and attempts < 100
+                and attempts < max_attempts
             ):
 
                 attempts += 1
 
-                patient = choice(patients)
-                schedule = choice(schedules)
+                patient = random.choice(
+                    patients
+                )
+
+                schedule = random.choice(
+                    schedules
+                )
+
                 doctor = schedule.doctor
 
-                duplicate_exists = Appointment.objects.filter(
-                    patient=patient,
-                    doctor=doctor,
-                    appointment_date=appointment_date,
-                ).exclude(
-                    status__in=[
-                        "Cancelled",
-                        "Rejected",
-                    ]
-                ).exists()
+                duplicate_exists = (
+                    Appointment.objects
+                    .filter(
+                        patient=patient,
+                        doctor=doctor,
+                        appointment_date=appointment_date,
+                    )
+                    .exclude(
+                        status__in=[
+                            "Cancelled",
+                            "Rejected",
+                        ]
+                    )
+                    .exists()
+                )
 
                 if duplicate_exists:
                     continue
 
-                available_slots = list(
-                    TimeSlot.objects.filter(
-                        schedule=schedule,
-                        is_active=True,
-                        booked_count__lt=models.F(
-                            "max_patient"
-                        ),
+                available_slots = (
+                    self.get_available_slots(
+                        schedule,
+                        appointment_date
                     )
                 )
 
                 if not available_slots:
                     continue
 
-                slot = choice(
+                slot = random.choice(
                     available_slots
                 )
 
-                # Lock/update slot first
-                updated = TimeSlot.objects.filter(
-                    pk=slot.pk,
-                    booked_count__lt=models.F(
-                        "max_patient"
-                    )
-                ).update(
-                    booked_count=models.F(
-                        "booked_count"
-                    ) + 1
-                )
-
-                if not updated:
-                    continue
-
-                # Create appointment after slot capacity confirmed
                 Appointment.objects.create(
                     patient=patient,
                     doctor=doctor,
                     slot=slot,
                     appointment_date=appointment_date,
-                    reason=choice(
+                    reason=random.choice(
                         appointment_reasons
                     ),
-                    symptoms=choice(
+                    symptoms=random.choice(
                         appointment_symptoms
                     ),
-                    status=choice(
+                    status=random.choice(
                         appointment_statuses
                     ),
                 )
 
                 created_count += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {created_count} New appointments created"
-            )
+        self.success(
+            f"{created_count} new appointments created"
         )
 
     # ==================================================
@@ -964,9 +1098,12 @@ class Command(BaseCommand):
 
         created_count = 0
 
-        appointments = Appointment.objects.select_related(
-            "patient",
-            "doctor"
+        appointments = (
+            Appointment.objects
+            .select_related(
+                "patient",
+                "doctor"
+            )
         )
 
         for appointment in appointments:
@@ -975,40 +1112,46 @@ class Command(BaseCommand):
                 "Confirmed",
                 "Completed",
             ]:
+
                 payment_status = "Paid"
 
             elif appointment.status in [
                 "Cancelled",
                 "Rejected",
             ]:
+
                 payment_status = "Failed"
 
             else:
+
                 payment_status = "Pending"
 
-            _, created = Payment.objects.get_or_create(
-                appointment=appointment,
-                defaults={
-                    "patient": appointment.patient,
-                    "amount": appointment.doctor.consultation_fee,
-                    "payment_method": choice(
-                        payment_methods
-                    ),
-                    "transaction_id": (
-                        f"TXN-"
-                        f"{uuid.uuid4().hex[:10].upper()}"
-                    ),
-                    "payment_status": payment_status,
-                }
+            _, created = (
+                Payment.objects.get_or_create(
+                    appointment=appointment,
+                    defaults={
+                        "patient": appointment.patient,
+                        "amount": (
+                            appointment.doctor
+                            .consultation_fee
+                        ),
+                        "payment_method": random.choice(
+                            payment_methods
+                        ),
+                        "transaction_id": (
+                            f"TXN-"
+                            f"{uuid.uuid4().hex[:10].upper()}"
+                        ),
+                        "payment_status": payment_status,
+                    }
+                )
             )
 
             if created:
                 created_count += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {created_count} Payments created"
-            )
+        self.success(
+            f"{created_count} new payments created"
         )
 
     # ==================================================
@@ -1019,14 +1162,45 @@ class Command(BaseCommand):
 
         categories = [
 
-            ("Blood Test", "Blood related laboratory tests."),
-            ("Urine Test", "Urine analysis and infection tests."),
-            ("Imaging", "Radiology and medical imaging services."),
-            ("Heart Checkup", "Cardiology diagnostic services."),
-            ("Diabetes", "Blood glucose and diabetes monitoring tests."),
-            ("Hormone", "Hormone and endocrine related tests."),
-            ("Liver Function", "Liver health and function tests."),
-            ("Kidney Function", "Kidney health and function tests."),
+            (
+                "Blood Test",
+                "Blood related laboratory tests."
+            ),
+
+            (
+                "Urine Test",
+                "Urine analysis and infection tests."
+            ),
+
+            (
+                "Imaging",
+                "Radiology and medical imaging services."
+            ),
+
+            (
+                "Heart Checkup",
+                "Cardiology diagnostic services."
+            ),
+
+            (
+                "Diabetes",
+                "Blood glucose and diabetes monitoring tests."
+            ),
+
+            (
+                "Hormone",
+                "Hormone and endocrine related tests."
+            ),
+
+            (
+                "Liver Function",
+                "Liver health and function tests."
+            ),
+
+            (
+                "Kidney Function",
+                "Kidney health and function tests."
+            ),
         ]
 
         for name, description in categories:
@@ -1038,10 +1212,8 @@ class Command(BaseCommand):
                 }
             )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {len(categories)} Diagnostic categories ready"
-            )
+        self.success(
+            f"{len(categories)} diagnostic categories ready"
         )
 
     # ==================================================
@@ -1052,28 +1224,125 @@ class Command(BaseCommand):
 
         test_data = [
 
-            ("Blood Test", "Complete Blood Count (CBC)", "Measures different components of blood.", 600, "6 Hours"),
-            ("Blood Test", "Blood Group and Rh Factor", "Determines blood group and Rh factor.", 300, "2 Hours"),
-            ("Blood Test", "Hemoglobin", "Measures hemoglobin level in the blood.", 250, "2 Hours"),
+            (
+                "Blood Test",
+                "Complete Blood Count (CBC)",
+                "Measures different components of blood.",
+                600,
+                "6 Hours"
+            ),
 
-            ("Urine Test", "Urine R/E", "Routine examination of urine.", 350, "4 Hours"),
-            ("Urine Test", "Urine Culture", "Detects bacterial infection in urine.", 800, "24 Hours"),
+            (
+                "Blood Test",
+                "Blood Group and Rh Factor",
+                "Determines blood group and Rh factor.",
+                300,
+                "2 Hours"
+            ),
 
-            ("Imaging", "X-Ray Chest", "Chest radiographic examination.", 1000, "30 Minutes"),
-            ("Imaging", "MRI Brain", "Detailed magnetic resonance imaging of the brain.", 6500, "2 Hours"),
-            ("Imaging", "CT Scan", "Computed tomography scan.", 5000, "2 Hours"),
+            (
+                "Blood Test",
+                "Hemoglobin",
+                "Measures hemoglobin level in the blood.",
+                250,
+                "2 Hours"
+            ),
 
-            ("Heart Checkup", "ECG", "Records electrical activity of the heart.", 700, "20 Minutes"),
-            ("Heart Checkup", "Echocardiogram", "Ultrasound examination of the heart.", 2500, "45 Minutes"),
+            (
+                "Urine Test",
+                "Urine R/E",
+                "Routine examination of urine.",
+                350,
+                "4 Hours"
+            ),
 
-            ("Diabetes", "Random Blood Sugar", "Measures current blood glucose level.", 300, "1 Hour"),
-            ("Diabetes", "HbA1c", "Measures average blood sugar level over three months.", 900, "6 Hours"),
+            (
+                "Urine Test",
+                "Urine Culture",
+                "Detects bacterial infection in urine.",
+                800,
+                "24 Hours"
+            ),
 
-            ("Hormone", "TSH", "Measures thyroid stimulating hormone level.", 900, "6 Hours"),
+            (
+                "Imaging",
+                "X-Ray Chest",
+                "Chest radiographic examination.",
+                1000,
+                "30 Minutes"
+            ),
 
-            ("Liver Function", "Liver Function Test (LFT)", "Evaluates liver health and function.", 1200, "6 Hours"),
+            (
+                "Imaging",
+                "MRI Brain",
+                "Detailed magnetic resonance imaging of the brain.",
+                6500,
+                "2 Hours"
+            ),
 
-            ("Kidney Function", "Kidney Function Test (KFT)", "Evaluates kidney health and function.", 1100, "6 Hours"),
+            (
+                "Imaging",
+                "CT Scan",
+                "Computed tomography scan.",
+                5000,
+                "2 Hours"
+            ),
+
+            (
+                "Heart Checkup",
+                "ECG",
+                "Records electrical activity of the heart.",
+                700,
+                "20 Minutes"
+            ),
+
+            (
+                "Heart Checkup",
+                "Echocardiogram",
+                "Ultrasound examination of the heart.",
+                2500,
+                "45 Minutes"
+            ),
+
+            (
+                "Diabetes",
+                "Random Blood Sugar",
+                "Measures current blood glucose level.",
+                300,
+                "1 Hour"
+            ),
+
+            (
+                "Diabetes",
+                "HbA1c",
+                "Measures average blood sugar level over three months.",
+                900,
+                "6 Hours"
+            ),
+
+            (
+                "Hormone",
+                "TSH",
+                "Measures thyroid stimulating hormone level.",
+                900,
+                "6 Hours"
+            ),
+
+            (
+                "Liver Function",
+                "Liver Function Test (LFT)",
+                "Evaluates liver health and function.",
+                1200,
+                "6 Hours"
+            ),
+
+            (
+                "Kidney Function",
+                "Kidney Function Test (KFT)",
+                "Evaluates kidney health and function.",
+                1100,
+                "6 Hours"
+            ),
         ]
 
         for (
@@ -1084,8 +1353,10 @@ class Command(BaseCommand):
             duration
         ) in test_data:
 
-            category = TestCategory.objects.get(
-                name=category_name
+            category = (
+                TestCategory.objects.get(
+                    name=category_name
+                )
             )
 
             DiagnosticTest.objects.update_or_create(
@@ -1093,16 +1364,16 @@ class Command(BaseCommand):
                 defaults={
                     "category": category,
                     "description": description,
-                    "price": Decimal(str(price)),
+                    "price": Decimal(
+                        str(price)
+                    ),
                     "duration": duration,
                     "is_available": True,
                 }
             )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {len(test_data)} Diagnostic tests ready"
-            )
+        self.success(
+            f"{len(test_data)} diagnostic tests ready"
         )
 
     # ==================================================
@@ -1123,13 +1394,29 @@ class Command(BaseCommand):
 
         if not patients or not tests:
 
-            self.stdout.write(
-                self.style.WARNING(
-                    "⚠ No patients or tests found."
-                )
+            self.warning(
+                "No patients or diagnostic tests found."
             )
 
             return
+
+        existing_count = (
+            TestBooking.objects.count()
+        )
+
+        if existing_count >= self.test_booking_target:
+
+            self.warning(
+                f"Test booking target already reached "
+                f"({existing_count}/{self.test_booking_target})"
+            )
+
+            return
+
+        target = (
+            self.test_booking_target
+            - existing_count
+        )
 
         booking_statuses = [
             "Pending",
@@ -1154,25 +1441,6 @@ class Command(BaseCommand):
         ]
 
         created_count = 0
-
-        existing_count = TestBooking.objects.count()
-
-        if existing_count >= self.TEST_BOOKING_TARGET:
-
-            self.stdout.write(
-                self.style.WARNING(
-                    f"⚠ Test booking target already reached "
-                    f"({existing_count})"
-                )
-            )
-
-            return
-
-        target = (
-            self.TEST_BOOKING_TARGET
-            - existing_count
-        )
-
         attempts = 0
         max_attempts = 500
 
@@ -1183,26 +1451,35 @@ class Command(BaseCommand):
 
             attempts += 1
 
-            patient = choice(patients)
-            diagnostic_test = choice(tests)
+            patient = random.choice(
+                patients
+            )
+
+            diagnostic_test = random.choice(
+                tests
+            )
 
             booking_date = (
                 date.today()
                 + timedelta(
-                    days=choice(range(1, 40))
+                    days=random.randint(1, 40)
                 )
             )
 
-            booking_time = choice(
+            booking_time = random.choice(
                 booking_times
             )
 
-            duplicate_exists = TestBooking.objects.filter(
-                patient=patient,
-                diagnostic_test=diagnostic_test,
-                booking_date=booking_date,
-                booking_time=booking_time,
-            ).exists()
+            duplicate_exists = (
+                TestBooking.objects
+                .filter(
+                    patient=patient,
+                    diagnostic_test=diagnostic_test,
+                    booking_date=booking_date,
+                    booking_time=booking_time,
+                )
+                .exists()
+            )
 
             if duplicate_exists:
                 continue
@@ -1219,17 +1496,15 @@ class Command(BaseCommand):
                 diagnostic_test=diagnostic_test,
                 booking_date=booking_date,
                 booking_time=booking_time,
-                status=choice(
+                status=random.choice(
                     booking_statuses
                 ),
             )
 
             created_count += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {created_count} New test bookings created"
-            )
+        self.success(
+            f"{created_count} new test bookings created"
         )
 
     # ==================================================
@@ -1264,33 +1539,43 @@ class Command(BaseCommand):
 
         created_count = 0
 
-        completed_appointments = Appointment.objects.filter(
-            status="Completed"
-        ).select_related(
-            "patient",
-            "doctor"
+        completed_appointments = (
+            Appointment.objects
+            .filter(
+                status="Completed"
+            )
+            .select_related(
+                "patient",
+                "doctor"
+            )
         )
 
         for appointment in completed_appointments:
 
-            _, created = MedicalReport.objects.get_or_create(
-                appointment=appointment,
-                defaults={
-                    "patient": appointment.patient,
-                    "doctor": appointment.doctor,
-                    "report_title": choice(report_titles),
-                    "prescription": choice(prescriptions),
-                    "remarks": choice(remarks),
-                }
+            _, created = (
+                MedicalReport.objects.get_or_create(
+                    appointment=appointment,
+                    defaults={
+                        "patient": appointment.patient,
+                        "doctor": appointment.doctor,
+                        "report_title": random.choice(
+                            report_titles
+                        ),
+                        "prescription": random.choice(
+                            prescriptions
+                        ),
+                        "remarks": random.choice(
+                            remarks
+                        ),
+                    }
+                )
             )
 
             if created:
                 created_count += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {created_count} Medical reports created"
-            )
+        self.success(
+            f"{created_count} new medical reports created"
         )
 
     # ==================================================
@@ -1304,7 +1589,7 @@ class Command(BaseCommand):
         message
     ):
 
-        notification, created = (
+        _, created = (
             Notification.objects.get_or_create(
                 user=user,
                 title=title,
@@ -1323,17 +1608,25 @@ class Command(BaseCommand):
 
         # APPOINTMENT NOTIFICATIONS
 
-        for appointment in Appointment.objects.select_related(
-            "patient__user",
-            "doctor__user",
-            "slot"
-        ):
+        appointments = (
+            Appointment.objects
+            .select_related(
+                "patient__user",
+                "doctor__user",
+                "slot"
+            )
+        )
+
+        for appointment in appointments:
 
             created = self.create_notification(
 
                 user=appointment.patient.user,
 
-                title=f"Appointment {appointment.status}",
+                title=(
+                    f"Appointment "
+                    f"{appointment.status}"
+                ),
 
                 message=(
                     f"Your appointment with Dr. "
@@ -1349,10 +1642,15 @@ class Command(BaseCommand):
 
         # PAYMENT NOTIFICATIONS
 
-        for payment in Payment.objects.select_related(
-            "patient__user",
-            "appointment"
-        ):
+        payments = (
+            Payment.objects
+            .select_related(
+                "patient__user",
+                "appointment"
+            )
+        )
+
+        for payment in payments:
 
             created = self.create_notification(
 
@@ -1373,10 +1671,15 @@ class Command(BaseCommand):
 
         # DIAGNOSTIC TEST NOTIFICATIONS
 
-        for booking in TestBooking.objects.select_related(
-            "patient__user",
-            "diagnostic_test"
-        ):
+        bookings = (
+            TestBooking.objects
+            .select_related(
+                "patient__user",
+                "diagnostic_test"
+            )
+        )
+
+        for booking in bookings:
 
             created = self.create_notification(
 
@@ -1397,9 +1700,14 @@ class Command(BaseCommand):
 
         # MEDICAL REPORT NOTIFICATIONS
 
-        for report in MedicalReport.objects.select_related(
-            "patient__user"
-        ):
+        reports = (
+            MedicalReport.objects
+            .select_related(
+                "patient__user"
+            )
+        )
+
+        for report in reports:
 
             created = self.create_notification(
 
@@ -1417,10 +1725,8 @@ class Command(BaseCommand):
             if created:
                 created_count += 1
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ {created_count} New notifications created"
-            )
+        self.success(
+            f"{created_count} new notifications created"
         )
 
     # ==================================================
@@ -1429,9 +1735,11 @@ class Command(BaseCommand):
 
     def print_summary(self):
 
+        self.stdout.write("")
+
         self.stdout.write(
             self.style.SUCCESS(
-                "\n=========================================="
+                "=" * 55
             )
         )
 
@@ -1443,7 +1751,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                "=========================================="
+                "=" * 55
             )
         )
 
@@ -1499,11 +1807,26 @@ class Command(BaseCommand):
         for name, count in summary.items():
 
             self.stdout.write(
-                f"{name}: {count}"
+                f"{name:.<35} {count}"
             )
 
         self.stdout.write(
             self.style.SUCCESS(
-                "==========================================\n"
+                "=" * 55
             )
         )
+
+        self.stdout.write("")
+        self.stdout.write(
+            self.style.WARNING(
+                "Demo Doctor Password: Doctor@123"
+            )
+        )
+
+        self.stdout.write(
+            self.style.WARNING(
+                "Demo Patient Password: Patient@123"
+            )
+        )
+
+        self.stdout.write("")

@@ -985,8 +985,5 @@ class DoctorCompleteAppointmentView(
                     )
 
 
-                return queryset
-                
-                
-                
+                return queryset        
             

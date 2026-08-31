@@ -178,12 +178,18 @@ class DoctorSchedule(models.Model):
 
     slot_duration_minutes = models.PositiveIntegerField(
         default=30,
-        help_text="Duration of each appointment slot in minutes.",
+        help_text=(
+            "Appointment duration in minutes. "
+            "Example: 15, 20, 30, 45, 60."
+        ),
     )
 
     max_patient_per_slot = models.PositiveIntegerField(
         default=1,
-        help_text="Maximum patients allowed in each generated slot.",
+        help_text=(
+            "Maximum number of patients "
+            "allowed in each time slot."
+        ),
     )
 
     is_active = models.BooleanField(
@@ -215,18 +221,24 @@ class DoctorSchedule(models.Model):
         ordering = [
             "doctor",
             "day",
+            "start_time",
         ]
 
         verbose_name = "Doctor Schedule"
 
         verbose_name_plural = "Doctor Schedules"
 
+    # ======================================================
+    # String Representation
+    # ======================================================
+
     def __str__(self):
 
         return (
-            f"{self.doctor} - "
-            f"{self.day} - "
-            f"{self.start_time} to {self.end_time}"
+            f"{self.doctor} | "
+            f"{self.day} | "
+            f"{self.start_time.strftime('%I:%M %p')} - "
+            f"{self.end_time.strftime('%I:%M %p')}"
         )
 
     # ======================================================
@@ -237,47 +249,81 @@ class DoctorSchedule(models.Model):
 
         super().clean()
 
-        if self.start_time and self.end_time:
+        # --------------------------------------------------
+        # Start time must be before end time
+        # --------------------------------------------------
 
-            if self.start_time >= self.end_time:
+        if (
+            self.start_time
+            and self.end_time
+            and self.start_time >= self.end_time
+        ):
 
-                raise ValidationError({
+            raise ValidationError({
 
-                    "end_time":
-                        "End time must be later than start time."
+                "end_time":
+                    (
+                        "End time must be later "
+                        "than start time."
+                    )
 
-                })
+            })
 
-        if self.slot_duration_minutes <= 0:
+        # --------------------------------------------------
+        # Slot duration validation
+        # --------------------------------------------------
+
+        if (
+            self.slot_duration_minutes
+            and self.slot_duration_minutes <= 0
+        ):
 
             raise ValidationError({
 
                 "slot_duration_minutes":
-                    "Slot duration must be greater than zero."
+                    (
+                        "Slot duration must be "
+                        "greater than zero."
+                    )
 
             })
 
-        if self.max_patient_per_slot <= 0:
+        # --------------------------------------------------
+        # Maximum patient validation
+        # --------------------------------------------------
+
+        if (
+            self.max_patient_per_slot
+            and self.max_patient_per_slot <= 0
+        ):
 
             raise ValidationError({
 
                 "max_patient_per_slot":
-                    "Maximum patients per slot must be greater than zero."
+                    (
+                        "Maximum patients per slot "
+                        "must be greater than zero."
+                    )
 
             })
 
     # ======================================================
-    # Save with Validation
+    # Save Schedule
     # ======================================================
 
     def save(self, *args, **kwargs):
 
+        # Validate data first
         self.full_clean()
 
+        # Save schedule
         super().save(
             *args,
             **kwargs
         )
+
+        # Automatically generate/synchronize slots
+        self.generate_slots()
 
     # ======================================================
     # Automatically Generate Time Slots
@@ -288,6 +334,26 @@ class DoctorSchedule(models.Model):
         from .utils import generate_time_slots
 
         return generate_time_slots(self)
+
+    # ======================================================
+    # Get Total Slots
+    # ======================================================
+
+    @property
+    def total_slots(self):
+
+        return self.slots.count()
+
+    # ======================================================
+    # Get Active Slots
+    # ======================================================
+
+    @property
+    def active_slots(self):
+
+        return self.slots.filter(
+            is_active=True
+        ).count()
 
 
 # ==========================================================
@@ -306,7 +372,10 @@ class TimeSlot(models.Model):
 
     max_patient = models.PositiveIntegerField(
         default=1,
-        help_text="Maximum number of patients allowed.",
+        help_text=(
+            "Maximum patients allowed "
+            "in this slot."
+        ),
     )
 
     booked_count = models.PositiveIntegerField(
@@ -347,23 +416,28 @@ class TimeSlot(models.Model):
         ]
 
         ordering = [
-            "slot_time"
+            "schedule",
+            "slot_time",
         ]
 
         verbose_name = "Time Slot"
 
         verbose_name_plural = "Time Slots"
 
+    # ======================================================
+    # String Representation
+    # ======================================================
+
     def __str__(self):
 
         return (
             f"{self.schedule.doctor} | "
             f"{self.schedule.day} | "
-            f"{self.slot_time}"
+            f"{self.slot_time.strftime('%I:%M %p')}"
         )
 
     # ======================================================
-    # Check if slot is full
+    # Check if Slot is Full
     # ======================================================
 
     @property
@@ -388,6 +462,47 @@ class TimeSlot(models.Model):
         )
 
     # ======================================================
+    # Slot Display Range
+    # ======================================================
+
+    @property
+    def slot_end_time(self):
+
+        from datetime import (
+            datetime,
+            timedelta,
+        )
+
+        start_datetime = datetime.combine(
+            datetime.today().date(),
+            self.slot_time,
+        )
+
+        end_datetime = (
+            start_datetime
+            + timedelta(
+                minutes=self.schedule.slot_duration_minutes
+            )
+        )
+
+        return end_datetime.time()
+
+    # ======================================================
+    # Formatted Slot Range
+    # ======================================================
+
+    @property
+    def time_range(self):
+
+        return (
+
+            f"{self.slot_time.strftime('%I:%M %p')} - "
+
+            f"{self.slot_end_time.strftime('%I:%M %p')}"
+
+        )
+
+    # ======================================================
     # Validation
     # ======================================================
 
@@ -395,14 +510,48 @@ class TimeSlot(models.Model):
 
         super().clean()
 
-        if self.booked_count > self.max_patient:
+        # --------------------------------------------------
+        # Booked count cannot exceed capacity
+        # --------------------------------------------------
+
+        if (
+            self.booked_count is not None
+            and self.max_patient is not None
+            and self.booked_count > self.max_patient
+        ):
 
             raise ValidationError({
 
                 "booked_count":
-                    "Booked patient count cannot exceed maximum patient capacity."
+                    (
+                        "Booked patient count cannot exceed "
+                        "maximum patient capacity."
+                    )
 
             })
+
+        # --------------------------------------------------
+        # Maximum patient must be positive
+        # --------------------------------------------------
+
+        if (
+            self.max_patient is not None
+            and self.max_patient <= 0
+        ):
+
+            raise ValidationError({
+
+                "max_patient":
+                    (
+                        "Maximum patient capacity "
+                        "must be greater than zero."
+                    )
+
+            })
+
+    # ======================================================
+    # Save
+    # ======================================================
 
     def save(self, *args, **kwargs):
 

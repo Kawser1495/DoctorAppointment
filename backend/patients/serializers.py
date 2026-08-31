@@ -12,7 +12,9 @@ from .models import (
 # Patient Profile Serializer
 # ==========================================================
 
-class PatientProfileSerializer(serializers.ModelSerializer):
+class PatientProfileSerializer(
+    serializers.ModelSerializer
+):
 
     username = serializers.CharField(
         source="user.username",
@@ -75,6 +77,9 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 
     def validate_date_of_birth(self, value):
 
+        if value is None:
+            return value
+
         if value > timezone.localdate():
 
             raise serializers.ValidationError(
@@ -88,6 +93,9 @@ class PatientProfileSerializer(serializers.ModelSerializer):
     # ======================================================
 
     def validate_phone_number(self, value):
+
+        if value is None or value == "":
+            return value
 
         value = value.strip()
 
@@ -111,6 +119,9 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 
     def validate_emergency_contact(self, value):
 
+        if value is None or value == "":
+            return value
+
         value = value.strip()
 
         if not value.isdigit():
@@ -132,7 +143,9 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 # Family Member Serializer
 # ==========================================================
 
-class FamilyMemberSerializer(serializers.ModelSerializer):
+class FamilyMemberSerializer(
+    serializers.ModelSerializer
+):
 
     class Meta:
 
@@ -155,10 +168,6 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
             "created_at",
         ]
 
-    # ======================================================
-    # Name Validation
-    # ======================================================
-
     def validate_name(self, value):
 
         value = value.strip()
@@ -171,10 +180,6 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
 
         return value
 
-    # ======================================================
-    # Age Validation
-    # ======================================================
-
     def validate_age(self, value):
 
         if value < 0 or value > 130:
@@ -185,14 +190,9 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
 
         return value
 
-    # ======================================================
-    # Phone Validation
-    # ======================================================
-
     def validate_phone_number(self, value):
 
         if value is None or value == "":
-
             return value
 
         value = value.strip()

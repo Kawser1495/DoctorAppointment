@@ -23,6 +23,10 @@ ALLOWED_HOSTS = [
 # Installed Apps
 # ===========================
 
+# ===========================
+# Installed Apps
+# ===========================
+
 INSTALLED_APPS = [
 
     # Django Apps
@@ -42,7 +46,7 @@ INSTALLED_APPS = [
 
     # Local Apps
     'accounts',
-    'patients',
+    'patients.apps.PatientsConfig',
     'doctors',
     'appointments',
     'diagnostics',

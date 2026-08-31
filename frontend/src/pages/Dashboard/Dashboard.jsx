@@ -1,156 +1,98 @@
 import {
-    useState,
     useEffect,
-    useCallback,
 } from "react";
 
-import Navbar from "../../components/Navbar";
-import Sidebar from "../../components/Sidebar";
-import WelcomeBanner from "../../components/WelcomeBanner";
-import DashboardCard from "../../components/DashboardCard";
-
 import {
-    getDashboardData,
-} from "../../api/dashboardApi";
+    Navigate,
+} from "react-router-dom";
 
-import {
-    FaCalendarCheck,
-    FaClock,
-    FaCheckCircle,
-    FaUserMd,
-    FaFileMedical,
-    FaMoneyBillWave,
-    FaUsers,
-    FaBell,
-    FaFlask,
-} from "react-icons/fa";
+import useAuth from "../../context/useAuth";
 
-import "../../styles/dashboard.css";
 
+// ==========================================================
+// Dashboard
+//
+// This component is ONLY a role-based dashboard router.
+//
+// IMPORTANT:
+// Do not render Navbar / Sidebar / DashboardCard here.
+// Each role has its own actual dashboard.
+//
+// Patient:
+//     /patient/dashboard
+//
+// Doctor:
+//     /doctor/dashboard
+//
+// Admin:
+//     /admin/dashboard
+//
+// Receptionist:
+//     /dashboard
+// ==========================================================
 
 function Dashboard() {
 
-    // ======================================================
-    // Dashboard State
-    // ======================================================
-
-    const [dashboardData, setDashboardData] =
-        useState({
-
-            // Appointments
-            total_appointments: 0,
-            pending_appointments: 0,
-            completed_appointments: 0,
-
-            // Diagnostic Bookings
-            total_diagnostic_bookings: 0,
-            pending_diagnostic_bookings: 0,
-            completed_diagnostic_bookings: 0,
-
-            // Other
-            total_doctors: 0,
-            total_reports: 0,
-            total_payments: 0,
-            family_members: 0,
-
-            // Notifications
-            total_notifications: 0,
-            unread_notifications: 0,
-        });
-
-
-    const [loading, setLoading] =
-        useState(true);
+    const {
+        user,
+        isAuthenticated,
+        loading,
+    } = useAuth();
 
 
     // ======================================================
-    // Load Dashboard Data
-    // ======================================================
-
-    const loadDashboard =
-        useCallback(async () => {
-
-            try {
-
-                setLoading(true);
-
-
-                const response =
-                    await getDashboardData();
-
-
-                console.log(
-                    "Full Dashboard Response:",
-                    response
-                );
-
-
-                const data =
-                    response?.data?.data ||
-                    response?.data ||
-                    {};
-
-
-                console.log(
-                    "Dashboard Data:",
-                    data
-                );
-
-
-                setDashboardData(
-                    previousData => ({
-
-                        ...previousData,
-
-                        ...data,
-
-                    })
-                );
-
-            }
-
-            catch (error) {
-
-                console.error(
-                    "Dashboard API Error:",
-                    error
-                );
-
-            }
-
-            finally {
-
-                setLoading(false);
-
-            }
-
-        }, []);
-
-
-    // ======================================================
-    // Load Dashboard
+    // Debug
     // ======================================================
 
     useEffect(() => {
 
-        loadDashboard();
+        if (!loading) {
 
-    }, [loadDashboard]);
+            console.log(
+                "GENERAL DASHBOARD REDIRECT:",
+                {
+                    isAuthenticated,
+                    user,
+                    role: user?.role,
+                }
+            );
+
+        }
+
+    }, [
+        loading,
+        isAuthenticated,
+        user,
+    ]);
 
 
     // ======================================================
-    // Loading
+    // Authentication Loading
     // ======================================================
 
     if (loading) {
 
         return (
 
-            <div className="text-center mt-5">
+            <div
+                className="d-flex justify-content-center align-items-center"
+                style={{
+                    minHeight: "100vh",
+                }}
+            >
 
-                <h4>
-                    Loading Dashboard...
-                </h4>
+                <div className="text-center">
+
+                    <div
+                        className="spinner-border text-primary mb-3"
+                        role="status"
+                    />
+
+                    <h5 className="mb-0">
+                        Loading Dashboard...
+                    </h5>
+
+                </div>
 
             </div>
 
@@ -160,144 +102,137 @@ function Dashboard() {
 
 
     // ======================================================
-    // UI
+    // Not Authenticated
     // ======================================================
 
-    return (
+    if (!isAuthenticated || !user) {
 
-        <>
+        return (
 
-            <Navbar />
+            <Navigate
+                to="/login"
+                replace
+            />
 
-            <div className="dashboard-container">
+        );
 
-                <Sidebar />
-
-                <div className="dashboard-content">
-
-                    <WelcomeBanner />
-
-
-                    <div className="card-container">
+    }
 
 
-                        {/* ==================================
-                            Appointment Cards
-                        ================================== */}
+    // ======================================================
+    // Normalize Role
+    // ======================================================
 
-                        <DashboardCard
-                            title="Appointments"
-                            value={
-                                dashboardData.total_appointments
-                            }
-                            color="#0D6EFD"
-                            icon={<FaCalendarCheck />}
-                        />
+    const role =
+        String(
+            user.role || ""
+        )
+            .trim()
+            .toLowerCase();
 
 
-                        <DashboardCard
-                            title="Pending"
-                            value={
-                                dashboardData.pending_appointments
-                            }
-                            color="#F59E0B"
-                            icon={<FaClock />}
-                        />
+    // ======================================================
+    // Role-Based Dashboard Routes
+    // ======================================================
+
+    const dashboardRoutes = {
+
+        patient:
+            "/patient/dashboard",
+
+        doctor:
+            "/doctor/dashboard",
+
+        admin:
+            "/admin/dashboard",
+
+        receptionist:
+            "/dashboard",
+
+    };
 
 
-                        <DashboardCard
-                            title="Completed"
-                            value={
-                                dashboardData.completed_appointments
-                            }
-                            color="#10B981"
-                            icon={<FaCheckCircle />}
-                        />
+    const dashboardPath =
+        dashboardRoutes[role];
 
 
-                        {/* ==================================
-                            NEW: Diagnostic Test Booking
-                        ================================== */}
+    // ======================================================
+    // Unknown Role
+    // ======================================================
 
-                        <DashboardCard
-                            title="Diagnostic Bookings"
-                            value={
-                                dashboardData.total_diagnostic_bookings
-                            }
-                            color="#06B6D4"
-                            icon={<FaFlask />}
-                        />
+    if (!dashboardPath) {
+
+        console.error(
+            "Unknown user role:",
+            user.role
+        );
 
 
-                        {/* ==================================
-                            Other Cards
-                        ================================== */}
+        return (
 
-                        <DashboardCard
-                            title="Doctors"
-                            value={
-                                dashboardData.total_doctors
-                            }
-                            color="#8B5CF6"
-                            icon={<FaUserMd />}
-                        />
+            <div
+                className="d-flex justify-content-center align-items-center"
+                style={{
+                    minHeight: "100vh",
+                    padding: "30px",
+                }}
+            >
 
+                <div
+                    className="alert alert-danger text-center"
+                    style={{
+                        maxWidth: "500px",
+                        width: "100%",
+                    }}
+                >
 
-                        <DashboardCard
-                            title="Medical Reports"
-                            value={
-                                dashboardData.total_reports
-                            }
-                            color="#EF4444"
-                            icon={<FaFileMedical />}
-                        />
+                    <h4 className="mb-3">
+                        Dashboard Access Error
+                    </h4>
 
+                    <p className="mb-2">
 
-                        <DashboardCard
-                            title="Payments"
-                            value={
-                                Number(
-                                    dashboardData.total_payments || 0
-                                ).toFixed(2)
-                            }
-                            color="#14B8A6"
-                            icon={<FaMoneyBillWave />}
-                        />
+                        Your account does not have
+                        a valid dashboard role.
 
+                    </p>
 
-                        <DashboardCard
-                            title="Family Members"
-                            value={
-                                dashboardData.family_members
-                            }
-                            color="#EC4899"
-                            icon={<FaUsers />}
-                        />
+                    <strong>
+                        Role:
+                    </strong>
 
+                    {" "}
 
-                        {/* ==================================
-                            Notifications
-
-                            Shows unread notifications
-                        ================================== */}
-
-                        <DashboardCard
-                            title="Notifications"
-                            value={
-                                dashboardData.unread_notifications
-                            }
-                            color="#6366F1"
-                            icon={<FaBell />}
-                        />
-
-
-                    </div>
+                    {user.role || "Not assigned"}
 
                 </div>
 
             </div>
 
-        </>
+        );
+
+    }
+
+
+    // ======================================================
+    // Redirect
+    // ======================================================
+
+    console.log(
+        "REDIRECTING DASHBOARD:",
+        {
+            role,
+            dashboardPath,
+        }
+    );
+
+
+    return (
+
+        <Navigate
+            to={dashboardPath}
+            replace
+        />
 
     );
 
