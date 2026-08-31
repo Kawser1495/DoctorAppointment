@@ -1,11 +1,26 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from django.db import models
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import SearchFilter
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import (
+    AllowAny,
+    IsAuthenticated,
+)
+from rest_framework.parsers import (
+    MultiPartParser,
+    FormParser,
+    JSONParser,
+)
+from rest_framework.response import Response
+
+from appointments.models import Appointment
+
+from accounts.permissions import IsDoctor
 
 from .models import (
     Doctor,
@@ -19,11 +34,15 @@ from .serializers import (
     DepartmentSerializer,
     DoctorScheduleSerializer,
     TimeSlotSerializer,
+    DoctorProfileUpdateSerializer,
 )
 
 
 # ==========================================================
 # Departments
+#
+# GET:
+# /api/doctors/departments/
 # ==========================================================
 
 class DepartmentListView(
@@ -31,9 +50,15 @@ class DepartmentListView(
 ):
 
     queryset = (
+
         Department.objects
+
         .all()
-        .order_by("name")
+
+        .order_by(
+            "name"
+        )
+
     )
 
     serializer_class = (
@@ -49,19 +74,25 @@ class DepartmentListView(
 
 # ==========================================================
 # All Available Doctors
+#
+# GET:
+# /api/doctors/doctors/
 # ==========================================================
 
 class DoctorListView(
     generics.ListAPIView
 ):
 
-    serializer_class = DoctorSerializer
+    serializer_class = (
+        DoctorSerializer
+    )
 
     permission_classes = [
         AllowAny
     ]
 
     pagination_class = None
+
 
     def get_queryset(self):
 
@@ -92,8 +123,11 @@ class DoctorListView(
             )
 
             .order_by(
+
                 "user__first_name",
+
                 "user__username",
+
             )
 
         )
@@ -101,17 +135,23 @@ class DoctorListView(
 
 # ==========================================================
 # Doctor Details
+#
+# GET:
+# /api/doctors/doctors/<id>/
 # ==========================================================
 
 class DoctorDetailView(
     generics.RetrieveAPIView
 ):
 
-    serializer_class = DoctorSerializer
+    serializer_class = (
+        DoctorSerializer
+    )
 
     permission_classes = [
         AllowAny
     ]
+
 
     def get_object(self):
 
@@ -120,15 +160,20 @@ class DoctorDetailView(
             Doctor.objects
 
             .select_related(
+
                 "user",
+
                 "department",
+
             )
 
             .prefetch_related(
                 "schedules"
             ),
 
-            id=self.kwargs.get("pk"),
+            id=self.kwargs.get(
+                "pk"
+            ),
 
             is_available=True,
 
@@ -141,13 +186,18 @@ class DoctorDetailView(
 
 # ==========================================================
 # Search Doctors
+#
+# GET:
+# /api/doctors/search/?search=cardiology
 # ==========================================================
 
 class DoctorSearchView(
     generics.ListAPIView
 ):
 
-    serializer_class = DoctorSerializer
+    serializer_class = (
+        DoctorSerializer
+    )
 
     permission_classes = [
         AllowAny
@@ -177,6 +227,7 @@ class DoctorSearchView(
 
     ]
 
+
     def get_queryset(self):
 
         return (
@@ -201,9 +252,16 @@ class DoctorSearchView(
 
             )
 
+            .prefetch_related(
+                "schedules"
+            )
+
             .order_by(
+
                 "user__first_name",
+
                 "user__username",
+
             )
 
         )
@@ -211,19 +269,25 @@ class DoctorSearchView(
 
 # ==========================================================
 # Doctors By Department
+#
+# GET:
+# /api/doctors/departments/<department_id>/doctors/
 # ==========================================================
 
 class DoctorByDepartmentView(
     generics.ListAPIView
 ):
 
-    serializer_class = DoctorSerializer
+    serializer_class = (
+        DoctorSerializer
+    )
 
     permission_classes = [
         AllowAny
     ]
 
     pagination_class = None
+
 
     def get_queryset(self):
 
@@ -239,8 +303,7 @@ class DoctorByDepartmentView(
 
             .filter(
 
-                department_id=
-                    department_id,
+                department_id=department_id,
 
                 is_available=True,
 
@@ -251,13 +314,23 @@ class DoctorByDepartmentView(
             )
 
             .select_related(
+
                 "user",
+
                 "department",
+
+            )
+
+            .prefetch_related(
+                "schedules"
             )
 
             .order_by(
+
                 "user__first_name",
+
                 "user__username",
+
             )
 
         )
@@ -284,6 +357,7 @@ class DoctorScheduleListView(
 
     pagination_class = None
 
+
     def get_queryset(self):
 
         doctor_id = (
@@ -304,13 +378,18 @@ class DoctorScheduleListView(
 
                 doctor__user__is_active=True,
 
+                doctor__user__role="doctor",
+
                 is_active=True,
 
             )
 
             .select_related(
+
                 "doctor",
+
                 "doctor__user",
+
             )
 
             .prefetch_related(
@@ -341,18 +420,23 @@ class AvailableTimeSlotAPIView(
 
     pagination_class = None
 
+
     def get_queryset(self):
 
         doctor_id = (
             self.request
             .query_params
-            .get("doctor")
+            .get(
+                "doctor"
+            )
         )
 
         appointment_date = (
             self.request
             .query_params
-            .get("date")
+            .get(
+                "date"
+            )
         )
 
 
@@ -362,13 +446,16 @@ class AvailableTimeSlotAPIView(
 
         if not doctor_id:
 
-            return (
-                TimeSlot.objects.none()
-            )
+            raise ValidationError({
+
+                "doctor":
+                    "Doctor ID is required."
+
+            })
 
 
         # --------------------------------------------------
-        # Active Doctor + Schedule + Slot
+        # Base Query
         # --------------------------------------------------
 
         queryset = (
@@ -413,7 +500,7 @@ class AvailableTimeSlotAPIView(
 
 
         # --------------------------------------------------
-        # Date Required for booking
+        # Filter By Date
         # --------------------------------------------------
 
         if appointment_date:
@@ -421,17 +508,25 @@ class AvailableTimeSlotAPIView(
             try:
 
                 selected_date = (
+
                     datetime.strptime(
+
                         appointment_date,
+
                         "%Y-%m-%d",
+
                     ).date()
+
                 )
 
             except ValueError:
 
-                return (
-                    TimeSlot.objects.none()
-                )
+                raise ValidationError({
+
+                    "date":
+                        "Invalid date format. Use YYYY-MM-DD."
+
+                })
 
 
             day_name = (
@@ -442,13 +537,509 @@ class AvailableTimeSlotAPIView(
 
 
             queryset = (
+
                 queryset.filter(
-                    schedule__day=
-                        day_name
+                    schedule__day=day_name
                 )
+
             )
 
 
         return queryset.order_by(
             "slot_time"
         )
+
+
+# ==========================================================
+# Doctor My Profile
+#
+# GET:
+# /api/doctors/me/profile/
+#
+# PATCH:
+# /api/doctors/me/profile/
+#
+# PUT:
+# /api/doctors/me/profile/
+# ==========================================================
+
+class DoctorMyProfileView(
+    generics.RetrieveUpdateAPIView
+):
+
+    permission_classes = [
+
+        IsAuthenticated,
+
+        IsDoctor,
+
+    ]
+
+    parser_classes = [
+
+        MultiPartParser,
+
+        FormParser,
+
+        JSONParser,
+
+    ]
+
+
+    def get_object(self):
+
+        return get_object_or_404(
+
+            Doctor.objects
+
+            .select_related(
+
+                "user",
+
+                "department",
+
+            ),
+
+            user=self.request.user
+
+        )
+
+
+    def get_serializer_class(self):
+
+        if self.request.method in [
+
+            "PUT",
+
+            "PATCH",
+
+        ]:
+
+            return (
+                DoctorProfileUpdateSerializer
+            )
+
+        return DoctorSerializer
+
+
+# ==========================================================
+# Doctor Dashboard
+#
+# GET:
+# /api/doctors/dashboard/
+# ==========================================================
+
+class DoctorDashboardView(
+    generics.GenericAPIView
+):
+
+    permission_classes = [
+
+        IsAuthenticated,
+
+        IsDoctor,
+
+    ]
+
+
+    def get(
+        self,
+        request
+    ):
+
+        # ==================================================
+        # Current Doctor
+        # ==================================================
+
+        doctor = get_object_or_404(
+
+            Doctor.objects
+
+            .select_related(
+
+                "user",
+
+                "department",
+
+            ),
+
+            user=request.user
+
+        )
+
+
+        today = date.today()
+
+
+        # ==================================================
+        # All Doctor Appointments
+        # ==================================================
+
+        appointments = (
+
+            Appointment.objects
+
+            .filter(
+                doctor=doctor
+            )
+
+            .select_related(
+
+                "patient",
+
+                "patient__user",
+
+                "slot",
+
+            )
+
+        )
+
+
+        # ==================================================
+        # Statistics
+        # ==================================================
+
+        total_appointments = (
+            appointments.count()
+        )
+
+
+        today_appointments_count = (
+
+            appointments
+
+            .filter(
+                appointment_date=today
+            )
+
+            .count()
+
+        )
+
+
+        pending_count = (
+
+            appointments
+
+            .filter(
+                status="Pending"
+            )
+
+            .count()
+
+        )
+
+
+        confirmed_count = (
+
+            appointments
+
+            .filter(
+                status="Confirmed"
+            )
+
+            .count()
+
+        )
+
+
+        completed_count = (
+
+            appointments
+
+            .filter(
+                status="Completed"
+            )
+
+            .count()
+
+        )
+
+
+        cancelled_count = (
+
+            appointments
+
+            .filter(
+                status="Cancelled"
+            )
+
+            .count()
+
+        )
+
+
+        # ==================================================
+        # Today's Pending
+        # ==================================================
+
+        today_pending_count = (
+
+            appointments
+
+            .filter(
+
+                appointment_date=today,
+
+                status="Pending",
+
+            )
+
+            .count()
+
+        )
+
+
+        # ==================================================
+        # Today's Confirmed
+        # ==================================================
+
+        today_confirmed_count = (
+
+            appointments
+
+            .filter(
+
+                appointment_date=today,
+
+                status="Confirmed",
+
+            )
+
+            .count()
+
+        )
+
+
+        # ==================================================
+        # Today's Appointments
+        # ==================================================
+
+        today_appointments = (
+
+            appointments
+
+            .filter(
+                appointment_date=today
+            )
+
+            .exclude(
+                status="Cancelled"
+            )
+
+            .order_by(
+                "slot__slot_time"
+            )[:5]
+
+        )
+
+
+        # ==================================================
+        # Upcoming Appointments
+        #
+        # Includes:
+        # - Future appointments
+        # - Today's Pending/Confirmed appointments
+        # ==================================================
+
+        upcoming_appointments = (
+
+            appointments
+
+            .filter(
+
+                Q(
+                    appointment_date__gt=today
+                )
+
+                |
+
+                Q(
+                    appointment_date=today,
+
+                    status__in=[
+                        "Pending",
+                        "Confirmed",
+                    ]
+                ),
+
+                status__in=[
+                    "Pending",
+                    "Confirmed",
+                ],
+
+            )
+
+            .order_by(
+
+                "appointment_date",
+
+                "slot__slot_time",
+
+            )[:5]
+
+        )
+
+
+        # ==================================================
+        # Appointment Data Helper
+        # ==================================================
+
+        def appointment_data(
+            appointment
+        ):
+
+            patient_name = (
+
+                appointment.patient.user
+
+                .get_full_name()
+
+                .strip()
+
+            )
+
+
+            if not patient_name:
+
+                patient_name = (
+                    appointment.patient.user.username
+                )
+
+
+            return {
+
+                "id":
+                    appointment.id,
+
+                "booking_number":
+                    appointment.booking_number,
+
+                "patient_name":
+                    patient_name,
+
+                "appointment_date":
+                    appointment.appointment_date,
+
+                "appointment_time":
+                    appointment.slot.slot_time,
+
+                "status":
+                    appointment.status,
+
+                "reason":
+                    getattr(
+                        appointment,
+                        "reason",
+                        ""
+                    ),
+
+                "symptoms":
+                    getattr(
+                        appointment,
+                        "symptoms",
+                        ""
+                    ),
+
+            }
+
+
+        # ==================================================
+        # Response
+        # ==================================================
+
+        return Response({
+
+            # ----------------------------------------------
+            # Doctor Information
+            # ----------------------------------------------
+
+            "doctor": {
+
+                "id":
+                    doctor.id,
+
+                "name":
+                    str(doctor),
+
+                "department":
+                    doctor.department.name,
+
+                "specialization":
+                    doctor.specialization,
+
+                "consultation_fee":
+                    doctor.consultation_fee,
+
+                "is_available":
+                    doctor.is_available,
+
+            },
+
+
+            # ----------------------------------------------
+            # Statistics
+            # ----------------------------------------------
+
+            "statistics": {
+
+                "total_appointments":
+                    total_appointments,
+
+                "today_appointments":
+                    today_appointments_count,
+
+                "pending":
+                    pending_count,
+
+                "confirmed":
+                    confirmed_count,
+
+                "completed":
+                    completed_count,
+
+                "cancelled":
+                    cancelled_count,
+
+                "today_pending":
+                    today_pending_count,
+
+                "today_confirmed":
+                    today_confirmed_count,
+
+            },
+
+
+            # ----------------------------------------------
+            # Today's Appointments
+            # ----------------------------------------------
+
+            "today_appointments": [
+
+                appointment_data(
+                    appointment
+                )
+
+                for appointment
+                in today_appointments
+
+            ],
+
+
+            # ----------------------------------------------
+            # Upcoming Appointments
+            # ----------------------------------------------
+
+            "upcoming_appointments": [
+
+                appointment_data(
+                    appointment
+                )
+
+                for appointment
+                in upcoming_appointments
+
+            ],
+
+        })

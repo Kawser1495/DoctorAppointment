@@ -113,16 +113,12 @@ class Doctor(models.Model):
         )
 
         if full_name:
-
             return f"Dr. {full_name}"
 
         return f"Dr. {self.user.username}"
 
     # ======================================================
-    # Save
-    #
-    # If a user gets a Doctor profile,
-    # automatically make the user role = doctor
+    # Automatically assign doctor role
     # ======================================================
 
     def save(self, *args, **kwargs):
@@ -241,14 +237,16 @@ class DoctorSchedule(models.Model):
 
         super().clean()
 
-        if self.start_time >= self.end_time:
+        if self.start_time and self.end_time:
 
-            raise ValidationError({
+            if self.start_time >= self.end_time:
 
-                "end_time":
-                    "End time must be later than start time."
+                raise ValidationError({
 
-            })
+                    "end_time":
+                        "End time must be later than start time."
+
+                })
 
         if self.slot_duration_minutes <= 0:
 
@@ -264,9 +262,32 @@ class DoctorSchedule(models.Model):
             raise ValidationError({
 
                 "max_patient_per_slot":
-                    "Maximum patient must be greater than zero."
+                    "Maximum patients per slot must be greater than zero."
 
             })
+
+    # ======================================================
+    # Save with Validation
+    # ======================================================
+
+    def save(self, *args, **kwargs):
+
+        self.full_clean()
+
+        super().save(
+            *args,
+            **kwargs
+        )
+
+    # ======================================================
+    # Automatically Generate Time Slots
+    # ======================================================
+
+    def generate_slots(self):
+
+        from .utils import generate_time_slots
+
+        return generate_time_slots(self)
 
 
 # ==========================================================
@@ -285,6 +306,7 @@ class TimeSlot(models.Model):
 
     max_patient = models.PositiveIntegerField(
         default=1,
+        help_text="Maximum number of patients allowed.",
     )
 
     booked_count = models.PositiveIntegerField(
@@ -315,6 +337,13 @@ class TimeSlot(models.Model):
                 name="unique_schedule_slot_time",
             ),
 
+            models.CheckConstraint(
+                condition=models.Q(
+                    booked_count__gte=0
+                ),
+                name="booked_count_non_negative",
+            ),
+
         ]
 
         ordering = [
@@ -333,6 +362,10 @@ class TimeSlot(models.Model):
             f"{self.slot_time}"
         )
 
+    # ======================================================
+    # Check if slot is full
+    # ======================================================
+
     @property
     def is_full(self):
 
@@ -341,6 +374,10 @@ class TimeSlot(models.Model):
             self.max_patient
         )
 
+    # ======================================================
+    # Remaining Patient Capacity
+    # ======================================================
+
     @property
     def remaining_seats(self):
 
@@ -348,4 +385,30 @@ class TimeSlot(models.Model):
             self.max_patient -
             self.booked_count,
             0,
+        )
+
+    # ======================================================
+    # Validation
+    # ======================================================
+
+    def clean(self):
+
+        super().clean()
+
+        if self.booked_count > self.max_patient:
+
+            raise ValidationError({
+
+                "booked_count":
+                    "Booked patient count cannot exceed maximum patient capacity."
+
+            })
+
+    def save(self, *args, **kwargs):
+
+        self.full_clean()
+
+        super().save(
+            *args,
+            **kwargs
         )

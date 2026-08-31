@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    # Public
     DepartmentListView,
     DoctorListView,
     DoctorDetailView,
@@ -8,6 +9,10 @@ from .views import (
     DoctorByDepartmentView,
     DoctorScheduleListView,
     AvailableTimeSlotAPIView,
+
+    # Doctor Private
+    DoctorMyProfileView,
+    DoctorDashboardView,
 )
 
 
@@ -17,8 +22,13 @@ app_name = "doctors"
 urlpatterns = [
 
     # ======================================================
-    # Departments
+    # PUBLIC / PATIENT SIDE
     # ======================================================
+
+    # ------------------------------------------------------
+    # Departments
+    # GET: /api/doctors/departments/
+    # ------------------------------------------------------
 
     path(
         "departments/",
@@ -27,15 +37,22 @@ urlpatterns = [
     ),
 
 
-    # ======================================================
-    # Doctors
-    # ======================================================
+    # ------------------------------------------------------
+    # All Doctors
+    # GET: /api/doctors/doctors/
+    # ------------------------------------------------------
 
     path(
         "doctors/",
         DoctorListView.as_view(),
         name="doctor-list",
     ),
+
+
+    # ------------------------------------------------------
+    # Single Doctor Details
+    # GET: /api/doctors/doctors/<id>/
+    # ------------------------------------------------------
 
     path(
         "doctors/<int:pk>/",
@@ -44,9 +61,10 @@ urlpatterns = [
     ),
 
 
-    # ======================================================
+    # ------------------------------------------------------
     # Doctor Schedules
-    # ======================================================
+    # GET: /api/doctors/doctors/<doctor_id>/schedules/
+    # ------------------------------------------------------
 
     path(
         "doctors/<int:doctor_id>/schedules/",
@@ -55,9 +73,10 @@ urlpatterns = [
     ),
 
 
-    # ======================================================
-    # Search
-    # ======================================================
+    # ------------------------------------------------------
+    # Doctor Search
+    # GET: /api/doctors/search/?search=cardiology
+    # ------------------------------------------------------
 
     path(
         "search/",
@@ -66,9 +85,10 @@ urlpatterns = [
     ),
 
 
-    # ======================================================
+    # ------------------------------------------------------
     # Doctors By Department
-    # ======================================================
+    # GET: /api/doctors/departments/<department_id>/doctors/
+    # ------------------------------------------------------
 
     path(
         "departments/<int:department_id>/doctors/",
@@ -77,14 +97,47 @@ urlpatterns = [
     ),
 
 
-    # ======================================================
-    # Time Slots
-    # ======================================================
+    # ------------------------------------------------------
+    # Available Time Slots
+    # GET:
+    # /api/doctors/time-slots/?doctor=1&date=2026-08-31
+    # ------------------------------------------------------
 
     path(
         "time-slots/",
         AvailableTimeSlotAPIView.as_view(),
         name="available-time-slots",
+    ),
+
+
+    # ======================================================
+    # DOCTOR PRIVATE SIDE
+    # ======================================================
+
+    # ------------------------------------------------------
+    # Doctor Dashboard
+    # GET: /api/doctors/dashboard/
+    # ------------------------------------------------------
+
+    path(
+        "dashboard/",
+        DoctorDashboardView.as_view(),
+        name="doctor-dashboard",
+    ),
+
+
+    # ------------------------------------------------------
+    # My Doctor Profile
+    #
+    # GET:   /api/doctors/me/profile/
+    # PATCH: /api/doctors/me/profile/
+    # PUT:   /api/doctors/me/profile/
+    # ------------------------------------------------------
+
+    path(
+        "me/profile/",
+        DoctorMyProfileView.as_view(),
+        name="doctor-my-profile",
     ),
 
 ]

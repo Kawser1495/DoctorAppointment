@@ -259,3 +259,183 @@ class DoctorScheduleSerializer(
             "is_active",
             "slots",
         ]
+        
+        
+        # ==========================================================
+# Doctor Profile Update Serializer
+# ==========================================================
+
+class DoctorProfileUpdateSerializer(
+    serializers.ModelSerializer
+):
+
+    class Meta:
+
+        model = Doctor
+
+        fields = [
+
+            "department",
+
+            "specialization",
+
+            "qualification",
+
+            "experience",
+
+            "consultation_fee",
+
+            "biography",
+
+            "profile_image",
+
+            "is_available",
+
+        ]
+
+    def validate_experience(
+        self,
+        value
+    ):
+
+        if value < 0:
+
+            raise serializers.ValidationError(
+                "Experience cannot be negative."
+            )
+
+        return value
+
+
+    def validate_consultation_fee(
+        self,
+        value
+    ):
+
+        if value < 0:
+
+            raise serializers.ValidationError(
+                "Consultation fee cannot be negative."
+            )
+
+        return value
+    
+    
+    # ==========================================================
+    # Doctor Profile Update Serializer
+    # ==========================================================
+
+    class DoctorProfileUpdateSerializer(
+        serializers.ModelSerializer
+    ):
+
+        first_name = serializers.CharField(
+            source="user.first_name",
+            required=False,
+            allow_blank=True,
+        )
+
+        last_name = serializers.CharField(
+            source="user.last_name",
+            required=False,
+            allow_blank=True,
+        )
+
+        email = serializers.EmailField(
+            source="user.email",
+            required=False,
+        )
+
+        phone = serializers.CharField(
+            source="user.phone",
+            required=False,
+            allow_blank=True,
+        )
+
+
+        class Meta:
+
+            model = Doctor
+
+            fields = [
+
+                # User Information
+
+                "first_name",
+
+                "last_name",
+
+                "email",
+
+                "phone",
+
+
+                # Professional Information
+
+                "department",
+
+                "specialization",
+
+                "qualification",
+
+                "experience",
+
+                "consultation_fee",
+
+                "biography",
+
+                "profile_image",
+
+                "is_available",
+
+            ]
+
+
+        def update(
+            self,
+            instance,
+            validated_data
+        ):
+
+            # ----------------------------------------------
+            # User Data
+            # ----------------------------------------------
+
+            user_data = validated_data.pop(
+                "user",
+                {}
+            )
+
+
+            user = instance.user
+
+
+            for attr, value in user_data.items():
+
+                setattr(
+                    user,
+                    attr,
+                    value
+                )
+
+
+            user.save()
+
+
+            # ----------------------------------------------
+            # Doctor Data
+            # ----------------------------------------------
+
+            for attr, value in validated_data.items():
+
+                setattr(
+                    instance,
+                    attr,
+                    value
+                )
+
+
+            instance.save()
+
+
+            return instance
