@@ -9,6 +9,16 @@ from .views import (
     AppointmentDetailView,
 
     CancelAppointmentView,
+    
+    DoctorAppointmentListView,
+    
+    DoctorAppointmentDetailView,
+    
+    DoctorConfirmAppointmentView,
+    
+    DoctorRejectAppointmentView,
+    
+    DoctorCompleteAppointmentView,
 
 )
 
@@ -88,6 +98,41 @@ urlpatterns = [
 
         name="cancel-appointment",
 
+    ),
+    
+    
+    # ==========================================================
+    # Doctor Appointments
+    # ==========================================================
+
+    path(
+        "doctor/",
+        DoctorAppointmentListView.as_view(),
+        name="doctor-appointments",
+    ),
+
+    path(
+        "doctor/<int:id>/",
+        DoctorAppointmentDetailView.as_view(),
+        name="doctor-appointment-detail",
+    ),
+
+    path(
+        "doctor/<int:id>/confirm/",
+        DoctorConfirmAppointmentView.as_view(),
+        name="doctor-appointment-confirm",
+    ),
+
+    path(
+        "doctor/<int:id>/reject/",
+        DoctorRejectAppointmentView.as_view(),
+        name="doctor-appointment-reject",
+    ),
+
+    path(
+        "doctor/<int:id>/complete/",
+        DoctorCompleteAppointmentView.as_view(),
+        name="doctor-appointment-complete",
     ),
 
 ]

@@ -3,6 +3,7 @@ from rest_framework import serializers
 from .models import (
     Doctor,
     Department,
+    DoctorSchedule,
     TimeSlot,
 )
 
@@ -11,7 +12,11 @@ from .models import (
 # Department Serializer
 # ==========================================================
 
-class DepartmentSerializer(serializers.ModelSerializer):
+class DepartmentSerializer(
+    serializers.ModelSerializer
+):
+
+    doctor_count = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -21,17 +26,46 @@ class DepartmentSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
+            "doctor_count",
         ]
+
+    def get_doctor_count(
+        self,
+        obj
+    ):
+
+        return obj.doctors.filter(
+            is_available=True,
+            user__is_active=True,
+            user__role="doctor",
+        ).count()
 
 
 # ==========================================================
 # Doctor Serializer
 # ==========================================================
 
-class DoctorSerializer(serializers.ModelSerializer):
+class DoctorSerializer(
+    serializers.ModelSerializer
+):
 
-    doctor_name = serializers.SerializerMethodField(
-        read_only=True
+    doctor_name = (
+        serializers.SerializerMethodField()
+    )
+
+    username = serializers.CharField(
+        source="user.username",
+        read_only=True,
+    )
+
+    email = serializers.EmailField(
+        source="user.email",
+        read_only=True,
+    )
+
+    phone = serializers.CharField(
+        source="user.phone",
+        read_only=True,
     )
 
     department_name = serializers.CharField(
@@ -46,65 +80,133 @@ class DoctorSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    schedule_count = (
+        serializers.SerializerMethodField()
+    )
 
     class Meta:
 
         model = Doctor
 
         fields = [
+
             "id",
 
-            # Doctor Basic Information
+            # User
             "doctor_name",
+            "username",
+            "email",
+            "phone",
 
             # Department
             "department",
             "department_name",
 
-            # Professional Information
+            # Professional
             "specialization",
             "qualification",
             "experience",
             "consultation_fee",
             "biography",
 
-            # Doctor Profile Image
+            # Image
             "profile_image",
 
             # Availability
             "is_available",
+
+            # Schedule Info
+            "schedule_count",
+
+            # Timestamp
+            "created_at",
+            "updated_at",
         ]
 
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+        ]
 
     # ======================================================
     # Doctor Full Name
     # ======================================================
 
-    def get_doctor_name(self, obj):
+    def get_doctor_name(
+        self,
+        obj
+    ):
 
-        full_name = obj.user.get_full_name().strip()
+        full_name = (
+            obj.user
+            .get_full_name()
+            .strip()
+        )
 
         if full_name:
 
+            # Prevent Dr. Dr. Name
+
+            if full_name.lower().startswith(
+                "dr."
+            ):
+
+                return full_name
+
             return f"Dr. {full_name}"
 
-        return f"Dr. {obj.user.username}"
+        username = obj.user.username
+
+        if username.lower().startswith(
+            "dr."
+        ):
+
+            return username
+
+        return f"Dr. {username}"
+
+    # ======================================================
+    # Schedule Count
+    # ======================================================
+
+    def get_schedule_count(
+        self,
+        obj
+    ):
+
+        return obj.schedules.filter(
+            is_active=True
+        ).count()
 
 
 # ==========================================================
 # Time Slot Serializer
 # ==========================================================
 
-class TimeSlotSerializer(serializers.ModelSerializer):
+class TimeSlotSerializer(
+    serializers.ModelSerializer
+):
 
     is_full = serializers.BooleanField(
         read_only=True
     )
 
-    remaining_seats = serializers.SerializerMethodField(
-        read_only=True
+    remaining_seats = (
+        serializers.IntegerField(
+            read_only=True
+        )
     )
 
+    doctor_name = serializers.CharField(
+        source="schedule.doctor",
+        read_only=True,
+    )
+
+    day = serializers.CharField(
+        source="schedule.day",
+        read_only=True,
+    )
 
     class Meta:
 
@@ -112,20 +214,48 @@ class TimeSlotSerializer(serializers.ModelSerializer):
 
         fields = [
             "id",
+            "doctor_name",
+            "day",
             "slot_time",
             "booked_count",
             "max_patient",
             "remaining_seats",
             "is_full",
+            "is_active",
         ]
 
 
-    # ======================================================
-    # Remaining Seats
-    # ======================================================
+# ==========================================================
+# Doctor Schedule Serializer
+# ==========================================================
 
-    def get_remaining_seats(self, obj):
+class DoctorScheduleSerializer(
+    serializers.ModelSerializer
+):
 
-        remaining = obj.max_patient - obj.booked_count
+    doctor_name = serializers.CharField(
+        source="doctor",
+        read_only=True,
+    )
 
-        return max(remaining, 0)
+    slots = TimeSlotSerializer(
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+
+        model = DoctorSchedule
+
+        fields = [
+            "id",
+            "doctor",
+            "doctor_name",
+            "day",
+            "start_time",
+            "end_time",
+            "slot_duration_minutes",
+            "max_patient_per_slot",
+            "is_active",
+            "slots",
+        ]

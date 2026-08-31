@@ -1,7 +1,20 @@
-import { Navigate } from "react-router-dom";
+import {
+    Navigate,
+} from "react-router-dom";
 
 import useAuth from "../context/useAuth";
 
+
+// ==========================================================
+// Guest Route
+//
+// Used for:
+// - Login
+// - Register
+//
+// If user is already authenticated,
+// redirect them to their role-based dashboard.
+// ==========================================================
 
 export default function GuestRoute({
     children,
@@ -9,12 +22,13 @@ export default function GuestRoute({
 
     const {
         isAuthenticated,
+        user,
         loading,
     } = useAuth();
 
 
     // ==========================================================
-    // Loading
+    // Authentication Loading
     // ==========================================================
 
     if (loading) {
@@ -22,15 +36,22 @@ export default function GuestRoute({
         return (
 
             <div
+                className="d-flex justify-content-center align-items-center"
                 style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: "100vh",
+                    minHeight: "100vh",
                 }}
             >
 
-                Loading...
+                <div
+                    className="spinner-border text-primary"
+                    role="status"
+                >
+
+                    <span className="visually-hidden">
+                        Loading...
+                    </span>
+
+                </div>
 
             </div>
 
@@ -40,25 +61,106 @@ export default function GuestRoute({
 
 
     // ==========================================================
-    // Already Logged In
+    // Guest User
     // ==========================================================
 
-    if (isAuthenticated) {
+    if (!isAuthenticated) {
+
+        return children;
+
+    }
+
+
+    // ==========================================================
+    // Normalize User Role
+    // ==========================================================
+
+    const role = user?.role
+        ? String(user.role)
+            .trim()
+            .toLowerCase()
+        : "";
+
+
+    console.log(
+        "GuestRoute:",
+        {
+            isAuthenticated,
+            user,
+            role,
+        }
+    );
+
+
+    // ==========================================================
+    // Role-Based Redirect
+    // ==========================================================
+
+    const dashboardRoutes = {
+
+        doctor:
+            "/doctor/dashboard",
+
+        patient:
+            "/patient/dashboard",
+
+        admin:
+            "/admin/dashboard",
+
+        receptionist:
+            "/dashboard",
+
+    };
+
+
+    const dashboardPath =
+        dashboardRoutes[role];
+
+
+    // ==========================================================
+    // Valid Role
+    // ==========================================================
+
+    if (dashboardPath) {
+
+        console.log(
+            "GuestRoute redirect:",
+            {
+                role,
+                dashboardPath,
+            }
+        );
+
 
         return (
+
             <Navigate
-                to="/dashboard"
+                to={dashboardPath}
                 replace
             />
+
         );
 
     }
 
 
     // ==========================================================
-    // Guest
+    // Invalid / Missing Role
     // ==========================================================
 
-    return children;
+    console.warn(
+        "GuestRoute: Unknown or missing role:",
+        user?.role
+    );
+
+
+    return (
+
+        <Navigate
+            to="/login"
+            replace
+        />
+
+    );
 
 }

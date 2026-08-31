@@ -1,6 +1,70 @@
+from django import forms
 from django.contrib import admin
-from .models import Department, Doctor, DoctorSchedule, TimeSlot
 
+from .models import (
+    Department,
+    Doctor,
+    DoctorSchedule,
+    TimeSlot,
+)
+
+
+# ==========================================================
+# Doctor Schedule Form
+# ==========================================================
+
+class DoctorScheduleAdminForm(forms.ModelForm):
+
+    start_time = forms.TimeField(
+        widget=forms.TimeInput(
+            format="%H:%M",
+            attrs={
+                "type": "time",
+            },
+        )
+    )
+
+    end_time = forms.TimeField(
+        widget=forms.TimeInput(
+            format="%H:%M",
+            attrs={
+                "type": "time",
+            },
+        )
+    )
+
+    class Meta:
+
+        model = DoctorSchedule
+
+        fields = "__all__"
+
+
+# ==========================================================
+# Time Slot Form
+# ==========================================================
+
+class TimeSlotAdminForm(forms.ModelForm):
+
+    slot_time = forms.TimeField(
+        widget=forms.TimeInput(
+            format="%H:%M",
+            attrs={
+                "type": "time",
+            },
+        )
+    )
+
+    class Meta:
+
+        model = TimeSlot
+
+        fields = "__all__"
+
+
+# ==========================================================
+# Department
+# ==========================================================
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
@@ -15,6 +79,10 @@ class DepartmentAdmin(admin.ModelAdmin):
         "name",
     )
 
+
+# ==========================================================
+# Doctor
+# ==========================================================
 
 @admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
@@ -40,8 +108,14 @@ class DoctorAdmin(admin.ModelAdmin):
     )
 
 
+# ==========================================================
+# Doctor Schedule
+# ==========================================================
+
 @admin.register(DoctorSchedule)
 class DoctorScheduleAdmin(admin.ModelAdmin):
+
+    form = DoctorScheduleAdminForm
 
     list_display = (
         "id",
@@ -58,8 +132,14 @@ class DoctorScheduleAdmin(admin.ModelAdmin):
     )
 
 
+# ==========================================================
+# Time Slot
+# ==========================================================
+
 @admin.register(TimeSlot)
 class TimeSlotAdmin(admin.ModelAdmin):
+
+    form = TimeSlotAdminForm
 
     list_display = (
         "id",

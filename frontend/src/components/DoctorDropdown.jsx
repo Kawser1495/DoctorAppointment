@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import {
+    useEffect,
+    useState,
+} from "react";
 
 import {
     getDoctorsByDepartment,
@@ -15,26 +18,54 @@ function DoctorDropdown({
 
 }) {
 
-    const [doctors, setDoctors] =
-        useState([]);
 
-    const [loading, setLoading] =
-        useState(false);
+    // ==========================================================
+    // State
+    // ==========================================================
 
-    const [error, setError] =
-        useState("");
+    const [
+        doctors,
+        setDoctors,
+    ] = useState([]);
 
+
+    const [
+        loading,
+        setLoading,
+    ] = useState(false);
+
+
+    const [
+        error,
+        setError,
+    ] = useState("");
+
+
+    // ==========================================================
+    // Load Doctors By Department
+    // ==========================================================
 
     useEffect(() => {
 
+        let cancelled = false;
+
+
         const loadDoctors = async () => {
 
-            // Department select না করলে
-            // doctor list empty থাকবে
+
+            // --------------------------------------------------
+            // No Department Selected
+            // --------------------------------------------------
 
             if (!selectedDepartment) {
 
-                setDoctors([]);
+                if (!cancelled) {
+
+                    setDoctors([]);
+
+                    setError("");
+
+                }
 
                 return;
 
@@ -43,10 +74,20 @@ function DoctorDropdown({
 
             try {
 
-                setLoading(true);
+                if (!cancelled) {
 
-                setError("");
+                    setLoading(true);
 
+                    setError("");
+
+                    setDoctors([]);
+
+                }
+
+
+                // --------------------------------------------------
+                // API Request
+                // --------------------------------------------------
 
                 const response =
                     await getDoctorsByDepartment(
@@ -54,32 +95,60 @@ function DoctorDropdown({
                     );
 
 
+                if (cancelled) {
+                    return;
+                }
+
+
+                // --------------------------------------------------
+                // Ensure Array
+                // --------------------------------------------------
+
+                const doctorList =
+                    Array.isArray(response?.data)
+                        ? response.data
+                        : [];
+
+
                 setDoctors(
-                    response.data || []
+                    doctorList
                 );
 
-            }
 
-            catch (error) {
+            } catch (error) {
+
+                if (cancelled) {
+                    return;
+                }
+
 
                 console.error(
                     "Doctor Load Error:",
-                    error
-                );
-
-
-                setError(
-                    "Failed to load doctors."
+                    error.response?.data || error
                 );
 
 
                 setDoctors([]);
 
-            }
 
-            finally {
+                setError(
 
-                setLoading(false);
+                    error?.response?.data?.detail ||
+
+                    error?.response?.data?.message ||
+
+                    "Failed to load doctors."
+
+                );
+
+
+            } finally {
+
+                if (!cancelled) {
+
+                    setLoading(false);
+
+                }
 
             }
 
@@ -88,67 +157,138 @@ function DoctorDropdown({
 
         loadDoctors();
 
-    }, [selectedDepartment]);
 
+        return () => {
+
+            cancelled = true;
+
+        };
+
+
+    }, [
+        selectedDepartment,
+    ]);
+
+
+    // ==========================================================
+    // Render
+    // ==========================================================
 
     return (
 
         <div className="form-group">
 
+
+            {/* ==================================================
+                Label
+            ================================================== */}
+
             <label>
+
                 Doctor
+
             </label>
 
 
+            {/* ==================================================
+                Dropdown
+            ================================================== */}
+
             <select
 
-                value={selectedDoctor}
+                value={
+                    selectedDoctor || ""
+                }
 
-                onChange={onDoctorChange}
+                onChange={
+                    onDoctorChange
+                }
 
                 disabled={
+
                     !selectedDepartment ||
+
                     loading
+
                 }
 
             >
 
+
+                {/* ==============================================
+                    Default Option
+                ============================================== */}
+
                 <option value="">
 
+
                     {!selectedDepartment
+
                         ? "Select Department First"
+
                         : loading
+
                             ? "Loading Doctors..."
-                            : "Select Doctor"
+
+                            : doctors.length === 0
+
+                                ? "No Doctors Available"
+
+                                : "Select Doctor"
+
                     }
+
 
                 </option>
 
 
+                {/* ==============================================
+                    Doctor List
+                ============================================== */}
+
                 {doctors.map(
+
                     (doctor) => (
 
                         <option
 
-                            key={doctor.id}
+                            key={
+                                doctor.id
+                            }
 
-                            value={doctor.id}
+                            value={
+                                doctor.id
+                            }
 
                         >
 
-                            {doctor.doctor_name}
+                            {
+                                doctor.doctor_name ||
+                                doctor.name ||
+                                "Unknown Doctor"
+                            }
 
-                            {" - "}
+                            {" — "}
 
-                            {doctor.specialization}
+                            {
+                                doctor.specialization ||
+                                "Specialist"
+                            }
+
 
                         </option>
 
                     )
+
                 )}
+
 
             </select>
 
+
+            {/* ==================================================
+                Error
+            ================================================== */}
 
             {error && (
 
@@ -159,6 +299,7 @@ function DoctorDropdown({
                 </p>
 
             )}
+
 
         </div>
 

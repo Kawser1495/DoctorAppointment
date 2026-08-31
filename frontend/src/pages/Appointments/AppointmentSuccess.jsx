@@ -1,41 +1,82 @@
-import { Link } from "react-router-dom";
+import {
+    Link,
+} from "react-router-dom";
+
+
+// ==========================================================
+// Appointment Success
+// ==========================================================
 
 export default function AppointmentSuccess() {
+
     return (
+
         <div className="success-page">
 
+
+            {/* ==================================================
+                Success Card
+            ================================================== */}
+
             <div className="success-card">
+
+
+                {/* Success Icon */}
 
                 <div className="success-icon">
                     ✅
                 </div>
 
+
+                {/* Title */}
+
                 <h2>
                     Appointment Booked Successfully
                 </h2>
 
-                <p>
-                    Your appointment request has been submitted successfully.
-                </p>
+
+                {/* Message */}
 
                 <p>
-                    Please wait until the doctor confirms your appointment.
+                    Your appointment request has been submitted
+                    successfully.
                 </p>
+
+
+                <p>
+                    Please wait until the doctor confirms your
+                    appointment.
+                </p>
+
+
+                {/* ==================================================
+                    Buttons
+                ================================================== */}
 
                 <div className="success-buttons">
 
+
+                    {/* My Appointments */}
+
                     <Link
-                        to="/my-appointments"
+                        to="/appointments"
                         className="btn btn-primary"
                     >
+
                         View My Appointments
+
                     </Link>
+
+
+                    {/* Dashboard */}
 
                     <Link
                         to="/dashboard"
                         className="btn btn-secondary"
                     >
+
                         Dashboard
+
                     </Link>
 
                 </div>
@@ -43,5 +84,7 @@ export default function AppointmentSuccess() {
             </div>
 
         </div>
+
     );
+
 }

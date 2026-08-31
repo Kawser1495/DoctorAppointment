@@ -1,36 +1,58 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import {
+    useState,
+    useEffect,
+} from "react";
 
-import { loginUser } from "../../services/authService";
+import {
+    useNavigate,
+    Link,
+} from "react-router-dom";
+
+import {
+    loginUser,
+} from "../../services/authService";
+
 import useAuth from "../../context/useAuth";
+
 
 export default function Login() {
 
     const navigate = useNavigate();
 
-    const { login } = useAuth();
+    const {
+        login,
+        isAuthenticated,
+        user,
+        loading: authLoading,
+    } = useAuth();
 
-    // ======================================
+
+    // ==========================================================
     // Form State
-    // ======================================
+    // ==========================================================
 
     const [formData, setFormData] = useState({
         username: "",
         password: "",
     });
 
-    // ======================================
+
+    // ==========================================================
     // UI State
-    // ======================================
+    // ==========================================================
 
     const [showPassword, setShowPassword] = useState(false);
+
     const [loading, setLoading] = useState(false);
+
     const [error, setError] = useState("");
+
     const [rememberMe, setRememberMe] = useState(false);
 
-    // ======================================
+
+    // ==========================================================
     // Load Remember Me
-    // ======================================
+    // ==========================================================
 
     useEffect(() => {
 
@@ -45,37 +67,309 @@ export default function Login() {
 
     }, []);
 
-    // ======================================
+
+    // ==========================================================
+    // If Already Authenticated
+    // ==========================================================
+
+    useEffect(() => {
+
+        if (
+            authLoading ||
+            loading ||
+            !isAuthenticated ||
+            !user
+        ) {
+            return;
+        }
+
+
+        const role =
+            String(user.role || "")
+                .trim()
+                .toLowerCase();
+
+
+        const dashboardRoutes = {
+
+            doctor:
+                "/doctor/dashboard",
+
+            patient:
+                "/patient/dashboard",
+
+            admin:
+                "/admin/dashboard",
+
+            receptionist:
+                "/dashboard",
+
+        };
+
+
+        const dashboardPath =
+            dashboardRoutes[role];
+
+
+        if (!dashboardPath) {
+
+            console.error(
+                "Invalid stored user role:",
+                user.role
+            );
+
+            return;
+
+        }
+
+
+        console.log(
+            "AUTHENTICATED USER REDIRECT:",
+            {
+                role,
+                dashboardPath,
+            }
+        );
+
+
+        navigate(
+            dashboardPath,
+            {
+                replace: true,
+            }
+        );
+
+    }, [
+        authLoading,
+        loading,
+        isAuthenticated,
+        user,
+        navigate,
+    ]);
+
+
+    // ==========================================================
     // Handle Input Change
-    // ======================================
+    // ==========================================================
 
     const handleChange = (event) => {
 
-        setFormData((previousData) => ({
-            ...previousData,
-            [event.target.name]: event.target.value,
-        }));
+        const {
+            name,
+            value,
+        } = event.target;
+
+
+        setFormData(
+            (previousData) => ({
+
+                ...previousData,
+
+                [name]: value,
+
+            })
+        );
+
 
         setError("");
 
     };
 
-    // ======================================
+
+    // ==========================================================
+    // Role-Based Dashboard
+    // ==========================================================
+
+    const getDashboardPath = (role) => {
+
+        const normalizedRole =
+            String(role || "")
+                .trim()
+                .toLowerCase();
+
+
+        const dashboardRoutes = {
+
+            doctor:
+                "/doctor/dashboard",
+
+            patient:
+                "/patient/dashboard",
+
+            admin:
+                "/admin/dashboard",
+
+            receptionist:
+                "/dashboard",
+
+        };
+
+
+        return dashboardRoutes[
+            normalizedRole
+        ] || null;
+
+    };
+
+
+    // ==========================================================
     // Handle Login
-    // ======================================
+    // ==========================================================
 
     const handleSubmit = async (event) => {
 
         event.preventDefault();
 
+
+        if (loading) {
+            return;
+        }
+
+
         setLoading(true);
+
         setError("");
+
 
         try {
 
-            const response = await loginUser(formData);
+            // ==================================================
+            // Login API
+            // ==================================================
 
-            const { access, refresh } = response.data;
+            const response =
+                await loginUser(formData);
+
+
+            console.log(
+                "LOGIN RESPONSE:",
+                response.data
+            );
+
+
+            // ==================================================
+            // Extract Authentication Data
+            // ==================================================
+
+            const {
+                access,
+                refresh,
+                user,
+            } = response.data;
+
+
+            // ==================================================
+            // Validate Access Token
+            // ==================================================
+
+            if (!access) {
+
+                throw new Error(
+                    "Access token is missing from server response."
+                );
+
+            }
+
+
+            // ==================================================
+            // Validate Refresh Token
+            // ==================================================
+
+            if (!refresh) {
+
+                throw new Error(
+                    "Refresh token is missing from server response."
+                );
+
+            }
+
+
+            // ==================================================
+            // Validate User
+            // ==================================================
+
+            if (!user) {
+
+                throw new Error(
+                    "User information is missing from server response."
+                );
+
+            }
+
+
+            // ==================================================
+            // Validate Role
+            // ==================================================
+
+            if (!user.role) {
+
+                console.error(
+                    "USER OBJECT:",
+                    user
+                );
+
+
+                throw new Error(
+                    "User role is missing from server response."
+                );
+
+            }
+
+
+            // ==================================================
+            // Normalize Role
+            // ==================================================
+
+            const role =
+                String(user.role)
+                    .trim()
+                    .toLowerCase();
+
+
+            console.log(
+                "LOGIN USER:",
+                user
+            );
+
+
+            console.log(
+                "NORMALIZED USER ROLE:",
+                role
+            );
+
+
+            // ==================================================
+            // Get Dashboard Path
+            // ==================================================
+
+            const dashboardPath =
+                getDashboardPath(role);
+
+
+            if (!dashboardPath) {
+
+                console.error(
+                    "Unknown user role:",
+                    role
+                );
+
+
+                throw new Error(
+                    `Unknown user role: ${role}`
+                );
+
+            }
+
+
+            console.log(
+                "DASHBOARD PATH:",
+                dashboardPath
+            );
+
+
+            // ==================================================
+            // Remember Me
+            // ==================================================
 
             if (rememberMe) {
 
@@ -92,24 +386,142 @@ export default function Login() {
 
             }
 
-            login(access, refresh);
 
-            console.log("Login Successful");
+            // ==================================================
+            // Save Authentication
+            // ==================================================
 
-            navigate("/dashboard");
+            const loginSuccess =
+                login(
+
+                    access,
+
+                    refresh,
+
+                    {
+                        ...user,
+
+                        role: role,
+                    },
+
+                    rememberMe
+
+                );
+
+
+            if (!loginSuccess) {
+
+                throw new Error(
+                    "Unable to save login information."
+                );
+
+            }
+
+
+            // ==================================================
+            // Debug Authentication
+            // ==================================================
+
+            console.log(
+                "LOGIN SUCCESS",
+                {
+                    userId: user.id,
+                    username: user.username,
+                    role: role,
+                    dashboardPath: dashboardPath,
+                }
+            );
+
+
+            // ==================================================
+            // Role-Based Redirect
+            // ==================================================
+
+            navigate(
+                dashboardPath,
+                {
+                    replace: true,
+                }
+            );
+
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "Login Error:",
+                error
+            );
+
+
+            // ==================================================
+            // Backend Error
+            // ==================================================
 
             if (error.response) {
 
-                setError(
-                    error.response.data.detail ||
-                    "Invalid username or password."
+                const data =
+                    error.response.data;
+
+
+                console.error(
+                    "BACKEND LOGIN ERROR:",
+                    data
                 );
 
-            } else {
+
+                if (data?.detail) {
+
+                    setError(
+                        data.detail
+                    );
+
+                }
+
+                else if (
+                    data?.non_field_errors
+                ) {
+
+                    setError(
+
+                        Array.isArray(
+                            data.non_field_errors
+                        )
+
+                            ? data.non_field_errors.join(", ")
+
+                            : data.non_field_errors
+
+                    );
+
+                }
+
+                else {
+
+                    setError(
+                        "Invalid username or password."
+                    );
+
+                }
+
+            }
+
+            // ==================================================
+            // JavaScript / Custom Error
+            // ==================================================
+
+            else if (error.message) {
+
+                setError(
+                    error.message
+                );
+
+            }
+
+            // ==================================================
+            // Network Error
+            // ==================================================
+
+            else {
 
                 setError(
                     "Cannot connect to the server. Please try again later."
@@ -117,13 +529,20 @@ export default function Login() {
 
             }
 
-        } finally {
+        }
+
+        finally {
 
             setLoading(false);
 
         }
 
     };
+
+
+    // ==========================================================
+    // Render
+    // ==========================================================
 
     return (
 
@@ -135,9 +554,16 @@ export default function Login() {
 
                     <div className="card shadow-lg border-0">
 
-                        <div className="card-header bg-primary text-white text-center">
 
-                            <h3>Doctor Appointment System</h3>
+                        {/* ==================================================
+                            Header
+                        ================================================== */}
+
+                        <div className="card-header bg-primary text-white text-center py-4">
+
+                            <h3 className="mb-1">
+                                Doctor Appointment System
+                            </h3>
 
                             <p className="mb-0">
                                 Login to Continue
@@ -145,11 +571,24 @@ export default function Login() {
 
                         </div>
 
-                        <div className="card-body">
+
+                        {/* ==================================================
+                            Body
+                        ================================================== */}
+
+                        <div className="card-body p-4">
+
+
+                            {/* ==================================================
+                                Error
+                            ================================================== */}
 
                             {error && (
 
-                                <div className="alert alert-danger">
+                                <div
+                                    className="alert alert-danger"
+                                    role="alert"
+                                >
 
                                     {error}
 
@@ -157,25 +596,42 @@ export default function Login() {
 
                             )}
 
+
+                            {/* ==================================================
+                                Login Form
+                            ================================================== */}
+
                             <form
                                 onSubmit={handleSubmit}
                                 autoComplete="on"
                             >
 
+
+                                {/* ==================================================
+                                    Username
+                                ================================================== */}
+
                                 <div className="mb-3">
 
-                                    <label className="form-label">
-
+                                    <label
+                                        htmlFor="username"
+                                        className="form-label"
+                                    >
                                         Username
-
                                     </label>
 
+
                                     <input
+                                        id="username"
                                         type="text"
                                         className="form-control"
                                         name="username"
-                                        value={formData.username}
-                                        onChange={handleChange}
+                                        value={
+                                            formData.username
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
                                         placeholder="Enter Username"
                                         autoComplete="username"
                                         required
@@ -183,17 +639,25 @@ export default function Login() {
 
                                 </div>
 
+
+                                {/* ==================================================
+                                    Password
+                                ================================================== */}
+
                                 <div className="mb-3">
 
-                                    <label className="form-label">
-
+                                    <label
+                                        htmlFor="password"
+                                        className="form-label"
+                                    >
                                         Password
-
                                     </label>
+
 
                                     <div className="input-group">
 
                                         <input
+                                            id="password"
                                             type={
                                                 showPassword
                                                     ? "text"
@@ -201,89 +665,130 @@ export default function Login() {
                                             }
                                             className="form-control"
                                             name="password"
-                                            value={formData.password}
-                                            onChange={handleChange}
+                                            value={
+                                                formData.password
+                                            }
+                                            onChange={
+                                                handleChange
+                                            }
                                             placeholder="Enter Password"
                                             autoComplete="current-password"
                                             required
                                         />
 
+
                                         <button
                                             type="button"
                                             className="btn btn-outline-secondary"
                                             onClick={() =>
-                                                setShowPassword(!showPassword)
+                                                setShowPassword(
+                                                    (previous) =>
+                                                        !previous
+                                                )
                                             }
                                         >
-                                            {showPassword
-                                                ? "Hide"
-                                                : "Show"}
+
+                                            {
+                                                showPassword
+                                                    ? "Hide"
+                                                    : "Show"
+                                            }
+
                                         </button>
 
                                     </div>
 
                                 </div>
 
-                                <div className="d-flex justify-content-between mb-3">
 
-                                    <div>
+                                {/* ==================================================
+                                    Remember Me
+                                ================================================== */}
+
+                                <div className="d-flex justify-content-between align-items-center mb-4">
+
+                                    <div className="form-check">
 
                                         <input
                                             type="checkbox"
+                                            className="form-check-input"
                                             id="remember"
-                                            checked={rememberMe}
-                                            onChange={(e) =>
-                                                setRememberMe(e.target.checked)
+                                            checked={
+                                                rememberMe
+                                            }
+                                            onChange={
+                                                (event) =>
+                                                    setRememberMe(
+                                                        event.target.checked
+                                                    )
                                             }
                                         />
 
+
                                         <label
                                             htmlFor="remember"
-                                            className="ms-2"
+                                            className="form-check-label"
                                         >
                                             Remember Me
                                         </label>
 
                                     </div>
 
+
                                     <Link to="#">
-
                                         Forgot Password?
-
                                     </Link>
 
                                 </div>
 
+
+                                {/* ==================================================
+                                    Login Button
+                                ================================================== */}
+
                                 <button
                                     type="submit"
                                     className="btn btn-primary w-100"
-                                    disabled={loading}
+                                    disabled={
+                                        loading ||
+                                        authLoading
+                                    }
                                 >
-                                    {loading
-                                        ? "Logging in..."
-                                        : "Login"}
+
+                                    {
+                                        loading
+                                            ? "Logging in..."
+                                            : "Login"
+                                    }
+
                                 </button>
 
                             </form>
 
-                            <hr />
+
+                            <hr className="my-4" />
+
+
+                            {/* ==================================================
+                                Registration
+                            ================================================== */}
 
                             <div className="text-center">
 
-                                <p>
-
+                                <p className="mb-2">
                                     Don't have an account?
-
                                 </p>
+
 
                                 <Link
                                     to="/register"
                                     className="btn btn-success"
                                 >
-                                    Create Account
+                                    Create Patient Account
                                 </Link>
 
                             </div>
+
 
                         </div>
 

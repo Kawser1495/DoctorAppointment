@@ -22,6 +22,7 @@ from .serializers import (
     RegisterSerializer,
     UserSettingsSerializer,
     ChangePasswordSerializer,
+    CustomTokenObtainPairSerializer,
 )
 
 
@@ -50,11 +51,22 @@ class RegisterView(
 #
 # POST:
 # /api/accounts/login/
+#
+# Returns:
+# - access
+# - refresh
+# - user information
+# - role
+#
 # ==========================================================
 
 class LoginView(
     TokenObtainPairView
 ):
+
+    serializer_class = (
+        CustomTokenObtainPairSerializer
+    )
 
     permission_classes = [
         AllowAny
@@ -199,4 +211,3 @@ class ChangePasswordView(
             status=status.HTTP_200_OK
 
         )
-

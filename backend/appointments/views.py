@@ -426,3 +426,567 @@ class CancelAppointmentView(
             status=status.HTTP_200_OK
 
         )
+        
+        
+# ==========================================================
+# Doctor Appointment List
+#
+# GET:
+# /api/appointments/doctor/
+# ==========================================================
+
+class DoctorAppointmentListView(
+    generics.ListAPIView
+):
+
+    serializer_class = AppointmentSerializer
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    def get_queryset(self):
+
+        user = self.request.user
+
+        # --------------------------------------------------
+        # Only Doctor
+        # --------------------------------------------------
+
+        if not hasattr(
+            user,
+            "doctor_profile"
+        ):
+            return Appointment.objects.none()
+
+        doctor = user.doctor_profile
+
+        return (
+            Appointment.objects
+            .filter(
+                doctor=doctor
+            )
+            .select_related(
+                "patient",
+                "patient__user",
+
+                "family_member",
+
+                "doctor",
+                "doctor__user",
+                "doctor__department",
+
+                "slot",
+                "slot__schedule",
+            )
+            .order_by(
+                "appointment_date",
+                "slot__slot_time",
+            )
+        )
+
+
+# ==========================================================
+# Doctor Appointment Detail
+#
+# GET:
+# /api/appointments/doctor/<id>/
+# ==========================================================
+
+class DoctorAppointmentDetailView(
+    generics.RetrieveAPIView
+):
+
+    serializer_class = AppointmentSerializer
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    lookup_field = "id"
+
+    def get_queryset(self):
+
+        user = self.request.user
+
+        if not hasattr(
+            user,
+            "doctor_profile"
+        ):
+            return Appointment.objects.none()
+
+        doctor = user.doctor_profile
+
+        return (
+            Appointment.objects
+            .filter(
+                doctor=doctor
+            )
+            .select_related(
+                "patient",
+                "patient__user",
+
+                "family_member",
+
+                "doctor",
+                "doctor__user",
+                "doctor__department",
+
+                "slot",
+                "slot__schedule",
+            )
+        )
+
+
+# ==========================================================
+# Doctor Confirm Appointment
+#
+# PATCH:
+# /api/appointments/doctor/<id>/confirm/
+# ==========================================================
+
+class DoctorConfirmAppointmentView(
+    generics.UpdateAPIView
+):
+
+    serializer_class = AppointmentSerializer
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    lookup_field = "id"
+
+    def get_queryset(self):
+
+        user = self.request.user
+
+        if not hasattr(
+            user,
+            "doctor_profile"
+        ):
+            return Appointment.objects.none()
+
+        return Appointment.objects.filter(
+            doctor=user.doctor_profile
+        )
+
+    def patch(
+        self,
+        request,
+        *args,
+        **kwargs
+    ):
+
+        appointment = self.get_object()
+
+        # --------------------------------------------------
+        # Only Pending appointment can be confirmed
+        # --------------------------------------------------
+
+        if appointment.status != "Pending":
+
+            return Response(
+                {
+                    "detail": (
+                        "Only pending appointments "
+                        "can be confirmed."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        appointment.status = "Confirmed"
+
+        appointment.save(
+            update_fields=[
+                "status",
+                "updated_at",
+            ]
+        )
+
+        # --------------------------------------------------
+        # Notify patient
+        # --------------------------------------------------
+
+        Notification.objects.create(
+            user=appointment.patient.user,
+
+            notification_type="Appointment",
+
+            title="Appointment Confirmed",
+
+            message=(
+                f"Your appointment "
+                f"{appointment.booking_number} "
+                f"with Dr. "
+                f"{appointment.doctor.user.get_full_name()} "
+                f"has been confirmed."
+            ),
+        )
+
+        return Response(
+            {
+                "message": (
+                    "Appointment confirmed successfully."
+                ),
+
+                "appointment": AppointmentSerializer(
+                    appointment,
+                    context={
+                        "request": request
+                    }
+                ).data,
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+# ==========================================================
+# Doctor Reject Appointment
+#
+# PATCH:
+# /api/appointments/doctor/<id>/reject/
+# ==========================================================
+
+class DoctorRejectAppointmentView(
+    generics.UpdateAPIView
+):
+
+    serializer_class = AppointmentSerializer
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    lookup_field = "id"
+
+    def get_queryset(self):
+
+        user = self.request.user
+
+        if not hasattr(
+            user,
+            "doctor_profile"
+        ):
+            return Appointment.objects.none()
+
+        return Appointment.objects.filter(
+            doctor=user.doctor_profile
+        )
+
+    def patch(
+        self,
+        request,
+        *args,
+        **kwargs
+    ):
+
+        appointment = self.get_object()
+
+        # --------------------------------------------------
+        # Only Pending appointment can be rejected
+        # --------------------------------------------------
+
+        if appointment.status != "Pending":
+
+            return Response(
+                {
+                    "detail": (
+                        "Only pending appointments "
+                        "can be rejected."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+
+            appointment.status = "Rejected"
+
+            appointment.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
+
+            # --------------------------------------------------
+            # Release slot
+            # --------------------------------------------------
+
+            slot = TimeSlot.objects.select_for_update().get(
+                id=appointment.slot_id
+            )
+
+            if slot.booked_count > 0:
+
+                slot.booked_count -= 1
+
+                slot.save(
+                    update_fields=[
+                        "booked_count"
+                    ]
+                )
+
+            # --------------------------------------------------
+            # Notify patient
+            # --------------------------------------------------
+
+            doctor_name = (
+                appointment.doctor.user.get_full_name()
+                or appointment.doctor.user.username
+            )
+
+            Notification.objects.create(
+                user=appointment.patient.user,
+
+                notification_type="Appointment",
+
+                title="Appointment Rejected",
+
+                message=(
+                    f"Your appointment "
+                    f"{appointment.booking_number} "
+                    f"with Dr. {doctor_name} "
+                    f"has been rejected."
+                ),
+            )
+
+        return Response(
+            {
+                "message": (
+                    "Appointment rejected successfully."
+                )
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+# ==========================================================
+# Doctor Complete Appointment
+#
+# PATCH:
+# /api/appointments/doctor/<id>/complete/
+# ==========================================================
+
+class DoctorCompleteAppointmentView(
+    generics.UpdateAPIView
+):
+
+    serializer_class = AppointmentSerializer
+
+    permission_classes = [
+        IsAuthenticated
+    ]
+
+    lookup_field = "id"
+
+    def get_queryset(self):
+
+        user = self.request.user
+
+        if not hasattr(
+            user,
+            "doctor_profile"
+        ):
+            return Appointment.objects.none()
+
+        return Appointment.objects.filter(
+            doctor=user.doctor_profile
+        )
+
+    def patch(
+        self,
+        request,
+        *args,
+        **kwargs
+    ):
+
+        appointment = self.get_object()
+
+        # --------------------------------------------------
+        # Only Confirmed appointment can be completed
+        # --------------------------------------------------
+
+        if appointment.status != "Confirmed":
+
+            return Response(
+                {
+                    "detail": (
+                        "Only confirmed appointments "
+                        "can be completed."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        appointment.status = "Completed"
+
+        appointment.save(
+            update_fields=[
+                "status",
+                "updated_at",
+            ]
+        )
+
+        # --------------------------------------------------
+        # Notify patient
+        # --------------------------------------------------
+
+        doctor_name = (
+            appointment.doctor.user.get_full_name()
+            or appointment.doctor.user.username
+        )
+
+        Notification.objects.create(
+            user=appointment.patient.user,
+
+            notification_type="Appointment",
+
+            title="Appointment Completed",
+
+            message=(
+                f"Your appointment "
+                f"{appointment.booking_number} "
+                f"with Dr. {doctor_name} "
+                f"has been completed."
+            ),
+        )
+
+        return Response(
+            {
+                "message": (
+                    "Appointment completed successfully."
+                ),
+
+                "appointment": AppointmentSerializer(
+                    appointment,
+                    context={
+                        "request": request
+                    }
+                ).data,
+            },
+            status=status.HTTP_200_OK
+        )
+        
+        
+        # ==========================================================
+        # Admin User Management
+        #
+        # GET:
+        # /api/accounts/admin/users/
+        #
+        # Admin only
+        # ==========================================================
+
+        class AdminUserListView(
+            generics.ListAPIView
+        ):
+
+            queryset = CustomUser.objects.all().order_by(
+                "-created_at"
+            )
+
+            serializer_class = AdminUserSerializer
+
+            permission_classes = [
+                IsAuthenticated,
+                IsAdminUser,
+            ]
+
+            # ======================================================
+            # Search + Role + Status Filter
+            # ======================================================
+
+            def get_queryset(self):
+
+                queryset = super().get_queryset()
+
+                search = self.request.query_params.get(
+                    "search",
+                    ""
+                ).strip()
+
+                role = self.request.query_params.get(
+                    "role",
+                    ""
+                ).strip().lower()
+
+                is_active = self.request.query_params.get(
+                    "is_active",
+                    ""
+                ).strip().lower()
+
+
+                # --------------------------------------------------
+                # Search
+                # --------------------------------------------------
+
+                if search:
+
+                    queryset = queryset.filter(
+
+                        models.Q(
+                            username__icontains=search
+                        )
+
+                        |
+
+                        models.Q(
+                            email__icontains=search
+                        )
+
+                        |
+
+                        models.Q(
+                            first_name__icontains=search
+                        )
+
+                        |
+
+                        models.Q(
+                            last_name__icontains=search
+                        )
+
+                    )
+
+
+                # --------------------------------------------------
+                # Role
+                # --------------------------------------------------
+
+                if role in [
+                    "admin",
+                    "doctor",
+                    "patient",
+                    "receptionist",
+                ]:
+
+                    queryset = queryset.filter(
+                        role=role
+                    )
+
+
+                # --------------------------------------------------
+                # Active / Inactive
+                # --------------------------------------------------
+
+                if is_active == "true":
+
+                    queryset = queryset.filter(
+                        is_active=True
+                    )
+
+                elif is_active == "false":
+
+                    queryset = queryset.filter(
+                        is_active=False
+                    )
+
+
+                return queryset
+                
+                
+                
+            

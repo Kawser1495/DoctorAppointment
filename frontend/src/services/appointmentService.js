@@ -11,8 +11,9 @@ export const bookAppointment = async (data) => {
     );
 };
 
+
 // ===========================================
-// Get My Appointments
+// Get My Appointments - Patient
 // ===========================================
 
 export const getMyAppointments = async () => {
@@ -21,8 +22,9 @@ export const getMyAppointments = async () => {
     );
 };
 
+
 // ===========================================
-// Get Appointment Details
+// Get Appointment Details - Patient
 // ===========================================
 
 export const getAppointmentDetails = async (id) => {
@@ -30,6 +32,7 @@ export const getAppointmentDetails = async (id) => {
         `appointments/${id}/`
     );
 };
+
 
 // ===========================================
 // Update Appointment
@@ -42,8 +45,9 @@ export const updateAppointment = async (id, data) => {
     );
 };
 
+
 // ===========================================
-// Cancel Appointment
+// Cancel Appointment - Patient
 // ===========================================
 
 export const cancelAppointment = async (id) => {
@@ -52,8 +56,14 @@ export const cancelAppointment = async (id) => {
     );
 };
 
+
+// ==========================================================
+// DOCTOR APPOINTMENTS
+// ==========================================================
+
+
 // ===========================================
-// Doctor Appointments
+// Get Doctor Appointments
 // ===========================================
 
 export const getDoctorAppointments = async () => {
@@ -61,6 +71,51 @@ export const getDoctorAppointments = async () => {
         "appointments/doctor/"
     );
 };
+
+
+// ===========================================
+// Get Doctor Appointment Details
+// ===========================================
+
+export const getDoctorAppointmentDetails = async (id) => {
+    return await api.get(
+        `appointments/doctor/${id}/`
+    );
+};
+
+
+// ===========================================
+// Doctor Confirm Appointment
+// ===========================================
+
+export const confirmDoctorAppointment = async (id) => {
+    return await api.patch(
+        `appointments/doctor/${id}/confirm/`
+    );
+};
+
+
+// ===========================================
+// Doctor Reject Appointment
+// ===========================================
+
+export const rejectDoctorAppointment = async (id) => {
+    return await api.patch(
+        `appointments/doctor/${id}/reject/`
+    );
+};
+
+
+// ===========================================
+// Doctor Complete Appointment
+// ===========================================
+
+export const completeDoctorAppointment = async (id) => {
+    return await api.patch(
+        `appointments/doctor/${id}/complete/`
+    );
+};
+
 
 // ===========================================
 // Admin Appointments
@@ -72,15 +127,23 @@ export const getAdminAppointments = async () => {
     );
 };
 
+
 // ===========================================
-// Update Appointment Status
+// OLD GENERIC STATUS UPDATE
+// ===========================================
+//
+// তোমার বর্তমান Django backend-এ
+// appointments/<id>/status/ endpoint নেই।
+//
+// তাই আপাতত এই function ব্যবহার না করাই ভালো.
+//
 // ===========================================
 
-export const updateAppointmentStatus = async (id, status) => {
-    return await api.patch(
-        `appointments/${id}/status/`,
-        {
-            status,
-        }
-    );
-};
+// export const updateAppointmentStatus = async (id, status) => {
+//     return await api.patch(
+//         `appointments/${id}/status/`,
+//         {
+//             status,
+//         }
+//     );
+// };

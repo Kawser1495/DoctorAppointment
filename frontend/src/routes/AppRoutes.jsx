@@ -6,39 +6,85 @@ import {
 
 import ProtectedRoute from "./ProtectedRoute";
 import GuestRoute from "./GuestRoute";
+import RoleRoute from "./RoleRoute";
 
 
 // ==========================================================
 // Authentication
 // ==========================================================
 
-import Login from "../pages/Auth/Login";
-import Register from "../pages/Auth/Register";
-import Logout from "../pages/Auth/Logout";
+import Login
+    from "../pages/Auth/Login";
+
+import Register
+    from "../pages/Auth/Register";
+
+import Logout
+    from "../pages/Auth/Logout";
 
 
 // ==========================================================
-// Dashboard
+// General Dashboard
 // ==========================================================
 
-import Dashboard from "../pages/Dashboard/Dashboard";
+import Dashboard
+    from "../pages/Dashboard/Dashboard";
+
+
+// ==========================================================
+// Admin
+// ==========================================================
+
+import AdminDashboard
+    from "../pages/Admin/AdminDashboard";
+
+import AdminUsers
+    from "../pages/Admin/AdminUsers";
+
+import AdminPayments
+    from "../pages/Admin/AdminPayments";
+
+import AdminSupport
+    from "../pages/Admin/AdminSupport";
+
+
+// ==========================================================
+// Doctor
+// ==========================================================
+
+import DoctorDashboard
+    from "../pages/Doctors/DoctorDashboard";
+
+import DoctorAppointments
+    from "../pages/Doctors/DoctorAppointments";
+
+import DoctorList
+    from "../pages/Doctors/DoctorList";
+
+
+// ==========================================================
+// Patient
+// ==========================================================
+
+import PatientDashboard
+    from "../pages/Patients/PatientDashboard";
 
 
 // ==========================================================
 // Appointments
 // ==========================================================
 
-import BookAppointment from "../pages/Appointments/BookAppointment";
-import MyAppointments from "../pages/Appointments/MyAppointments";
-import AppointmentDetails from "../pages/Appointments/AppointmentDetails";
-import AppointmentSuccess from "../pages/Appointments/AppointmentSuccess";
+import BookAppointment
+    from "../pages/Appointments/BookAppointment";
 
+import MyAppointments
+    from "../pages/Appointments/MyAppointments";
 
-// ==========================================================
-// Doctors
-// ==========================================================
+import AppointmentDetails
+    from "../pages/Appointments/AppointmentDetails";
 
-import DoctorList from "../pages/Doctors/DoctorList";
+import AppointmentSuccess
+    from "../pages/Appointments/AppointmentSuccess";
 
 
 // ==========================================================
@@ -65,47 +111,55 @@ import DiagnosticPayment
 // Reports
 // ==========================================================
 
-import MedicalReports from "../pages/Reports/MedicalReports";
+import MedicalReports
+    from "../pages/Reports/MedicalReports";
 
 
 // ==========================================================
 // Payments
 // ==========================================================
 
-import PaymentPage from "../pages/Payments/PaymentPage";
-import PaymentSuccess from "../pages/Payments/PaymentSuccess";
-import PaymentHistory from "../pages/Payments/PaymentHistory";
-import PaymentDetails from "../pages/Payments/PaymentDetails";
-import PaymentReceipt from "../pages/Payments/PaymentReceipt";
-import PaymentInvoice from "../pages/Payments/PaymentInvoice";
+import PaymentPage
+    from "../pages/Payments/PaymentPage";
 
+import PaymentSuccess
+    from "../pages/Payments/PaymentSuccess";
 
-// ==========================================================
-// Admin
-// ==========================================================
+import PaymentHistory
+    from "../pages/Payments/PaymentHistory";
 
-import AdminPayments from "../pages/Admin/AdminPayments";
+import PaymentDetails
+    from "../pages/Payments/PaymentDetails";
+
+import PaymentReceipt
+    from "../pages/Payments/PaymentReceipt";
+
+import PaymentInvoice
+    from "../pages/Payments/PaymentInvoice";
 
 
 // ==========================================================
 // Family
 // ==========================================================
 
-import FamilyMembers from "../pages/Family/FamilyMembers";
+import FamilyMembers
+    from "../pages/Family/FamilyMembers";
 
 
 // ==========================================================
 // Notifications
 // ==========================================================
 
-import Notifications from "../pages/Notifications/Notifications";
+import Notifications
+    from "../pages/Notifications/Notifications";
 
 
 // ==========================================================
 // Settings
 // ==========================================================
 
-import Settings from "../pages/Settings/Settings";
+import Settings
+    from "../pages/Settings/Settings";
 
 
 // ==========================================================
@@ -122,7 +176,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Guest Routes
+                    AUTHENTICATION
                 ================================================== */}
 
                 <Route
@@ -134,6 +188,7 @@ export default function AppRoutes() {
                     }
                 />
 
+
                 <Route
                     path="/login"
                     element={
@@ -142,6 +197,7 @@ export default function AppRoutes() {
                         </GuestRoute>
                     }
                 />
+
 
                 <Route
                     path="/register"
@@ -153,10 +209,6 @@ export default function AppRoutes() {
                 />
 
 
-                {/* ==================================================
-                    Logout
-                ================================================== */}
-
                 <Route
                     path="/logout"
                     element={
@@ -166,7 +218,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Dashboard
+                    GENERAL DASHBOARD
                 ================================================== */}
 
                 <Route
@@ -180,7 +232,161 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Appointments
+                    ADMIN DASHBOARD
+                ================================================== */}
+
+                <Route
+                    path="/admin/dashboard"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "admin",
+                            ]}
+                        >
+
+                            <AdminDashboard />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                {/* ==================================================
+                    ADMIN USER MANAGEMENT
+                ================================================== */}
+
+                <Route
+                    path="/admin/users"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "admin",
+                            ]}
+                        >
+
+                            <AdminUsers />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                {/* ==================================================
+                    ADMIN PAYMENTS
+                ================================================== */}
+
+                <Route
+                    path="/admin/payments"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "admin",
+                            ]}
+                        >
+
+                            <AdminPayments />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                {/* ==================================================
+                    ADMIN SUPPORT
+                ================================================== */}
+
+                <Route
+                    path="/admin/support"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "admin",
+                            ]}
+                        >
+
+                            <AdminSupport />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                {/* ==================================================
+                    DOCTOR DASHBOARD
+                ================================================== */}
+
+                <Route
+                    path="/doctor/dashboard"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorDashboard />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                {/* ==================================================
+                    DOCTOR APPOINTMENTS
+                ================================================== */}
+
+                <Route
+                    path="/doctor/appointments"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorAppointments />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                {/* ==================================================
+                    PATIENT DASHBOARD
+                ================================================== */}
+
+                <Route
+                    path="/patient/dashboard"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "patient",
+                            ]}
+                        >
+
+                            <PatientDashboard />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                {/* ==================================================
+                    APPOINTMENTS
                 ================================================== */}
 
                 <Route
@@ -192,6 +398,7 @@ export default function AppRoutes() {
                     }
                 />
 
+
                 <Route
                     path="/appointments/book"
                     element={
@@ -201,6 +408,7 @@ export default function AppRoutes() {
                     }
                 />
 
+
                 <Route
                     path="/appointments/details/:id"
                     element={
@@ -209,6 +417,7 @@ export default function AppRoutes() {
                         </ProtectedRoute>
                     }
                 />
+
 
                 <Route
                     path="/appointments/success"
@@ -221,7 +430,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Doctors
+                    DOCTORS
                 ================================================== */}
 
                 <Route
@@ -235,7 +444,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Diagnostics - Test List
+                    DIAGNOSTIC TESTS
                 ================================================== */}
 
                 <Route
@@ -249,7 +458,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Diagnostics - Book Test
+                    DIAGNOSTIC TEST BOOKING
                 ================================================== */}
 
                 <Route
@@ -263,7 +472,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    My Diagnostic Bookings
+                    MY DIAGNOSTIC BOOKINGS
                 ================================================== */}
 
                 <Route
@@ -277,7 +486,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Diagnostic Booking Details
+                    DIAGNOSTIC BOOKING DETAILS
                 ================================================== */}
 
                 <Route
@@ -291,7 +500,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Diagnostic Payment
+                    DIAGNOSTIC PAYMENT
                 ================================================== */}
 
                 <Route
@@ -305,7 +514,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Reports
+                    MEDICAL REPORTS
                 ================================================== */}
 
                 <Route
@@ -319,7 +528,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Payments
+                    PAYMENTS
                 ================================================== */}
 
                 <Route
@@ -331,6 +540,7 @@ export default function AppRoutes() {
                     }
                 />
 
+
                 <Route
                     path="/payments"
                     element={
@@ -339,6 +549,7 @@ export default function AppRoutes() {
                         </ProtectedRoute>
                     }
                 />
+
 
                 <Route
                     path="/payments/:id"
@@ -349,6 +560,7 @@ export default function AppRoutes() {
                     }
                 />
 
+
                 <Route
                     path="/payments/:id/receipt"
                     element={
@@ -358,6 +570,7 @@ export default function AppRoutes() {
                     }
                 />
 
+
                 <Route
                     path="/payments/:id/invoice"
                     element={
@@ -366,6 +579,7 @@ export default function AppRoutes() {
                         </ProtectedRoute>
                     }
                 />
+
 
                 <Route
                     path="/payment-success"
@@ -378,21 +592,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Admin
-                ================================================== */}
-
-                <Route
-                    path="/admin/payments"
-                    element={
-                        <ProtectedRoute>
-                            <AdminPayments />
-                        </ProtectedRoute>
-                    }
-                />
-
-
-                {/* ==================================================
-                    Family
+                    FAMILY MEMBERS
                 ================================================== */}
 
                 <Route
@@ -406,7 +606,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Notifications
+                    NOTIFICATIONS
                 ================================================== */}
 
                 <Route
@@ -420,7 +620,7 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    Settings
+                    SETTINGS
                 ================================================== */}
 
                 <Route
@@ -434,12 +634,13 @@ export default function AppRoutes() {
 
 
                 {/* ==================================================
-                    404
+                    404 PAGE
                 ================================================== */}
 
                 <Route
                     path="*"
                     element={
+
                         <div
                             style={{
                                 minHeight: "60vh",
@@ -450,14 +651,18 @@ export default function AppRoutes() {
                                 textAlign: "center",
                             }}
                         >
+
                             <h2>
                                 404 - Page Not Found
                             </h2>
 
                             <p>
-                                The page you are looking for does not exist.
+                                The page you are looking for
+                                does not exist.
                             </p>
+
                         </div>
+
                     }
                 />
 

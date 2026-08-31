@@ -1,6 +1,6 @@
 from datetime import datetime
-from django.db import models
 
+from django.db import models
 from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
@@ -10,58 +10,97 @@ from rest_framework.permissions import AllowAny
 from .models import (
     Doctor,
     Department,
+    DoctorSchedule,
     TimeSlot,
 )
 
 from .serializers import (
     DoctorSerializer,
     DepartmentSerializer,
+    DoctorScheduleSerializer,
     TimeSlotSerializer,
 )
 
 
 # ==========================================================
-# Get All Departments
-#
-# GET:
-# /api/doctors/departments/
+# Departments
 # ==========================================================
 
-class DepartmentListView(generics.ListAPIView):
+class DepartmentListView(
+    generics.ListAPIView
+):
 
-    queryset = Department.objects.all()
-
-    serializer_class = DepartmentSerializer
-
-    permission_classes = [AllowAny]
-
-
-# ==========================================================
-# Get All Available Doctors
-#
-# GET:
-# /api/doctors/doctors/
-# ==========================================================
-
-class DoctorListView(generics.ListAPIView):
-
-    queryset = Doctor.objects.filter(
-        is_available=True
-    ).select_related(
-        "user",
-        "department"
+    queryset = (
+        Department.objects
+        .all()
+        .order_by("name")
     )
+
+    serializer_class = (
+        DepartmentSerializer
+    )
+
+    permission_classes = [
+        AllowAny
+    ]
+
+    pagination_class = None
+
+
+# ==========================================================
+# All Available Doctors
+# ==========================================================
+
+class DoctorListView(
+    generics.ListAPIView
+):
 
     serializer_class = DoctorSerializer
 
-    permission_classes = [AllowAny]
+    permission_classes = [
+        AllowAny
+    ]
+
+    pagination_class = None
+
+    def get_queryset(self):
+
+        return (
+
+            Doctor.objects
+
+            .filter(
+
+                is_available=True,
+
+                user__is_active=True,
+
+                user__role="doctor",
+
+            )
+
+            .select_related(
+
+                "user",
+
+                "department",
+
+            )
+
+            .prefetch_related(
+                "schedules"
+            )
+
+            .order_by(
+                "user__first_name",
+                "user__username",
+            )
+
+        )
 
 
 # ==========================================================
-# Get Single Doctor Details
-#
-# GET:
-# /api/doctors/doctors/<id>/
+# Doctor Details
 # ==========================================================
 
 class DoctorDetailView(
@@ -70,64 +109,108 @@ class DoctorDetailView(
 
     serializer_class = DoctorSerializer
 
-    permission_classes = [AllowAny]
-
+    permission_classes = [
+        AllowAny
+    ]
 
     def get_object(self):
 
         return get_object_or_404(
 
-            Doctor.objects.select_related(
+            Doctor.objects
+
+            .select_related(
                 "user",
-                "department"
+                "department",
+            )
+
+            .prefetch_related(
+                "schedules"
             ),
 
             id=self.kwargs.get("pk"),
 
             is_available=True,
 
+            user__is_active=True,
+
+            user__role="doctor",
+
         )
 
 
 # ==========================================================
 # Search Doctors
-#
-# GET:
-# /api/doctors/search/?search=cardiology
 # ==========================================================
 
-class DoctorSearchView(generics.ListAPIView):
-
-    queryset = Doctor.objects.filter(
-        is_available=True
-    ).select_related(
-        "user",
-        "department"
-    )
+class DoctorSearchView(
+    generics.ListAPIView
+):
 
     serializer_class = DoctorSerializer
 
-    permission_classes = [AllowAny]
+    permission_classes = [
+        AllowAny
+    ]
+
+    pagination_class = None
 
     filter_backends = [
         SearchFilter
     ]
 
     search_fields = [
+
         "user__first_name",
+
         "user__last_name",
+
         "user__username",
+
         "specialization",
+
         "qualification",
+
+        "biography",
+
         "department__name",
+
     ]
+
+    def get_queryset(self):
+
+        return (
+
+            Doctor.objects
+
+            .filter(
+
+                is_available=True,
+
+                user__is_active=True,
+
+                user__role="doctor",
+
+            )
+
+            .select_related(
+
+                "user",
+
+                "department",
+
+            )
+
+            .order_by(
+                "user__first_name",
+                "user__username",
+            )
+
+        )
 
 
 # ==========================================================
-# Get Doctors By Department
-#
-# GET:
-# /api/doctors/departments/1/doctors/
+# Doctors By Department
 # ==========================================================
 
 class DoctorByDepartmentView(
@@ -136,128 +219,234 @@ class DoctorByDepartmentView(
 
     serializer_class = DoctorSerializer
 
-    permission_classes = [AllowAny]
+    permission_classes = [
+        AllowAny
+    ]
 
+    pagination_class = None
 
     def get_queryset(self):
 
-        department_id = self.kwargs.get(
-            "department_id"
+        department_id = (
+            self.kwargs.get(
+                "department_id"
+            )
         )
 
-        return Doctor.objects.filter(
+        return (
 
-            department_id=department_id,
+            Doctor.objects
 
-            is_available=True,
+            .filter(
 
-        ).select_related(
+                department_id=
+                    department_id,
 
-            "user",
+                is_available=True,
 
-            "department",
+                user__is_active=True,
+
+                user__role="doctor",
+
+            )
+
+            .select_related(
+                "user",
+                "department",
+            )
+
+            .order_by(
+                "user__first_name",
+                "user__username",
+            )
 
         )
 
 
 # ==========================================================
-# Get Available Time Slots
+# Doctor Schedules
 #
 # GET:
-# /api/doctors/time-slots/?doctor=1
+# /api/doctors/doctors/<id>/schedules/
+# ==========================================================
+
+class DoctorScheduleListView(
+    generics.ListAPIView
+):
+
+    serializer_class = (
+        DoctorScheduleSerializer
+    )
+
+    permission_classes = [
+        AllowAny
+    ]
+
+    pagination_class = None
+
+    def get_queryset(self):
+
+        doctor_id = (
+            self.kwargs.get(
+                "doctor_id"
+            )
+        )
+
+        return (
+
+            DoctorSchedule.objects
+
+            .filter(
+
+                doctor_id=doctor_id,
+
+                doctor__is_available=True,
+
+                doctor__user__is_active=True,
+
+                is_active=True,
+
+            )
+
+            .select_related(
+                "doctor",
+                "doctor__user",
+            )
+
+            .prefetch_related(
+                "slots"
+            )
+
+        )
+
+
+# ==========================================================
+# Available Time Slots
 #
-# OR
-#
-# /api/doctors/time-slots/?doctor=1&date=2026-08-26
+# GET:
+# /api/doctors/time-slots/?doctor=1&date=2026-08-31
 # ==========================================================
 
 class AvailableTimeSlotAPIView(
     generics.ListAPIView
 ):
 
-    serializer_class = TimeSlotSerializer
+    serializer_class = (
+        TimeSlotSerializer
+    )
 
-    permission_classes = [AllowAny]
+    permission_classes = [
+        AllowAny
+    ]
 
+    pagination_class = None
 
     def get_queryset(self):
 
-        doctor_id = self.request.query_params.get(
-            "doctor"
+        doctor_id = (
+            self.request
+            .query_params
+            .get("doctor")
         )
 
-        appointment_date = self.request.query_params.get(
-            "date"
+        appointment_date = (
+            self.request
+            .query_params
+            .get("date")
         )
 
 
-        # ==================================================
-        # Doctor Not Selected
-        # ==================================================
+        # --------------------------------------------------
+        # Doctor Required
+        # --------------------------------------------------
 
         if not doctor_id:
 
-            return TimeSlot.objects.none()
+            return (
+                TimeSlot.objects.none()
+            )
 
 
-        # ==================================================
-        # Get Active and Available Slots
-        # ==================================================
+        # --------------------------------------------------
+        # Active Doctor + Schedule + Slot
+        # --------------------------------------------------
 
-        queryset = TimeSlot.objects.filter(
+        queryset = (
 
-            schedule__doctor_id=doctor_id,
+            TimeSlot.objects
 
-            schedule__is_active=True,
+            .filter(
 
-            is_active=True,
+                schedule__doctor_id=
+                    doctor_id,
 
-            # Full slot will not be returned
-            booked_count__lt=models.F(
-                "max_patient"
-            ),
+                schedule__doctor__is_available=
+                    True,
 
-        ).select_related(
+                schedule__doctor__user__is_active=
+                    True,
 
-            "schedule",
+                schedule__doctor__user__role=
+                    "doctor",
 
-            "schedule__doctor",
+                schedule__is_active=True,
+
+                is_active=True,
+
+                booked_count__lt=models.F(
+                    "max_patient"
+                ),
+
+            )
+
+            .select_related(
+
+                "schedule",
+
+                "schedule__doctor",
+
+                "schedule__doctor__user",
+
+            )
 
         )
 
 
-        # ==================================================
-        # Filter By Selected Date
-        # ==================================================
+        # --------------------------------------------------
+        # Date Required for booking
+        # --------------------------------------------------
 
         if appointment_date:
 
             try:
 
-                selected_date = datetime.strptime(
-
-                    appointment_date,
-
-                    "%Y-%m-%d"
-
-                ).date()
-
-
-                day_name = selected_date.strftime(
-                    "%A"
+                selected_date = (
+                    datetime.strptime(
+                        appointment_date,
+                        "%Y-%m-%d",
+                    ).date()
                 )
-
-
-                queryset = queryset.filter(
-
-                    schedule__day=day_name
-
-                )
-
 
             except ValueError:
 
-                return TimeSlot.objects.none()
+                return (
+                    TimeSlot.objects.none()
+                )
+
+
+            day_name = (
+                selected_date.strftime(
+                    "%A"
+                )
+            )
+
+
+            queryset = (
+                queryset.filter(
+                    schedule__day=
+                        day_name
+                )
+            )
 
 
         return queryset.order_by(

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from accounts.models import CustomUser
@@ -11,20 +12,22 @@ class Department(models.Model):
 
     name = models.CharField(
         max_length=100,
-        unique=True
+        unique=True,
     )
 
     description = models.TextField(
-        blank=True
+        blank=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     class Meta:
 
-        ordering = ["name"]
+        ordering = [
+            "name"
+        ]
 
         verbose_name = "Department"
 
@@ -44,57 +47,60 @@ class Doctor(models.Model):
     user = models.OneToOneField(
         CustomUser,
         on_delete=models.CASCADE,
-        related_name="doctor_profile"
+        related_name="doctor_profile",
     )
 
     department = models.ForeignKey(
         Department,
         on_delete=models.CASCADE,
-        related_name="doctors"
+        related_name="doctors",
     )
 
     specialization = models.CharField(
-        max_length=150
+        max_length=150,
     )
 
     qualification = models.CharField(
-        max_length=200
+        max_length=200,
     )
 
     experience = models.PositiveIntegerField(
-        help_text="Experience in years"
+        help_text="Experience in years",
     )
 
     consultation_fee = models.DecimalField(
         max_digits=8,
-        decimal_places=2
+        decimal_places=2,
     )
 
     biography = models.TextField(
-        blank=True
+        blank=True,
     )
 
     profile_image = models.ImageField(
         upload_to="doctor_profiles/",
         blank=True,
-        null=True
+        null=True,
     )
 
     is_available = models.BooleanField(
-        default=True
+        default=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     updated_at = models.DateTimeField(
-        auto_now=True
+        auto_now=True,
     )
 
     class Meta:
 
-        ordering = ["user__first_name"]
+        ordering = [
+            "user__first_name",
+            "user__username",
+        ]
 
         verbose_name = "Doctor"
 
@@ -102,13 +108,39 @@ class Doctor(models.Model):
 
     def __str__(self):
 
-        full_name = self.user.get_full_name()
+        full_name = (
+            self.user.get_full_name().strip()
+        )
 
         if full_name:
 
             return f"Dr. {full_name}"
 
         return f"Dr. {self.user.username}"
+
+    # ======================================================
+    # Save
+    #
+    # If a user gets a Doctor profile,
+    # automatically make the user role = doctor
+    # ======================================================
+
+    def save(self, *args, **kwargs):
+
+        super().save(
+            *args,
+            **kwargs
+        )
+
+        if self.user.role != "doctor":
+
+            self.user.role = "doctor"
+
+            self.user.save(
+                update_fields=[
+                    "role"
+                ]
+            )
 
 
 # ==========================================================
@@ -118,6 +150,7 @@ class Doctor(models.Model):
 class DoctorSchedule(models.Model):
 
     DAYS = (
+
         ("Sunday", "Sunday"),
         ("Monday", "Monday"),
         ("Tuesday", "Tuesday"),
@@ -125,48 +158,115 @@ class DoctorSchedule(models.Model):
         ("Thursday", "Thursday"),
         ("Friday", "Friday"),
         ("Saturday", "Saturday"),
+
     )
 
     doctor = models.ForeignKey(
         Doctor,
         on_delete=models.CASCADE,
-        related_name="schedules"
+        related_name="schedules",
     )
 
     day = models.CharField(
         max_length=20,
-        choices=DAYS
+        choices=DAYS,
     )
 
     start_time = models.TimeField()
 
     end_time = models.TimeField()
 
+    # ======================================================
+    # Automatic Slot Settings
+    # ======================================================
+
+    slot_duration_minutes = models.PositiveIntegerField(
+        default=30,
+        help_text="Duration of each appointment slot in minutes.",
+    )
+
+    max_patient_per_slot = models.PositiveIntegerField(
+        default=1,
+        help_text="Maximum patients allowed in each generated slot.",
+    )
+
     is_active = models.BooleanField(
-        default=True
+        default=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
     )
 
     class Meta:
 
         constraints = [
+
             models.UniqueConstraint(
-                fields=["doctor", "day"],
-                name="unique_doctor_schedule_day"
-            )
+                fields=[
+                    "doctor",
+                    "day",
+                ],
+                name="unique_doctor_schedule_day",
+            ),
+
         ]
 
         ordering = [
             "doctor",
-            "day"
+            "day",
         ]
+
+        verbose_name = "Doctor Schedule"
+
+        verbose_name_plural = "Doctor Schedules"
 
     def __str__(self):
 
-        return f"{self.doctor} - {self.day}"
+        return (
+            f"{self.doctor} - "
+            f"{self.day} - "
+            f"{self.start_time} to {self.end_time}"
+        )
+
+    # ======================================================
+    # Validation
+    # ======================================================
+
+    def clean(self):
+
+        super().clean()
+
+        if self.start_time >= self.end_time:
+
+            raise ValidationError({
+
+                "end_time":
+                    "End time must be later than start time."
+
+            })
+
+        if self.slot_duration_minutes <= 0:
+
+            raise ValidationError({
+
+                "slot_duration_minutes":
+                    "Slot duration must be greater than zero."
+
+            })
+
+        if self.max_patient_per_slot <= 0:
+
+            raise ValidationError({
+
+                "max_patient_per_slot":
+                    "Maximum patient must be greater than zero."
+
+            })
 
 
 # ==========================================================
@@ -178,45 +278,74 @@ class TimeSlot(models.Model):
     schedule = models.ForeignKey(
         DoctorSchedule,
         on_delete=models.CASCADE,
-        related_name="slots"
+        related_name="slots",
     )
 
     slot_time = models.TimeField()
 
     max_patient = models.PositiveIntegerField(
-        default=1
+        default=1,
     )
 
     booked_count = models.PositiveIntegerField(
-        default=0
+        default=0,
     )
 
     is_active = models.BooleanField(
-        default=True
+        default=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
     )
 
     class Meta:
 
         constraints = [
+
             models.UniqueConstraint(
-                fields=["schedule", "slot_time"],
-                name="unique_schedule_slot_time"
-            )
+                fields=[
+                    "schedule",
+                    "slot_time",
+                ],
+                name="unique_schedule_slot_time",
+            ),
+
         ]
 
         ordering = [
             "slot_time"
         ]
 
+        verbose_name = "Time Slot"
+
+        verbose_name_plural = "Time Slots"
+
     def __str__(self):
 
-        return f"{self.schedule.day} | {self.slot_time}"
+        return (
+            f"{self.schedule.doctor} | "
+            f"{self.schedule.day} | "
+            f"{self.slot_time}"
+        )
 
     @property
     def is_full(self):
 
-        return self.booked_count >= self.max_patient
+        return (
+            self.booked_count >=
+            self.max_patient
+        )
+
+    @property
+    def remaining_seats(self):
+
+        return max(
+            self.max_patient -
+            self.booked_count,
+            0,
+        )

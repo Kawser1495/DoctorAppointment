@@ -6,6 +6,7 @@ from .views import (
     DoctorDetailView,
     DoctorSearchView,
     DoctorByDepartmentView,
+    DoctorScheduleListView,
     AvailableTimeSlotAPIView,
 )
 
@@ -27,7 +28,7 @@ urlpatterns = [
 
 
     # ======================================================
-    # All Doctors
+    # Doctors
     # ======================================================
 
     path(
@@ -35,11 +36,6 @@ urlpatterns = [
         DoctorListView.as_view(),
         name="doctor-list",
     ),
-
-
-    # ======================================================
-    # Single Doctor Details
-    # ======================================================
 
     path(
         "doctors/<int:pk>/",
@@ -49,7 +45,18 @@ urlpatterns = [
 
 
     # ======================================================
-    # Doctor Search
+    # Doctor Schedules
+    # ======================================================
+
+    path(
+        "doctors/<int:doctor_id>/schedules/",
+        DoctorScheduleListView.as_view(),
+        name="doctor-schedules",
+    ),
+
+
+    # ======================================================
+    # Search
     # ======================================================
 
     path(
@@ -71,7 +78,7 @@ urlpatterns = [
 
 
     # ======================================================
-    # Available Time Slots
+    # Time Slots
     # ======================================================
 
     path(
