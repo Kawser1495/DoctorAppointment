@@ -380,8 +380,6 @@ class DoctorScheduleListView(
 
                 doctor__user__role="doctor",
 
-                is_active=True,
-
             )
 
             .select_related(
@@ -396,7 +394,53 @@ class DoctorScheduleListView(
                 "slots"
             )
 
+            .order_by(
+                "day",
+                "start_time",
+            )
+
         )
+
+
+class DoctorScheduleManageView(
+    generics.ListCreateAPIView,
+    generics.RetrieveUpdateDestroyAPIView,
+):
+
+    serializer_class = (
+        DoctorScheduleSerializer
+    )
+
+    permission_classes = [
+        IsAuthenticated,
+        IsDoctor,
+    ]
+
+    pagination_class = None
+
+    def get_queryset(self):
+
+        return (
+            DoctorSchedule.objects
+            .filter(
+                doctor__user=self.request.user,
+            )
+            .select_related(
+                "doctor",
+                "doctor__user",
+            )
+            .prefetch_related("slots")
+            .order_by("day", "start_time")
+        )
+
+    def perform_create(self, serializer):
+
+        doctor = get_object_or_404(
+            Doctor,
+            user=self.request.user,
+        )
+
+        serializer.save(doctor=doctor)
 
 
 # ==========================================================

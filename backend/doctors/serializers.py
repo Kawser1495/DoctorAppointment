@@ -259,9 +259,9 @@ class DoctorScheduleSerializer(
             "is_active",
             "slots",
         ]
-        
-        
-        # ==========================================================
+
+
+# ==========================================================
 # Doctor Profile Update Serializer
 # ==========================================================
 
@@ -269,28 +269,46 @@ class DoctorProfileUpdateSerializer(
     serializers.ModelSerializer
 ):
 
+    first_name = serializers.CharField(
+        source="user.first_name",
+        required=False,
+        allow_blank=True,
+    )
+
+    last_name = serializers.CharField(
+        source="user.last_name",
+        required=False,
+        allow_blank=True,
+    )
+
+    email = serializers.EmailField(
+        source="user.email",
+        required=False,
+    )
+
+    phone = serializers.CharField(
+        source="user.phone",
+        required=False,
+        allow_blank=True,
+    )
+
     class Meta:
 
         model = Doctor
 
         fields = [
-
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
             "department",
-
             "specialization",
-
             "qualification",
-
             "experience",
-
             "consultation_fee",
-
             "biography",
-
             "profile_image",
-
             "is_available",
-
         ]
 
     def validate_experience(
@@ -306,7 +324,6 @@ class DoctorProfileUpdateSerializer(
 
         return value
 
-
     def validate_consultation_fee(
         self,
         value
@@ -319,123 +336,28 @@ class DoctorProfileUpdateSerializer(
             )
 
         return value
-    
-    
-    # ==========================================================
-    # Doctor Profile Update Serializer
-    # ==========================================================
 
-    class DoctorProfileUpdateSerializer(
-        serializers.ModelSerializer
+    def update(
+        self,
+        instance,
+        validated_data
     ):
 
-        first_name = serializers.CharField(
-            source="user.first_name",
-            required=False,
-            allow_blank=True,
+        user = instance.user
+
+        user_data = validated_data.pop(
+            "user",
+            {}
         )
 
-        last_name = serializers.CharField(
-            source="user.last_name",
-            required=False,
-            allow_blank=True,
-        )
+        for attr, value in user_data.items():
+            setattr(user, attr, value)
 
-        email = serializers.EmailField(
-            source="user.email",
-            required=False,
-        )
+        user.save()
 
-        phone = serializers.CharField(
-            source="user.phone",
-            required=False,
-            allow_blank=True,
-        )
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
+        instance.save()
 
-        class Meta:
-
-            model = Doctor
-
-            fields = [
-
-                # User Information
-
-                "first_name",
-
-                "last_name",
-
-                "email",
-
-                "phone",
-
-
-                # Professional Information
-
-                "department",
-
-                "specialization",
-
-                "qualification",
-
-                "experience",
-
-                "consultation_fee",
-
-                "biography",
-
-                "profile_image",
-
-                "is_available",
-
-            ]
-
-
-        def update(
-            self,
-            instance,
-            validated_data
-        ):
-
-            # ----------------------------------------------
-            # User Data
-            # ----------------------------------------------
-
-            user_data = validated_data.pop(
-                "user",
-                {}
-            )
-
-
-            user = instance.user
-
-
-            for attr, value in user_data.items():
-
-                setattr(
-                    user,
-                    attr,
-                    value
-                )
-
-
-            user.save()
-
-
-            # ----------------------------------------------
-            # Doctor Data
-            # ----------------------------------------------
-
-            for attr, value in validated_data.items():
-
-                setattr(
-                    instance,
-                    attr,
-                    value
-                )
-
-
-            instance.save()
-
-
-            return instance
+        return instance

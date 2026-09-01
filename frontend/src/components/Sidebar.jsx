@@ -52,10 +52,6 @@ function Sidebar() {
             icon: <FaFlask />,
         },
 
-        // ==========================================
-        // NEW: My Diagnostic Bookings
-        // ==========================================
-
         {
             name: "My Diagnostic Bookings",
             path: "/my-diagnostic-bookings",
@@ -103,44 +99,42 @@ function Sidebar() {
 
     return (
 
-        <div className="sidebar">
+        <aside className="sidebar">
 
             <h2 className="logo">
                 Doctor Appointment
             </h2>
 
 
-            <div className="menu">
+            <nav className="menu">
 
-                {menuItems.map((item, index) => (
+                {menuItems.map((item) => (
 
                     <NavLink
-
-                        key={index}
-
+                        key={item.path}
                         to={item.path}
-
                         className={({ isActive }) =>
                             isActive
                                 ? "menu-item active"
                                 : "menu-item"
                         }
-
                     >
 
                         <span className="icon">
                             {item.icon}
                         </span>
 
-                        {item.name}
+                        <span>
+                            {item.name}
+                        </span>
 
                     </NavLink>
 
                 ))}
 
-            </div>
+            </nav>
 
-        </div>
+        </aside>
 
     );
 

@@ -23,7 +23,7 @@ import {
     FaCalendarAlt,
     FaStethoscope,
     FaReceipt,
-    FaUserCircle,
+    FaClipboardList,
 } from "react-icons/fa";
 
 import useAuth from "../../context/useAuth";
@@ -31,6 +31,9 @@ import useAuth from "../../context/useAuth";
 import {
     getMyAppointments,
 } from "../../services/appointmentService";
+
+import Navbar from "../../components/Navbar";
+import Sidebar from "../../components/Sidebar";
 
 import "../../pages/Patients/patientDashboard.css";
 
@@ -44,10 +47,7 @@ const normalizeAppointments = (response) => {
     const data = response?.data;
 
 
-    // ------------------------------------------------------
     // Direct array
-    // ------------------------------------------------------
-
     if (Array.isArray(data)) {
 
         return data;
@@ -55,10 +55,7 @@ const normalizeAppointments = (response) => {
     }
 
 
-    // ------------------------------------------------------
     // Django REST Framework pagination
-    // ------------------------------------------------------
-
     if (Array.isArray(data?.results)) {
 
         return data.results;
@@ -66,10 +63,7 @@ const normalizeAppointments = (response) => {
     }
 
 
-    // ------------------------------------------------------
     // Nested data array
-    // ------------------------------------------------------
-
     if (Array.isArray(data?.data)) {
 
         return data.data;
@@ -77,10 +71,7 @@ const normalizeAppointments = (response) => {
     }
 
 
-    // ------------------------------------------------------
     // Nested appointments
-    // ------------------------------------------------------
-
     if (Array.isArray(data?.appointments)) {
 
         return data.appointments;
@@ -88,10 +79,7 @@ const normalizeAppointments = (response) => {
     }
 
 
-    // ------------------------------------------------------
     // Nested results
-    // ------------------------------------------------------
-
     if (Array.isArray(data?.data?.results)) {
 
         return data.data.results;
@@ -191,7 +179,6 @@ export default function PatientDashboard() {
 
     const {
         user,
-        logout,
     } = useAuth();
 
 
@@ -310,11 +297,6 @@ export default function PatientDashboard() {
 
     // ======================================================
     // Safe Appointments
-    //
-    // IMPORTANT:
-    // useMemo prevents a new array from being created
-    // on every render.
-    // This fixes react-hooks/exhaustive-deps warning.
     // ======================================================
 
     const safeAppointments = useMemo(() => {
@@ -362,17 +344,13 @@ export default function PatientDashboard() {
 
                 }
 
-                else if (
-                    status === "confirmed"
-                ) {
+                else if (status === "confirmed") {
 
                     result.confirmed += 1;
 
                 }
 
-                else if (
-                    status === "completed"
-                ) {
+                else if (status === "completed") {
 
                     result.completed += 1;
 
@@ -445,953 +423,1003 @@ export default function PatientDashboard() {
 
 
             {/* ==================================================
-                Top Header
+                Common Navbar
             ================================================== */}
 
-            <div className="patient-topbar">
-
-                <div>
-
-                    <div className="patient-brand">
-
-                        <FaStethoscope />
-
-                        <span>
-                            MediCare
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div className="patient-user-area">
-
-                    <div className="patient-user-info">
-
-                        <FaUserCircle />
-
-                        <div>
-
-                            <strong>
-                                {patientName}
-                            </strong>
-
-                            <small>
-                                Patient
-                            </small>
-
-                        </div>
-
-                    </div>
-
-
-                    <button
-                        type="button"
-                        className="patient-logout-btn"
-                        onClick={logout}
-                    >
-
-                        Logout
-
-                    </button>
-
-                </div>
-
-            </div>
+            <Navbar />
 
 
             {/* ==================================================
-                Main Container
+                Dashboard Layout
             ================================================== */}
 
-            <div className="patient-dashboard-container">
+            <div className="dashboard-container">
 
 
                 {/* ==================================================
-                    Welcome Banner
+                    Common Sidebar
                 ================================================== */}
 
-                <div className="patient-welcome-banner">
-
-                    <div>
-
-                        <span className="patient-welcome-label">
-                            Patient Portal
-                        </span>
+                <Sidebar />
 
 
-                        <h1>
-                            Welcome back, {patientName}! 👋
-                        </h1>
+                {/* ==================================================
+                    Patient Dashboard Content
+                ================================================== */}
+
+                <main className="patient-dashboard-content">
 
 
-                        <p>
-                            Manage your appointments,
-                            prescriptions, reports and
-                            healthcare services from one place.
-                        </p>
+                    {/* ==================================================
+                        Welcome Banner
+                    ================================================== */}
+
+                    <div className="patient-welcome-banner">
+
+                        <div>
+
+                            <span className="patient-welcome-label">
+                                Patient Portal
+                            </span>
 
 
-                        <div className="patient-welcome-actions">
-
-                            <Link
-                                to="/appointments/book"
-                                className="patient-primary-btn"
-                            >
-
-                                <FaPlus />
-
-                                Book Appointment
-
-                            </Link>
+                            <h1>
+                                Welcome back, {patientName}! 👋
+                            </h1>
 
 
-                            <Link
-                                to="/doctors"
-                                className="patient-secondary-btn"
-                            >
+                            <p>
+                                Manage your appointments,
+                                prescriptions, reports and
+                                healthcare services from one place.
+                            </p>
+
+
+                            <div className="patient-welcome-actions">
+
+                                <Link
+                                    to="/appointments/book"
+                                    className="patient-primary-btn"
+                                >
+
+                                    <FaPlus />
+
+                                    Book Appointment
+
+                                </Link>
+
+
+                                <Link
+                                    to="/doctors"
+                                    className="patient-secondary-btn"
+                                >
+
+                                    <FaUserMd />
+
+                                    Find Doctor
+
+                                </Link>
+
+                            </div>
+
+                        </div>
+
+
+                        <div className="patient-welcome-icon">
+
+                            <FaStethoscope />
+
+                        </div>
+
+                    </div>
+
+
+                    {/* ==================================================
+                        Statistics
+                    ================================================== */}
+
+                    <div className="patient-section-title">
+
+                        <div>
+
+                            <h2>
+                                Your Overview
+                            </h2>
+
+                            <p>
+                                A quick summary of your healthcare activity
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div className="patient-stat-grid">
+
+
+                        {/* Total */}
+
+                        <div className="patient-stat-card">
+
+                            <div className="patient-stat-icon blue">
+
+                                <FaCalendarCheck />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Total Appointments
+                                </span>
+
+                                <strong>
+                                    {statistics.total}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* Pending */}
+
+                        <div className="patient-stat-card">
+
+                            <div className="patient-stat-icon orange">
+
+                                <FaClock />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Pending
+                                </span>
+
+                                <strong>
+                                    {statistics.pending}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* Confirmed */}
+
+                        <div className="patient-stat-card">
+
+                            <div className="patient-stat-icon purple">
+
+                                <FaCheckCircle />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Confirmed
+                                </span>
+
+                                <strong>
+                                    {statistics.confirmed}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* Completed */}
+
+                        <div className="patient-stat-card">
+
+                            <div className="patient-stat-icon green">
+
+                                <FaCheckCircle />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Completed
+                                </span>
+
+                                <strong>
+                                    {statistics.completed}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {/* ==================================================
+                        Healthcare Services
+                    ================================================== */}
+
+                    <div className="patient-section-title">
+
+                        <div>
+
+                            <h2>
+                                Healthcare Services
+                            </h2>
+
+                            <p>
+                                Everything you need in one place
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div className="patient-service-grid">
+
+
+                        {/* Doctors */}
+
+                        <Link
+                            to="/doctors"
+                            className="patient-service-card"
+                        >
+
+                            <div className="patient-service-icon blue">
 
                                 <FaUserMd />
 
-                                Find Doctor
-
-                            </Link>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="patient-welcome-icon">
-
-                        <FaStethoscope />
-
-                    </div>
-
-                </div>
-
-
-                {/* ==================================================
-                    Statistics
-                ================================================== */}
-
-                <div className="patient-section-title">
-
-                    <div>
-
-                        <h2>
-                            Your Overview
-                        </h2>
-
-                        <p>
-                            A quick summary of your healthcare activity
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div className="patient-stat-grid">
-
-
-                    {/* Total */}
-
-                    <div className="patient-stat-card">
-
-                        <div className="patient-stat-icon blue">
-
-                            <FaCalendarCheck />
-
-                        </div>
-
-                        <div>
-
-                            <span>
-                                Total Appointments
-                            </span>
-
-                            <strong>
-                                {statistics.total}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* Pending */}
-
-                    <div className="patient-stat-card">
-
-                        <div className="patient-stat-icon orange">
-
-                            <FaClock />
-
-                        </div>
-
-                        <div>
-
-                            <span>
-                                Pending
-                            </span>
-
-                            <strong>
-                                {statistics.pending}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* Confirmed */}
-
-                    <div className="patient-stat-card">
-
-                        <div className="patient-stat-icon purple">
-
-                            <FaCheckCircle />
-
-                        </div>
-
-                        <div>
-
-                            <span>
-                                Confirmed
-                            </span>
-
-                            <strong>
-                                {statistics.confirmed}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* Completed */}
-
-                    <div className="patient-stat-card">
-
-                        <div className="patient-stat-icon green">
-
-                            <FaCheckCircle />
-
-                        </div>
-
-                        <div>
-
-                            <span>
-                                Completed
-                            </span>
-
-                            <strong>
-                                {statistics.completed}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                {/* ==================================================
-                    Quick Services
-                ================================================== */}
-
-                <div className="patient-section-title mt-4">
-
-                    <div>
-
-                        <h2>
-                            Healthcare Services
-                        </h2>
-
-                        <p>
-                            Everything you need in one place
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div className="patient-service-grid">
-
-
-                    {/* Doctors */}
-
-                    <Link
-                        to="/doctors"
-                        className="patient-service-card"
-                    >
-
-                        <div className="patient-service-icon blue">
-
-                            <FaUserMd />
-
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                Find a Doctor
-                            </h3>
-
-                            <p>
-                                Browse doctors and specialists
-                            </p>
-
-                        </div>
-
-                        <FaArrowRight
-                            className="patient-service-arrow"
-                        />
-
-                    </Link>
-
-
-                    {/* Appointment */}
-
-                    <Link
-                        to="/appointments"
-                        className="patient-service-card"
-                    >
-
-                        <div className="patient-service-icon green">
-
-                            <FaCalendarCheck />
-
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                Appointments
-                            </h3>
-
-                            <p>
-                                View and manage appointments
-                            </p>
-
-                        </div>
-
-                        <FaArrowRight
-                            className="patient-service-arrow"
-                        />
-
-                    </Link>
-
-
-                    {/* Reports */}
-
-                    <Link
-                        to="/reports"
-                        className="patient-service-card"
-                    >
-
-                        <div className="patient-service-icon red">
-
-                            <FaFileMedical />
-
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                Medical Reports
-                            </h3>
-
-                            <p>
-                                Access your medical records
-                            </p>
-
-                        </div>
-
-                        <FaArrowRight
-                            className="patient-service-arrow"
-                        />
-
-                    </Link>
-
-
-                    {/* Payments */}
-
-                    <Link
-                        to="/payments"
-                        className="patient-service-card"
-                    >
-
-                        <div className="patient-service-icon teal">
-
-                            <FaMoneyBillWave />
-
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                Payments
-                            </h3>
-
-                            <p>
-                                Manage payments and invoices
-                            </p>
-
-                        </div>
-
-                        <FaArrowRight
-                            className="patient-service-arrow"
-                        />
-
-                    </Link>
-
-
-                    {/* Family */}
-
-                    <Link
-                        to="/family"
-                        className="patient-service-card"
-                    >
-
-                        <div className="patient-service-icon pink">
-
-                            <FaUsers />
-
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                Family Members
-                            </h3>
-
-                            <p>
-                                Manage your family profiles
-                            </p>
-
-                        </div>
-
-                        <FaArrowRight
-                            className="patient-service-arrow"
-                        />
-
-                    </Link>
-
-
-                    {/* Notifications */}
-
-                    <Link
-                        to="/notifications"
-                        className="patient-service-card"
-                    >
-
-                        <div className="patient-service-icon indigo">
-
-                            <FaBell />
-
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                Notifications
-                            </h3>
-
-                            <p>
-                                View important updates
-                            </p>
-
-                        </div>
-
-                        <FaArrowRight
-                            className="patient-service-arrow"
-                        />
-
-                    </Link>
-
-
-                    {/* Diagnostics */}
-
-                    <Link
-                        to="/tests"
-                        className="patient-service-card"
-                    >
-
-                        <div className="patient-service-icon cyan">
-
-                            <FaFlask />
-
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                Diagnostic Tests
-                            </h3>
-
-                            <p>
-                                Book and manage diagnostic tests
-                            </p>
-
-                        </div>
-
-                        <FaArrowRight
-                            className="patient-service-arrow"
-                        />
-
-                    </Link>
-
-
-                    {/* Prescriptions */}
-
-                    <Link
-                        to="/reports"
-                        className="patient-service-card"
-                    >
-
-                        <div className="patient-service-icon violet">
-
-                            <FaReceipt />
-
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                Prescriptions
-                            </h3>
-
-                            <p>
-                                Access your prescriptions
-                            </p>
-
-                        </div>
-
-                        <FaArrowRight
-                            className="patient-service-arrow"
-                        />
-
-                    </Link>
-
-                </div>
-
-
-                {/* ==================================================
-                    Bottom Content
-                ================================================== */}
-
-                <div className="patient-main-grid">
-
-
-                    {/* ==================================================
-                        Recent Appointments
-                    ================================================== */}
-
-                    <div className="patient-panel">
-
-                        <div className="patient-panel-header">
+                            </div>
 
                             <div>
 
-                                <h2>
-                                    Recent Appointments
-                                </h2>
+                                <h3>
+                                    Find a Doctor
+                                </h3>
 
                                 <p>
-                                    Your latest appointment activity
+                                    Browse doctors and specialists
                                 </p>
 
                             </div>
 
+                            <FaArrowRight
+                                className="patient-service-arrow"
+                            />
 
-                            <Link
-                                to="/appointments"
-                                className="patient-view-all"
-                            >
-
-                                View All
-
-                                <FaArrowRight />
-
-                            </Link>
-
-                        </div>
+                        </Link>
 
 
-                        {/* Loading */}
+                        {/* Appointments */}
 
-                        {loading && (
+                        <Link
+                            to="/appointments"
+                            className="patient-service-card"
+                        >
 
-                            <div className="patient-empty-state">
+                            <div className="patient-service-icon green">
 
-                                <div className="patient-spinner" />
+                                <FaCalendarCheck />
+
+                            </div>
+
+                            <div>
+
+                                <h3>
+                                    Appointments
+                                </h3>
 
                                 <p>
-                                    Loading appointments...
+                                    View and manage appointments
                                 </p>
 
                             </div>
 
-                        )}
+                            <FaArrowRight
+                                className="patient-service-arrow"
+                            />
+
+                        </Link>
 
 
-                        {/* Error */}
+                        {/* Medical Reports */}
 
-                        {!loading && error && (
+                        <Link
+                            to="/reports"
+                            className="patient-service-card"
+                        >
 
-                            <div className="patient-error">
+                            <div className="patient-service-icon red">
 
-                                {error}
+                                <FaFileMedical />
 
                             </div>
 
-                        )}
+                            <div>
+
+                                <h3>
+                                    Medical Reports
+                                </h3>
+
+                                <p>
+                                    Access your medical records
+                                </p>
+
+                            </div>
+
+                            <FaArrowRight
+                                className="patient-service-arrow"
+                            />
+
+                        </Link>
 
 
-                        {/* Empty */}
+                        {/* Payments */}
 
-                        {!loading &&
-                            !error &&
-                            recentAppointments.length === 0 && (
+                        <Link
+                            to="/payments"
+                            className="patient-service-card"
+                        >
+
+                            <div className="patient-service-icon teal">
+
+                                <FaMoneyBillWave />
+
+                            </div>
+
+                            <div>
+
+                                <h3>
+                                    Payments
+                                </h3>
+
+                                <p>
+                                    Manage payments and invoices
+                                </p>
+
+                            </div>
+
+                            <FaArrowRight
+                                className="patient-service-arrow"
+                            />
+
+                        </Link>
+
+
+                        {/* Family Members */}
+
+                        <Link
+                            to="/family"
+                            className="patient-service-card"
+                        >
+
+                            <div className="patient-service-icon pink">
+
+                                <FaUsers />
+
+                            </div>
+
+                            <div>
+
+                                <h3>
+                                    Family Members
+                                </h3>
+
+                                <p>
+                                    Manage your family profiles
+                                </p>
+
+                            </div>
+
+                            <FaArrowRight
+                                className="patient-service-arrow"
+                            />
+
+                        </Link>
+
+
+                        {/* Notifications */}
+
+                        <Link
+                            to="/notifications"
+                            className="patient-service-card"
+                        >
+
+                            <div className="patient-service-icon indigo">
+
+                                <FaBell />
+
+                            </div>
+
+                            <div>
+
+                                <h3>
+                                    Notifications
+                                </h3>
+
+                                <p>
+                                    View important updates
+                                </p>
+
+                            </div>
+
+                            <FaArrowRight
+                                className="patient-service-arrow"
+                            />
+
+                        </Link>
+
+
+                        {/* Diagnostic Tests */}
+
+                        <Link
+                            to="/tests"
+                            className="patient-service-card"
+                        >
+
+                            <div className="patient-service-icon cyan">
+
+                                <FaFlask />
+
+                            </div>
+
+                            <div>
+
+                                <h3>
+                                    Diagnostic Tests
+                                </h3>
+
+                                <p>
+                                    Book and manage diagnostic tests
+                                </p>
+
+                            </div>
+
+                            <FaArrowRight
+                                className="patient-service-arrow"
+                            />
+
+                        </Link>
+
+
+                        {/* My Diagnostic Bookings */}
+
+                        <Link
+                            to="/my-diagnostic-bookings"
+                            className="patient-service-card"
+                        >
+
+                            <div className="patient-service-icon violet">
+
+                                <FaClipboardList />
+
+                            </div>
+
+                            <div>
+
+                                <h3>
+                                    My Diagnostic Bookings
+                                </h3>
+
+                                <p>
+                                    View bookings and make payments
+                                </p>
+
+                            </div>
+
+                            <FaArrowRight
+                                className="patient-service-arrow"
+                            />
+
+                        </Link>
+
+
+                        {/* Prescriptions */}
+
+                        <Link
+                            to="/reports"
+                            className="patient-service-card"
+                        >
+
+                            <div className="patient-service-icon violet">
+
+                                <FaReceipt />
+
+                            </div>
+
+                            <div>
+
+                                <h3>
+                                    Prescriptions
+                                </h3>
+
+                                <p>
+                                    Access your prescriptions
+                                </p>
+
+                            </div>
+
+                            <FaArrowRight
+                                className="patient-service-arrow"
+                            />
+
+                        </Link>
+
+                    </div>
+
+
+                    {/* ==================================================
+                        Bottom Content
+                    ================================================== */}
+
+                    <div className="patient-main-grid">
+
+
+                        {/* ==================================================
+                            Recent Appointments
+                        ================================================== */}
+
+                        <div className="patient-panel">
+
+                            <div className="patient-panel-header">
+
+                                <div>
+
+                                    <h2>
+                                        Recent Appointments
+                                    </h2>
+
+                                    <p>
+                                        Your latest appointment activity
+                                    </p>
+
+                                </div>
+
+
+                                <Link
+                                    to="/appointments"
+                                    className="patient-view-all"
+                                >
+
+                                    View All
+
+                                    <FaArrowRight />
+
+                                </Link>
+
+                            </div>
+
+
+                            {/* Loading */}
+
+                            {loading && (
 
                                 <div className="patient-empty-state">
 
-                                    <div className="patient-empty-icon">
+                                    <div className="patient-spinner" />
 
-                                        <FaCalendarAlt />
+                                    <p>
+                                        Loading appointments...
+                                    </p>
+
+                                </div>
+
+                            )}
+
+
+                            {/* Error */}
+
+                            {!loading && error && (
+
+                                <div className="patient-error">
+
+                                    {error}
+
+                                </div>
+
+                            )}
+
+
+                            {/* Empty */}
+
+                            {!loading &&
+                                !error &&
+                                recentAppointments.length === 0 && (
+
+                                    <div className="patient-empty-state">
+
+                                        <div className="patient-empty-icon">
+
+                                            <FaCalendarAlt />
+
+                                        </div>
+
+
+                                        <h3>
+                                            No appointments yet
+                                        </h3>
+
+
+                                        <p>
+                                            You haven't booked an appointment yet.
+                                        </p>
+
+
+                                        <Link
+                                            to="/appointments/book"
+                                            className="patient-primary-btn"
+                                        >
+
+                                            <FaPlus />
+
+                                            Book Your First Appointment
+
+                                        </Link>
 
                                     </div>
 
-
-                                    <h3>
-                                        No appointments yet
-                                    </h3>
+                                )}
 
 
-                                    <p>
-                                        You haven't booked an appointment yet.
-                                    </p>
+                            {/* Appointment List */}
+
+                            {!loading &&
+                                !error &&
+                                recentAppointments.length > 0 && (
+
+                                    <div className="patient-appointment-list">
+
+                                        {recentAppointments.map(
+                                            (
+                                                appointment,
+                                                index
+                                            ) => {
+
+                                                const appointmentId =
+                                                    appointment?.id;
 
 
-                                    <Link
-                                        to="/appointments/book"
-                                        className="patient-primary-btn"
-                                    >
-
-                                        <FaPlus />
-
-                                        Book Your First Appointment
-
-                                    </Link>
-
-                                </div>
-
-                            )}
+                                                const status =
+                                                    appointment?.status ||
+                                                    "Unknown";
 
 
-                        {/* Appointment List */}
-
-                        {!loading &&
-                            !error &&
-                            recentAppointments.length > 0 && (
-
-                                <div className="patient-appointment-list">
-
-                                    {recentAppointments.map(
-                                        (
-                                            appointment,
-                                            index
-                                        ) => {
-
-                                            const appointmentId =
-                                                appointment?.id;
+                                                const doctorName =
+                                                    appointment?.doctor_name ||
+                                                    appointment?.doctor?.name ||
+                                                    appointment?.doctor?.username ||
+                                                    appointment?.doctor?.full_name ||
+                                                    "Doctor";
 
 
-                                            const status =
-                                                appointment?.status ||
-                                                "Unknown";
+                                                const appointmentDate =
+                                                    appointment?.appointment_date ||
+                                                    appointment?.date;
 
 
-                                            const doctorName =
-                                                appointment?.doctor_name ||
-                                                appointment?.doctor?.name ||
-                                                appointment?.doctor?.username ||
-                                                appointment?.doctor?.full_name ||
-                                                "Doctor";
+                                                return (
 
-
-                                            const appointmentDate =
-                                                appointment?.appointment_date ||
-                                                appointment?.date;
-
-
-                                            return (
-
-                                                <div
-                                                    className="patient-appointment-item"
-                                                    key={
-                                                        appointmentId ||
-                                                        `appointment-${index}`
-                                                    }
-                                                >
-
-                                                    <div className="patient-appointment-date">
-
-                                                        <FaCalendarAlt />
-
-                                                        <span>
-                                                            {
-                                                                formatDate(
-                                                                    appointmentDate
-                                                                )
-                                                            }
-                                                        </span>
-
-                                                    </div>
-
-
-                                                    <div className="patient-appointment-info">
-
-                                                        <h3>
-                                                            {doctorName}
-                                                        </h3>
-
-
-                                                        <p>
-
-                                                            {
-                                                                appointment?.booking_number ||
-                                                                `Appointment #${appointmentId || "-"}`
-                                                            }
-
-                                                        </p>
-
-                                                    </div>
-
-
-                                                    <span
-                                                        className={
-                                                            getStatusClass(
-                                                                status
-                                                            )
+                                                    <div
+                                                        className="patient-appointment-item"
+                                                        key={
+                                                            appointmentId ||
+                                                            `appointment-${index}`
                                                         }
                                                     >
 
-                                                        {status}
+                                                        <div className="patient-appointment-date">
 
-                                                    </span>
+                                                            <FaCalendarAlt />
+
+                                                            <span>
+                                                                {
+                                                                    formatDate(
+                                                                        appointmentDate
+                                                                    )
+                                                                }
+                                                            </span>
+
+                                                        </div>
 
 
-                                                    {appointmentId && (
+                                                        <div className="patient-appointment-info">
 
-                                                        <Link
-                                                            to={
-                                                                `/appointments/details/${appointmentId}`
+                                                            <h3>
+                                                                {doctorName}
+                                                            </h3>
+
+
+                                                            <p>
+
+                                                                {
+                                                                    appointment?.booking_number ||
+                                                                    `Appointment #${appointmentId || "-"}`
+                                                                }
+
+                                                            </p>
+
+                                                        </div>
+
+
+                                                        <span
+                                                            className={
+                                                                getStatusClass(
+                                                                    status
+                                                                )
                                                             }
-                                                            className="patient-details-btn"
                                                         >
 
-                                                            Details
+                                                            {status}
 
-                                                        </Link>
+                                                        </span>
 
-                                                    )}
 
-                                                </div>
+                                                        {appointmentId && (
 
-                                            );
+                                                            <Link
+                                                                to={
+                                                                    `/appointments/details/${appointmentId}`
+                                                                }
+                                                                className="patient-details-btn"
+                                                            >
 
-                                        }
-                                    )}
+                                                                Details
+
+                                                            </Link>
+
+                                                        )}
+
+                                                    </div>
+
+                                                );
+
+                                            }
+                                        )}
+
+                                    </div>
+
+                                )}
+
+                        </div>
+
+
+                        {/* ==================================================
+                            Quick Access
+                        ================================================== */}
+
+                        <div className="patient-panel patient-side-panel">
+
+                            <div className="patient-panel-header">
+
+                                <div>
+
+                                    <h2>
+                                        Quick Access
+                                    </h2>
+
+                                    <p>
+                                        Frequently used services
+                                    </p>
 
                                 </div>
 
-                            )}
-
-                    </div>
+                            </div>
 
 
-                    {/* ==================================================
-                        Quick Links Panel
-                    ================================================== */}
+                            <div className="patient-quick-links">
 
-                    <div className="patient-panel patient-side-panel">
 
-                        <div className="patient-panel-header">
+                                {/* Book Appointment */}
 
-                            <div>
+                                <Link
+                                    to="/appointments/book"
+                                    className="patient-quick-link"
+                                >
 
-                                <h2>
-                                    Quick Access
-                                </h2>
+                                    <span className="blue">
 
-                                <p>
-                                    Frequently used services
-                                </p>
+                                        <FaPlus />
+
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            Book Appointment
+                                        </strong>
+
+                                        <small>
+                                            Schedule a doctor visit
+                                        </small>
+
+                                    </div>
+
+                                    <FaArrowRight />
+
+                                </Link>
+
+
+                                {/* Payment History */}
+
+                                <Link
+                                    to="/payments"
+                                    className="patient-quick-link"
+                                >
+
+                                    <span className="green">
+
+                                        <FaMoneyBillWave />
+
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            Payment History
+                                        </strong>
+
+                                        <small>
+                                            View your transactions
+                                        </small>
+
+                                    </div>
+
+                                    <FaArrowRight />
+
+                                </Link>
+
+
+                                {/* Medical Reports */}
+
+                                <Link
+                                    to="/reports"
+                                    className="patient-quick-link"
+                                >
+
+                                    <span className="red">
+
+                                        <FaFileMedical />
+
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            Medical Reports
+                                        </strong>
+
+                                        <small>
+                                            View your medical records
+                                        </small>
+
+                                    </div>
+
+                                    <FaArrowRight />
+
+                                </Link>
+
+
+                                {/* Family Members */}
+
+                                <Link
+                                    to="/family"
+                                    className="patient-quick-link"
+                                >
+
+                                    <span className="pink">
+
+                                        <FaUsers />
+
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            Family Members
+                                        </strong>
+
+                                        <small>
+                                            Manage family profiles
+                                        </small>
+
+                                    </div>
+
+                                    <FaArrowRight />
+
+                                </Link>
+
+
+                                {/* Notifications */}
+
+                                <Link
+                                    to="/notifications"
+                                    className="patient-quick-link"
+                                >
+
+                                    <span className="indigo">
+
+                                        <FaBell />
+
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            Notifications
+                                        </strong>
+
+                                        <small>
+                                            Check recent updates
+                                        </small>
+
+                                    </div>
+
+                                    <FaArrowRight />
+
+                                </Link>
+
+
+                                {/* Diagnostic Bookings */}
+
+                                <Link
+                                    to="/my-diagnostic-bookings"
+                                    className="patient-quick-link"
+                                >
+
+                                    <span className="violet">
+
+                                        <FaClipboardList />
+
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            My Diagnostic Bookings
+                                        </strong>
+
+                                        <small>
+                                            View bookings and make payments
+                                        </small>
+
+                                    </div>
+
+                                    <FaArrowRight />
+
+                                </Link>
+
 
                             </div>
 
                         </div>
 
-
-                        <div className="patient-quick-links">
-
-
-                            <Link
-                                to="/appointments/book"
-                                className="patient-quick-link"
-                            >
-
-                                <span className="blue">
-                                    <FaPlus />
-                                </span>
-
-                                <div>
-
-                                    <strong>
-                                        Book Appointment
-                                    </strong>
-
-                                    <small>
-                                        Schedule a doctor visit
-                                    </small>
-
-                                </div>
-
-                                <FaArrowRight />
-
-                            </Link>
+                    </div>
 
 
-                            <Link
-                                to="/payments"
-                                className="patient-quick-link"
-                            >
+                    {/* ==================================================
+                        Footer
+                    ================================================== */}
 
-                                <span className="green">
-                                    <FaMoneyBillWave />
-                                </span>
+                    <div className="patient-dashboard-footer">
 
-                                <div>
+                        <span>
+                            © {new Date().getFullYear()} MediCare
+                        </span>
 
-                                    <strong>
-                                        Payment History
-                                    </strong>
-
-                                    <small>
-                                        View your transactions
-                                    </small>
-
-                                </div>
-
-                                <FaArrowRight />
-
-                            </Link>
-
-
-                            <Link
-                                to="/reports"
-                                className="patient-quick-link"
-                            >
-
-                                <span className="red">
-                                    <FaFileMedical />
-                                </span>
-
-                                <div>
-
-                                    <strong>
-                                        Medical Reports
-                                    </strong>
-
-                                    <small>
-                                        View your medical records
-                                    </small>
-
-                                </div>
-
-                                <FaArrowRight />
-
-                            </Link>
-
-
-                            <Link
-                                to="/family"
-                                className="patient-quick-link"
-                            >
-
-                                <span className="pink">
-                                    <FaUsers />
-                                </span>
-
-                                <div>
-
-                                    <strong>
-                                        Family Members
-                                    </strong>
-
-                                    <small>
-                                        Manage family profiles
-                                    </small>
-
-                                </div>
-
-                                <FaArrowRight />
-
-                            </Link>
-
-
-                            <Link
-                                to="/notifications"
-                                className="patient-quick-link"
-                            >
-
-                                <span className="indigo">
-                                    <FaBell />
-                                </span>
-
-                                <div>
-
-                                    <strong>
-                                        Notifications
-                                    </strong>
-
-                                    <small>
-                                        Check recent updates
-                                    </small>
-
-                                </div>
-
-                                <FaArrowRight />
-
-                            </Link>
-
-                        </div>
+                        <span>
+                            Patient Healthcare Portal
+                        </span>
 
                     </div>
 
-                </div>
 
-
-                {/* ==================================================
-                    Footer
-                ================================================== */}
-
-                <div className="patient-dashboard-footer">
-
-                    <span>
-                        © {new Date().getFullYear()} MediCare
-                    </span>
-
-                    <span>
-                        Patient Healthcare Portal
-                    </span>
-
-                </div>
+                </main>
 
             </div>
 

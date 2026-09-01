@@ -58,6 +58,27 @@ import DoctorDashboard
 import DoctorAppointments
     from "../pages/Doctors/DoctorAppointments";
 
+import DoctorProfile
+    from "../pages/Doctors/DoctorProfile";
+
+import DoctorSchedule
+    from "../pages/Doctors/DoctorSchedule";
+
+import DoctorPatients
+    from "../pages/Doctors/DoctorPatients";
+
+import DoctorPrescriptions
+    from "../pages/Doctors/DoctorPrescriptions";
+
+import DoctorNotifications
+    from "../pages/Doctors/DoctorNotifications";
+
+import DoctorAnalytics
+    from "../pages/Doctors/DoctorAnalytics";
+
+import DoctorSettings
+    from "../pages/Doctors/DoctorSettings";
+
 import DoctorList
     from "../pages/Doctors/DoctorList";
 
@@ -356,6 +377,127 @@ export default function AppRoutes() {
                         >
 
                             <DoctorAppointments />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                <Route
+                    path="/doctor/profile"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorProfile />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                <Route
+                    path="/doctor/schedule"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorSchedule />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+                <Route
+                    path="/doctor/patients"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorPatients />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+                <Route
+                    path="/doctor/prescriptions"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorPrescriptions />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+                <Route
+                    path="/doctor/notifications"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorNotifications />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+                <Route
+                    path="/doctor/analytics"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorAnalytics />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+                <Route
+                    path="/doctor/settings"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorSettings />
 
                         </RoleRoute>
 

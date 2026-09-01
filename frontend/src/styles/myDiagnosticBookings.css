@@ -1,64 +1,90 @@
 /* =========================================================
    MY DIAGNOSTIC BOOKINGS PAGE
-========================================================= */
+   ========================================================= */
 
 .diagnostic-page {
     flex: 1;
-    padding: 30px;
-    min-height: 100vh;
+    width: 100%;
+    min-width: 0;
+    min-height: calc(100vh - 70px);
+
+    padding: 24px 28px;
+
+    box-sizing: border-box;
+
     background: #f5f7fb;
+
+    overflow-x: hidden;
 }
 
 
 /* =========================================================
    PAGE HEADER
-========================================================= */
+   ========================================================= */
 
 .diagnostic-page-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
 
-    margin-bottom: 25px;
-    padding: 25px 30px;
+    gap: 20px;
+
+    width: 100%;
+    box-sizing: border-box;
+
+    margin: 0 0 20px;
+
+    padding: 20px 24px;
 
     background: #ffffff;
 
-    border-radius: 16px;
+    border-radius: 14px;
 
     box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.06);
+        0 3px 15px rgba(0, 0, 0, 0.05);
 }
 
+
+/* =========================================================
+   TITLE
+   ========================================================= */
 
 .page-title-row {
     display: flex;
     align-items: center;
-    gap: 18px;
+
+    gap: 14px;
+
+    min-width: 0;
 }
 
 
 .page-icon {
-    width: 55px;
-    height: 55px;
+    flex-shrink: 0;
+
+    width: 48px;
+    height: 48px;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    font-size: 24px;
+    font-size: 21px;
 
     color: #ffffff;
+
     background: #06b6d4;
 
-    border-radius: 14px;
+    border-radius: 12px;
 }
 
 
 .diagnostic-page-header h1 {
-    margin: 0 0 6px;
+    margin: 0 0 5px;
 
-    font-size: 26px;
+    font-size: 24px;
+    line-height: 1.25;
+
     font-weight: 700;
 
     color: #1f2937;
@@ -68,7 +94,8 @@
 .diagnostic-page-header p {
     margin: 0;
 
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.5;
 
     color: #6b7280;
 }
@@ -76,12 +103,14 @@
 
 /* =========================================================
    BOOKING COUNT
-========================================================= */
+   ========================================================= */
 
 .booking-count {
-    min-width: 130px;
+    flex-shrink: 0;
 
-    padding: 12px 20px;
+    min-width: 105px;
+
+    padding: 10px 16px;
 
     text-align: center;
 
@@ -89,23 +118,26 @@
 
     border: 1px solid #a5f3fc;
 
-    border-radius: 12px;
+    border-radius: 11px;
 }
 
 
 .booking-count span {
     display: block;
 
-    font-size: 12px;
+    margin-bottom: 3px;
+
+    font-size: 11px;
 
     color: #0891b2;
-
-    margin-bottom: 5px;
 }
 
 
 .booking-count strong {
-    font-size: 26px;
+    display: block;
+
+    font-size: 24px;
+    line-height: 1.1;
 
     color: #0e7490;
 }
@@ -113,150 +145,205 @@
 
 /* =========================================================
    MAIN CARD
-========================================================= */
+   ========================================================= */
 
 .diagnostic-booking-card {
+    width: 100%;
+    box-sizing: border-box;
 
     background: #ffffff;
 
-    border-radius: 16px;
+    border-radius: 14px;
 
     overflow: hidden;
 
     box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.06);
+        0 3px 15px rgba(0, 0, 0, 0.05);
 }
 
 
+/* =========================================================
+   CARD HEADER
+   ========================================================= */
+
 .booking-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 
-    padding: 22px 25px;
+    gap: 20px;
 
-    border-bottom:
-        1px solid #e5e7eb;
+    padding: 18px 22px;
+
+    border-bottom: 1px solid #e5e7eb;
 }
 
 
 .booking-card-header h2 {
+    margin: 0 0 4px;
 
-    margin: 0 0 5px;
+    font-size: 18px;
 
-    font-size: 20px;
+    line-height: 1.3;
 
     color: #1f2937;
 }
 
 
 .booking-card-header p {
-
     margin: 0;
 
-    font-size: 14px;
+    font-size: 13px;
 
     color: #6b7280;
 }
 
 
 /* =========================================================
+   PRIMARY BUTTON
+   ========================================================= */
+
+.diagnostic-primary-btn {
+    flex-shrink: 0;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    min-height: 38px;
+
+    padding: 9px 15px;
+
+    border: none;
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    color: #ffffff;
+
+    background: #0d6efd;
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.diagnostic-primary-btn:hover {
+    background: #0b5ed7;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 5px 12px rgba(13, 110, 253, 0.18);
+}
+
+
+/* =========================================================
    TABLE WRAPPER
-========================================================= */
+   ========================================================= */
 
 .diagnostic-table-wrapper {
-
     width: 100%;
 
     overflow-x: auto;
+
+    overflow-y: hidden;
 }
 
 
 /* =========================================================
    TABLE
-========================================================= */
+   ========================================================= */
 
 .diagnostic-table {
-
     width: 100%;
 
-    min-width: 1050px;
+    min-width: 1000px;
 
     border-collapse: collapse;
+
+    table-layout: auto;
 }
 
 
 /* =========================================================
    TABLE HEADER
-========================================================= */
+   ========================================================= */
 
 .diagnostic-table thead {
-
     background: #f8fafc;
 }
 
 
 .diagnostic-table th {
-
-    padding: 16px 18px;
+    padding: 13px 16px;
 
     text-align: left;
 
     white-space: nowrap;
 
-    font-size: 13px;
+    font-size: 12px;
 
     font-weight: 700;
 
     color: #475569;
 
-    border-bottom:
-        1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 
 /* =========================================================
    TABLE BODY
-========================================================= */
+   ========================================================= */
 
 .diagnostic-table td {
+    padding: 13px 16px;
 
-    padding: 16px 18px;
+    font-size: 13px;
 
-    font-size: 14px;
+    line-height: 1.4;
 
     color: #374151;
 
     white-space: nowrap;
 
-    border-bottom:
-        1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 
 .diagnostic-table tbody tr {
-
     transition:
         background 0.2s ease;
 }
 
 
 .diagnostic-table tbody tr:hover {
-
     background: #f8fafc;
 }
 
 
 .diagnostic-table tbody tr:last-child td {
-
     border-bottom: none;
 }
 
 
 /* =========================================================
    BOOKING NUMBER
-========================================================= */
+   ========================================================= */
 
 .booking-number {
+    display: inline-block;
 
-    font-size: 13px;
+    padding: 5px 8px;
+
+    font-size: 12px;
 
     font-weight: 600;
 
@@ -264,18 +351,15 @@
 
     background: #ecfeff;
 
-    padding: 7px 10px;
-
-    border-radius: 7px;
+    border-radius: 6px;
 }
 
 
 /* =========================================================
    TEST NAME
-========================================================= */
+   ========================================================= */
 
 .test-name {
-
     color: #1f2937;
 
     font-weight: 600;
@@ -284,17 +368,16 @@
 
 /* =========================================================
    CATEGORY
-========================================================= */
+   ========================================================= */
 
 .category-badge {
-
     display: inline-block;
 
-    padding: 6px 10px;
+    padding: 5px 9px;
 
-    font-size: 12px;
+    font-size: 11px;
 
-    font-weight: 500;
+    font-weight: 600;
 
     color: #6d28d9;
 
@@ -305,22 +388,22 @@
 
 
 /* =========================================================
-   STATUS BADGES
-========================================================= */
+   STATUS
+   ========================================================= */
 
 .diagnostic-status {
-
     display: inline-flex;
 
     align-items: center;
-
     justify-content: center;
 
-    padding: 7px 12px;
+    min-width: 65px;
+
+    padding: 5px 10px;
 
     border-radius: 20px;
 
-    font-size: 12px;
+    font-size: 11px;
 
     font-weight: 600;
 }
@@ -329,7 +412,6 @@
 /* Pending */
 
 .diagnostic-status.pending {
-
     color: #92400e;
 
     background: #fef3c7;
@@ -339,7 +421,6 @@
 /* Confirmed */
 
 .diagnostic-status.confirmed {
-
     color: #1d4ed8;
 
     background: #dbeafe;
@@ -349,7 +430,6 @@
 /* Completed */
 
 .diagnostic-status.completed {
-
     color: #166534;
 
     background: #dcfce7;
@@ -359,42 +439,109 @@
 /* Cancelled */
 
 .diagnostic-status.cancelled {
-
     color: #b91c1c;
 
     background: #fee2e2;
 }
 
 
+/* Rejected */
+
+.diagnostic-status.rejected {
+    color: #991b1b;
+
+    background: #fee2e2;
+}
+
+
 /* =========================================================
-   ACTION BUTTON
-========================================================= */
+   PAYMENT
+   ========================================================= */
+
+.payment-button {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    padding: 5px 9px;
+
+    border: none;
+
+    border-radius: 6px;
+
+    cursor: pointer;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    color: #111827;
+
+    background: #f8fafc;
+
+    text-decoration: underline;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+
+.payment-button:hover {
+    background: #e2e8f0;
+
+    color: #0d6efd;
+}
+
+
+.payment-paid-badge {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    color: #166534;
+
+    background: #dcfce7;
+}
+
+
+/* =========================================================
+   ACTION
+   ========================================================= */
 
 .action-column {
-
     text-align: center;
 }
 
 
 .view-details-btn {
-
     display: inline-flex;
 
     align-items: center;
-
     justify-content: center;
 
-    gap: 7px;
+    gap: 6px;
 
-    padding: 9px 14px;
+    padding: 8px 12px;
 
     border: none;
 
-    border-radius: 8px;
+    border-radius: 7px;
 
     cursor: pointer;
 
-    font-size: 13px;
+    font-size: 12px;
 
     font-weight: 600;
 
@@ -403,55 +550,57 @@
     background: #0d6efd;
 
     transition:
-        all 0.2s ease;
+        background 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 
 .view-details-btn:hover {
-
-    transform:
-        translateY(-1px);
-
     background: #0b5ed7;
 
+    transform: translateY(-1px);
+
     box-shadow:
-        0 5px 12px rgba(13, 110, 253, 0.2);
+        0 4px 10px rgba(13, 110, 253, 0.18);
 }
 
 
 /* =========================================================
    NO BOOKINGS
-========================================================= */
+   ========================================================= */
 
 .no-diagnostic-booking {
-
-    padding: 70px 20px;
+    padding: 55px 20px;
 
     text-align: center;
 }
 
 
 .no-diagnostic-booking svg {
+    display: block;
 
-    font-size: 45px;
+    margin: 0 auto 14px;
+
+    font-size: 40px;
 
     color: #94a3b8;
-
-    margin-bottom: 15px;
 }
 
 
 .no-diagnostic-booking h3 {
+    margin: 0 0 7px;
 
-    margin: 0 0 8px;
+    font-size: 18px;
 
     color: #334155;
 }
 
 
 .no-diagnostic-booking p {
+    margin: 0 0 18px;
 
-    margin: 0;
+    font-size: 13px;
 
     color: #94a3b8;
 }
@@ -459,83 +608,209 @@
 
 /* =========================================================
    LOADING
-========================================================= */
+   ========================================================= */
 
 .diagnostic-loading {
+    width: 100%;
+    box-sizing: border-box;
 
-    margin: 50px auto;
+    margin: 0;
 
-    padding: 25px;
-
-    max-width: 400px;
+    padding: 55px 20px;
 
     text-align: center;
 
     background: #ffffff;
 
-    border-radius: 12px;
+    border-radius: 14px;
 
     color: #64748b;
 
     box-shadow:
-        0 4px 15px rgba(0, 0, 0, 0.06);
+        0 3px 15px rgba(0, 0, 0, 0.05);
+}
+
+
+.diagnostic-loading p {
+    margin: 12px 0 0;
+
+    font-size: 14px;
+}
+
+
+.diagnostic-spinner {
+    width: 30px;
+    height: 30px;
+
+    margin: 0 auto;
+
+    border: 3px solid #e2e8f0;
+
+    border-top-color: #0d6efd;
+
+    border-radius: 50%;
+
+    animation:
+        diagnostic-spin 0.8s linear infinite;
+}
+
+
+@keyframes diagnostic-spin {
+
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+
+}
+
+
+/* =========================================================
+   IMPORTANT LAYOUT FIX
+   ========================================================= */
+
+.dashboard-container {
+    display: flex;
+
+    width: 100%;
+    min-height: calc(100vh - 70px);
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    align-items: stretch;
 }
 
 
 /* =========================================================
    RESPONSIVE
-========================================================= */
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .diagnostic-page {
+        padding: 20px;
+    }
+
+    .diagnostic-page-header {
+        padding: 18px 20px;
+    }
+
+    .diagnostic-table {
+        min-width: 950px;
+    }
+
+}
+
 
 @media (max-width: 768px) {
 
     .diagnostic-page {
+        padding: 15px;
 
-        padding: 18px;
+        min-height: calc(100vh - 60px);
     }
 
 
     .diagnostic-page-header {
-
         flex-direction: column;
 
-        align-items: flex-start;
+        align-items: stretch;
 
-        gap: 20px;
-
-        padding: 20px;
+        padding: 17px;
     }
 
 
-    .booking-count {
+    .page-title-row {
+        align-items: flex-start;
+    }
 
-        width: 100%;
+
+    .page-icon {
+        width: 42px;
+        height: 42px;
+
+        font-size: 18px;
     }
 
 
     .diagnostic-page-header h1 {
+        font-size: 20px;
+    }
 
-        font-size: 21px;
+
+    .booking-count {
+        width: 100%;
+        box-sizing: border-box;
     }
 
 
     .booking-card-header {
+        flex-direction: column;
 
-        padding: 18px;
+        align-items: stretch;
+
+        padding: 17px;
+    }
+
+
+    .diagnostic-primary-btn {
+        width: 100%;
+    }
+
+
+    .diagnostic-table {
+        min-width: 900px;
     }
 
 
     .view-details-btn span {
-
         display: none;
     }
 
 
     .view-details-btn {
-
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
 
         padding: 0;
+    }
+
+}
+
+
+@media (max-width: 500px) {
+
+    .diagnostic-page {
+        padding: 12px;
+    }
+
+
+    .diagnostic-page-header {
+        margin-bottom: 14px;
+    }
+
+
+    .page-title-row {
+        gap: 10px;
+    }
+
+
+    .diagnostic-page-header h1 {
+        font-size: 18px;
+    }
+
+
+    .diagnostic-page-header p {
+        font-size: 12px;
+    }
+
+
+    .booking-count strong {
+        font-size: 22px;
     }
 
 }

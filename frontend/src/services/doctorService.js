@@ -1,4 +1,4 @@
-import { publicApi } from "./api";
+import api, { publicApi } from "./api";
 
 
 // ==========================================================
@@ -180,6 +180,54 @@ export const getDoctorsByDepartment = async (
     return normalizeListResponse(
         response
     );
+
+};
+
+
+// ==========================================================
+// Doctor profile
+// ==========================================================
+
+export const getDoctorProfile = async () => {
+
+    const response = await api.get(
+        "doctors/me/profile/"
+    );
+
+    return response;
+
+};
+
+
+export const updateDoctorProfile = async (
+    payload
+) => {
+
+    const response = await api.patch(
+        "doctors/me/profile/",
+        payload,
+        {
+            headers: {
+                "Content-Type":
+                    payload instanceof FormData
+                        ? "multipart/form-data"
+                        : "application/json",
+            },
+        }
+    );
+
+    return response;
+
+};
+
+
+export const getDoctorSchedules = async () => {
+
+    const response = await api.get(
+        "doctors/dashboard/"
+    );
+
+    return response;
 
 };
 

@@ -19,6 +19,7 @@ from .views import (
 
     DoctorMyProfileView,
     DoctorDashboardView,
+    DoctorScheduleManageView,
 )
 
 
@@ -162,6 +163,27 @@ urlpatterns = [
         "me/profile/",
         DoctorMyProfileView.as_view(),
         name="doctor-my-profile",
+    ),
+
+    # ------------------------------------------------------
+    # Doctor Schedule Management
+    #
+    # GET /api/doctors/schedules/
+    # POST /api/doctors/schedules/
+    # PATCH /api/doctors/schedules/<id>/
+    # DELETE /api/doctors/schedules/<id>/
+    # ------------------------------------------------------
+
+    path(
+        "schedules/",
+        DoctorScheduleManageView.as_view(),
+        name="doctor-schedule-manage-list",
+    ),
+
+    path(
+        "schedules/<int:pk>/",
+        DoctorScheduleManageView.as_view(),
+        name="doctor-schedule-manage-detail",
     ),
 
 ]
