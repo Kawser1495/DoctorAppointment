@@ -15,6 +15,10 @@ import {
     getDiagnosticTestDetails,
 } from "../../services/diagnosticService";
 
+import {
+    fetchFamilyMembers,
+} from "../../services/patientService";
+
 
 function DiagnosticTestBooking() {
 
@@ -28,7 +32,7 @@ function DiagnosticTestBooking() {
 
 
     // ======================================================
-    // States
+    // Test States
     // ======================================================
 
     const [test, setTest] = useState(null);
@@ -41,12 +45,24 @@ function DiagnosticTestBooking() {
         useState(false);
 
 
-    // Family Member
+    // ======================================================
+    // Family Member States
+    // ======================================================
+
+    const [familyMembers, setFamilyMembers] =
+        useState([]);
+
+    const [familyMembersLoading, setFamilyMembersLoading] =
+        useState(false);
+
     const [familyMember, setFamilyMember] =
         useState("");
 
 
-    // Booking Form
+    // ======================================================
+    // Booking Form States
+    // ======================================================
+
     const [bookingDate, setBookingDate] =
         useState("");
 
@@ -58,7 +74,7 @@ function DiagnosticTestBooking() {
 
 
     // ======================================================
-    // Load Test Details
+    // Load Diagnostic Test Details
     // ======================================================
 
     useEffect(() => {
@@ -117,9 +133,176 @@ function DiagnosticTestBooking() {
         };
 
 
-        loadTestDetails();
+        if (testId) {
+
+            loadTestDetails();
+
+        }
 
     }, [testId]);
+
+
+    // ======================================================
+    // Load Family Members
+    // ======================================================
+
+    useEffect(() => {
+
+        const loadFamilyMembers = async () => {
+
+            try {
+
+                setFamilyMembersLoading(true);
+
+
+                const response =
+                    await fetchFamilyMembers();
+
+
+                console.log(
+                    "Diagnostic Family Members:",
+                    response
+                );
+
+
+                /*
+                ==================================================
+                fetchFamilyMembers() may return:
+
+                1. Axios response
+                   {
+                       data: {
+                           count: 1,
+                           results: [...]
+                       }
+                   }
+
+                2. Direct API data
+                   {
+                       count: 1,
+                       results: [...]
+                   }
+
+                3. Direct array
+                   [...]
+                ==================================================
+                */
+
+
+                let members = [];
+
+
+                // ----------------------------------------------
+                // Axios response + DRF pagination
+                // ----------------------------------------------
+
+                if (
+                    Array.isArray(
+                        response?.data?.results
+                    )
+                ) {
+
+                    members =
+                        response.data.results;
+
+                }
+
+
+                // ----------------------------------------------
+                // Axios response + direct array
+                // ----------------------------------------------
+
+                else if (
+                    Array.isArray(
+                        response?.data
+                    )
+                ) {
+
+                    members =
+                        response.data;
+
+                }
+
+
+                // ----------------------------------------------
+                // Direct DRF pagination object
+                // ----------------------------------------------
+
+                else if (
+                    Array.isArray(
+                        response?.results
+                    )
+                ) {
+
+                    members =
+                        response.results;
+
+                }
+
+
+                // ----------------------------------------------
+                // Direct array
+                // ----------------------------------------------
+
+                else if (
+                    Array.isArray(response)
+                ) {
+
+                    members =
+                        response;
+
+                }
+
+
+                console.log(
+                    "Parsed Family Members:",
+                    members
+                );
+
+
+                setFamilyMembers(
+                    members
+                );
+
+            }
+
+            catch (err) {
+
+                console.error(
+                    "Family Members Loading Error:",
+                    err
+                );
+
+
+                console.error(
+                    "Backend Error:",
+                    err.response?.data
+                );
+
+
+                /*
+                --------------------------------------------------
+                Family member loading failure should NOT prevent
+                booking for the patient himself.
+                --------------------------------------------------
+                */
+
+                setFamilyMembers([]);
+
+            }
+
+            finally {
+
+                setFamilyMembersLoading(false);
+
+            }
+
+        };
+
+
+        loadFamilyMembers();
+
+    }, []);
 
 
     // ======================================================
@@ -157,13 +340,16 @@ function DiagnosticTestBooking() {
 
         const today = new Date();
 
+
         const year =
             today.getFullYear();
+
 
         const month =
             String(
                 today.getMonth() + 1
             ).padStart(2, "0");
+
 
         const day =
             String(
@@ -177,6 +363,133 @@ function DiagnosticTestBooking() {
 
 
     // ======================================================
+    // Error Message Helper
+    // ======================================================
+
+    const getErrorMessage = (errorData) => {
+
+        if (!errorData) {
+
+            return (
+                "Unable to book the diagnostic test. " +
+                "Please try again."
+            );
+
+        }
+
+
+        const getFirstValue = (value) => {
+
+            if (Array.isArray(value)) {
+
+                return value[0];
+
+            }
+
+            return value;
+
+        };
+
+
+        if (errorData.diagnostic_test) {
+
+            return getFirstValue(
+                errorData.diagnostic_test
+            );
+
+        }
+
+
+        if (errorData.booking_date) {
+
+            return getFirstValue(
+                errorData.booking_date
+            );
+
+        }
+
+
+        if (errorData.booking_time) {
+
+            return getFirstValue(
+                errorData.booking_time
+            );
+
+        }
+
+
+        if (errorData.family_member) {
+
+            return getFirstValue(
+                errorData.family_member
+            );
+
+        }
+
+
+        if (errorData.non_field_errors) {
+
+            return getFirstValue(
+                errorData.non_field_errors
+            );
+
+        }
+
+
+        if (errorData.patient) {
+
+            return getFirstValue(
+                errorData.patient
+            );
+
+        }
+
+
+        if (errorData.authentication) {
+
+            return getFirstValue(
+                errorData.authentication
+            );
+
+        }
+
+
+        if (errorData.detail) {
+
+            return errorData.detail;
+
+        }
+
+
+        if (errorData.message) {
+
+            return errorData.message;
+
+        }
+
+
+        const firstKey =
+            Object.keys(errorData)[0];
+
+
+        if (firstKey) {
+
+            return getFirstValue(
+                errorData[firstKey]
+            );
+
+        }
+
+
+        return (
+            "Unable to book the diagnostic test. " +
+            "Please try again."
+        );
+
+    };
+
+
+    // ======================================================
     // Submit Booking
     // ======================================================
 
@@ -184,6 +497,25 @@ function DiagnosticTestBooking() {
 
         event.preventDefault();
 
+
+        // ==================================================
+        // Test Validation
+        // ==================================================
+
+        if (!test) {
+
+            alert(
+                "Diagnostic test information is not available."
+            );
+
+            return;
+
+        }
+
+
+        // ==================================================
+        // Date Validation
+        // ==================================================
 
         if (!bookingDate) {
 
@@ -195,6 +527,10 @@ function DiagnosticTestBooking() {
 
         }
 
+
+        // ==================================================
+        // Time Validation
+        // ==================================================
 
         if (!bookingTime) {
 
@@ -213,22 +549,30 @@ function DiagnosticTestBooking() {
 
 
             // ==================================================
-            // Backend Booking Data
+            // Booking Data
             // ==================================================
 
             const bookingData = {
 
-                diagnostic_test: Number(testId),
+                diagnostic_test:
+                    Number(testId),
 
-                booking_date: bookingDate,
+                booking_date:
+                    bookingDate,
 
-                booking_time: bookingTime,
+                booking_time:
+                    bookingTime,
 
             };
 
 
             // ==================================================
             // Family Member
+            // ==================================================
+            //
+            // Empty = Myself
+            //
+            // Selected ID = Family Member
             // ==================================================
 
             if (familyMember) {
@@ -240,21 +584,19 @@ function DiagnosticTestBooking() {
 
 
             /*
-            ===================================================
-            Add notes only if backend serializer accepts notes.
-            ===================================================
-            */
+            ==================================================
+            NOTES
 
-            // if (notes.trim()) {
-            //
-            //     bookingData.notes =
-            //         notes.trim();
-            //
-            // }
+            Do NOT send notes unless your backend serializer
+            accepts a "notes" field.
+
+            Currently notes is only frontend state.
+            ==================================================
+            */
 
 
             console.log(
-                "Booking Data Sending:",
+                "Diagnostic Booking Data Sending:",
                 bookingData
             );
 
@@ -270,10 +612,14 @@ function DiagnosticTestBooking() {
 
 
             console.log(
-                "Booking Success:",
+                "Diagnostic Booking Success:",
                 response
             );
 
+
+            // ==================================================
+            // Success Message
+            // ==================================================
 
             alert(
                 response?.message ||
@@ -281,7 +627,26 @@ function DiagnosticTestBooking() {
             );
 
 
-            navigate("/diagnostics");
+            // ==================================================
+            // SUCCESS REDIRECT
+            // ==================================================
+            //
+            // IMPORTANT:
+            //
+            // AppRoutes.jsx has:
+            //
+            // /tests
+            //
+            // NOT:
+            //
+            // /diagnostics
+            //
+            // Therefore use /tests.
+            // ==================================================
+
+            navigate(
+                "/tests"
+            );
 
         }
 
@@ -299,107 +664,15 @@ function DiagnosticTestBooking() {
             );
 
 
-            let errorMessage =
-                "Unable to book the diagnostic test. Please try again.";
+            const errorMessage =
+                getErrorMessage(
+                    err.response?.data
+                );
 
 
-            const errorData =
-                err.response?.data;
-
-
-            // ==================================================
-            // Backend Validation Errors
-            // ==================================================
-
-            if (errorData) {
-
-                if (errorData.diagnostic_test) {
-
-                    errorMessage =
-                        Array.isArray(
-                            errorData.diagnostic_test
-                        )
-                            ? errorData.diagnostic_test[0]
-                            : errorData.diagnostic_test;
-
-                }
-
-                else if (errorData.booking_date) {
-
-                    errorMessage =
-                        Array.isArray(
-                            errorData.booking_date
-                        )
-                            ? errorData.booking_date[0]
-                            : errorData.booking_date;
-
-                }
-
-                else if (errorData.booking_time) {
-
-                    errorMessage =
-                        Array.isArray(
-                            errorData.booking_time
-                        )
-                            ? errorData.booking_time[0]
-                            : errorData.booking_time;
-
-                }
-
-                else if (errorData.family_member) {
-
-                    errorMessage =
-                        Array.isArray(
-                            errorData.family_member
-                        )
-                            ? errorData.family_member[0]
-                            : errorData.family_member;
-
-                }
-
-                else if (errorData.non_field_errors) {
-
-                    errorMessage =
-                        Array.isArray(
-                            errorData.non_field_errors
-                        )
-                            ? errorData.non_field_errors[0]
-                            : errorData.non_field_errors;
-
-                }
-
-                else if (errorData.detail) {
-
-                    errorMessage =
-                        errorData.detail;
-
-                }
-
-                else {
-
-                    const firstKey =
-                        Object.keys(errorData)[0];
-
-
-                    if (firstKey) {
-
-                        const firstError =
-                            errorData[firstKey];
-
-
-                        errorMessage =
-                            Array.isArray(firstError)
-                                ? firstError[0]
-                                : String(firstError);
-
-                    }
-
-                }
-
-            }
-
-
-            alert(errorMessage);
+            alert(
+                errorMessage
+            );
 
         }
 
@@ -431,7 +704,8 @@ function DiagnosticTestBooking() {
                     </h3>
 
                     <p>
-                        Please wait while we prepare your booking.
+                        Please wait while we prepare
+                        your booking.
                     </p>
 
                 </div>
@@ -459,21 +733,24 @@ function DiagnosticTestBooking() {
                         ⚠
                     </div>
 
+
                     <h3>
                         Something Went Wrong
                     </h3>
+
 
                     <p>
                         {error}
                     </p>
 
+
                     <button
                         type="button"
                         onClick={() =>
-                            navigate("/diagnostics")
+                            navigate("/tests")
                         }
                     >
-                        ← Back to Tests
+                        ← Back to Diagnostic Tests
                     </button>
 
                 </div>
@@ -494,19 +771,20 @@ function DiagnosticTestBooking() {
         <div className="diagnostic-booking-page">
 
 
-            {/* ==============================================
+            {/* ==================================================
                 Header
-            =============================================== */}
+            ================================================== */}
 
             <section className="booking-header">
 
                 <div className="booking-header-content">
 
+
                     <button
                         type="button"
                         className="back-button"
                         onClick={() =>
-                            navigate("/diagnostics")
+                            navigate("/tests")
                         }
                     >
                         ← Back to Diagnostic Tests
@@ -514,9 +792,7 @@ function DiagnosticTestBooking() {
 
 
                     <div className="booking-badge">
-
                         🧪 DIAGNOSTIC BOOKING
-
                     </div>
 
 
@@ -535,19 +811,18 @@ function DiagnosticTestBooking() {
             </section>
 
 
-            {/* ==============================================
+            {/* ==================================================
                 Main Content
-            =============================================== */}
+            ================================================== */}
 
             <main className="booking-container">
-
 
                 <div className="booking-layout">
 
 
-                    {/* ==========================================
-                        Test Information
-                    =========================================== */}
+                    {/* ==================================================
+                        Test Summary
+                    ================================================== */}
 
                     <aside className="test-summary-card">
 
@@ -557,6 +832,7 @@ function DiagnosticTestBooking() {
                             <div className="test-summary-icon">
                                 🧪
                             </div>
+
 
                             <span>
                                 SELECTED TEST
@@ -572,7 +848,8 @@ function DiagnosticTestBooking() {
 
                         <div className="test-category-badge">
 
-                            {test?.category_name || "Diagnostic Test"}
+                            {test?.category_name ||
+                                "Diagnostic Test"}
 
                         </div>
 
@@ -600,14 +877,19 @@ function DiagnosticTestBooking() {
                                     💰
                                 </div>
 
+
                                 <div>
 
                                     <span>
                                         Test Fee
                                     </span>
 
+
                                     <strong>
-                                        ৳{formatPrice(test?.price)}
+                                        ৳
+                                        {formatPrice(
+                                            test?.price
+                                        )}
                                     </strong>
 
                                 </div>
@@ -623,11 +905,13 @@ function DiagnosticTestBooking() {
                                         ⏱
                                     </div>
 
+
                                     <div>
 
                                         <span>
                                             Duration
                                         </span>
+
 
                                         <strong>
                                             {test.duration}
@@ -652,11 +936,13 @@ function DiagnosticTestBooking() {
                                         ℹ
                                     </span>
 
+
                                     <strong>
                                         Preparation Instructions
                                     </strong>
 
                                 </div>
+
 
                                 <p>
                                     {test.preparation}
@@ -673,9 +959,10 @@ function DiagnosticTestBooking() {
                                 🔒
                             </span>
 
+
                             <p>
-                                Your booking information is secure
-                                and protected.
+                                Your booking information is
+                                secure and protected.
                             </p>
 
                         </div>
@@ -683,9 +970,9 @@ function DiagnosticTestBooking() {
                     </aside>
 
 
-                    {/* ==========================================
-                        Booking Form Card
-                    =========================================== */}
+                    {/* ==================================================
+                        Booking Form
+                    ================================================== */}
 
                     <section className="booking-form-card">
 
@@ -698,9 +985,11 @@ function DiagnosticTestBooking() {
                                     BOOKING DETAILS
                                 </span>
 
+
                                 <h2>
                                     Choose Your Preferred Schedule
                                 </h2>
+
 
                                 <p>
                                     Fill in the information below
@@ -718,16 +1007,101 @@ function DiagnosticTestBooking() {
                         >
 
 
-                            {/* Date + Time */}
+                            {/* ==================================================
+                                Book For
+                            ================================================== */}
+
+                            <div className="form-group">
+
+
+                                <label
+                                    htmlFor="familyMember"
+                                >
+
+                                    <span>
+                                        👤
+                                    </span>
+
+                                    Book For
+
+                                </label>
+
+
+                                <select
+                                    id="familyMember"
+                                    value={familyMember}
+                                    onChange={(event) =>
+                                        setFamilyMember(
+                                            event.target.value
+                                        )
+                                    }
+                                    disabled={
+                                        familyMembersLoading ||
+                                        bookingLoading
+                                    }
+                                >
+
+                                    <option value="">
+                                        Myself
+                                    </option>
+
+
+                                    {familyMembers.map(
+                                        (member) => (
+
+                                            <option
+                                                key={member.id}
+                                                value={member.id}
+                                            >
+                                                {member.name}
+                                            </option>
+
+                                        )
+                                    )}
+
+                                </select>
+
+
+                                <small className="form-help">
+
+                                    {familyMembersLoading
+
+                                        ? (
+                                            "Loading family members..."
+                                        )
+
+                                        : familyMembers.length > 0
+
+                                            ? (
+                                                "Select a family member "
+                                                + "if you are booking this "
+                                                + "test for them."
+                                            )
+
+                                            : (
+                                                "No family members found. "
+                                                + "You can book this test "
+                                                + "for yourself."
+                                            )
+                                    }
+
+                                </small>
+
+                            </div>
+
+
+                            {/* ==================================================
+                                Date + Time
+                            ================================================== */}
 
                             <div className="form-row">
 
 
-                                {/* Booking Date */}
-
                                 <div className="form-group">
 
-                                    <label htmlFor="bookingDate">
+                                    <label
+                                        htmlFor="bookingDate"
+                                    >
 
                                         <span>
                                             📅
@@ -748,17 +1122,20 @@ function DiagnosticTestBooking() {
                                                 event.target.value
                                             )
                                         }
+                                        disabled={
+                                            bookingLoading
+                                        }
                                         required
                                     />
 
                                 </div>
 
 
-                                {/* Booking Time */}
-
                                 <div className="form-group">
 
-                                    <label htmlFor="bookingTime">
+                                    <label
+                                        htmlFor="bookingTime"
+                                    >
 
                                         <span>
                                             🕐
@@ -778,6 +1155,9 @@ function DiagnosticTestBooking() {
                                                 event.target.value
                                             )
                                         }
+                                        disabled={
+                                            bookingLoading
+                                        }
                                         required
                                     />
 
@@ -786,50 +1166,9 @@ function DiagnosticTestBooking() {
                             </div>
 
 
-                            {/* Family Member */}
-
-                            <div className="form-group">
-
-                                <label htmlFor="familyMember">
-
-                                    <span>
-                                        👤
-                                    </span>
-
-                                    Book For
-
-                                </label>
-
-
-                                <select
-                                    id="familyMember"
-                                    value={familyMember}
-                                    onChange={(event) =>
-                                        setFamilyMember(
-                                            event.target.value
-                                        )
-                                    }
-                                >
-
-                                    <option value="">
-                                        Myself
-                                    </option>
-
-                                </select>
-
-
-                                <small className="form-help">
-
-                                    You can select a family member
-                                    when family member options are
-                                    available.
-
-                                </small>
-
-                            </div>
-
-
-                            {/* Notes */}
+                            {/* ==================================================
+                                Notes
+                            ================================================== */}
 
                             <div className="form-group">
 
@@ -858,12 +1197,17 @@ function DiagnosticTestBooking() {
                                             event.target.value
                                         )
                                     }
+                                    disabled={
+                                        bookingLoading
+                                    }
                                 />
 
                             </div>
 
 
-                            {/* Booking Notice */}
+                            {/* ==================================================
+                                Booking Notice
+                            ================================================== */}
 
                             <div className="booking-notice">
 
@@ -871,53 +1215,68 @@ function DiagnosticTestBooking() {
                                     ℹ
                                 </span>
 
+
                                 <p>
-                                    Please review your selected date
-                                    and time carefully before
+                                    Please review your selected
+                                    date and time carefully before
                                     confirming the booking.
                                 </p>
 
                             </div>
 
 
-                            {/* Buttons */}
+                            {/* ==================================================
+                                Actions
+                            ================================================== */}
 
                             <div className="booking-actions">
+
 
                                 <button
                                     type="button"
                                     className="cancel-booking-button"
-                                    disabled={bookingLoading}
+                                    disabled={
+                                        bookingLoading
+                                    }
                                     onClick={() =>
-                                        navigate("/diagnostics")
+                                        navigate(
+                                            "/tests"
+                                        )
                                     }
                                 >
-
                                     Cancel
-
                                 </button>
 
 
                                 <button
                                     type="submit"
                                     className="confirm-booking-button"
-                                    disabled={bookingLoading}
+                                    disabled={
+                                        bookingLoading ||
+                                        !test
+                                    }
                                 >
 
                                     {bookingLoading ? (
 
                                         <>
+
                                             <span className="button-spinner"></span>
+
                                             Booking...
+
                                         </>
 
                                     ) : (
 
                                         <>
+
                                             Confirm Booking
+
                                             <span>
                                                 →
                                             </span>
+
                                         </>
 
                                     )}

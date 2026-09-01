@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 
 from rest_framework import generics, status
@@ -26,13 +27,22 @@ from notifications.models import Notification
 # ==========================================================
 # Test Category List
 #
-# GET: /api/tests/categories/
+# GET:
+# /api/tests/categories/
 # ==========================================================
 
-class TestCategoryListView(generics.ListAPIView):
+class TestCategoryListView(
+    generics.ListAPIView
+):
 
-    queryset = TestCategory.objects.filter(
-        is_active=True
+    queryset = (
+        TestCategory.objects
+        .filter(
+            is_active=True
+        )
+        .order_by(
+            "name"
+        )
     )
 
     serializer_class = TestCategorySerializer
@@ -45,14 +55,18 @@ class TestCategoryListView(generics.ListAPIView):
 # ==========================================================
 # Diagnostic Test List
 #
-# GET: /api/tests/tests/
+# GET:
+# /api/tests/tests/
 #
 # Optional:
+#
 # ?category=1
 # ?search=blood
 # ==========================================================
 
-class DiagnosticTestListView(generics.ListAPIView):
+class DiagnosticTestListView(
+    generics.ListAPIView
+):
 
     serializer_class = DiagnosticTestSerializer
 
@@ -82,13 +96,13 @@ class DiagnosticTestListView(generics.ListAPIView):
             DiagnosticTest.objects
             .filter(
                 is_available=True,
-                category__is_active=True
+                category__is_active=True,
             )
             .select_related(
-                "category"
+                "category",
             )
             .order_by(
-                "name"
+                "name",
             )
         )
 
@@ -96,7 +110,8 @@ class DiagnosticTestListView(generics.ListAPIView):
 # ==========================================================
 # Diagnostic Test Details
 #
-# GET: /api/tests/tests/<id>/
+# GET:
+# /api/tests/tests/<id>/
 # ==========================================================
 
 class DiagnosticTestDetailView(
@@ -115,10 +130,10 @@ class DiagnosticTestDetailView(
             DiagnosticTest.objects
             .filter(
                 is_available=True,
-                category__is_active=True
+                category__is_active=True,
             )
             .select_related(
-                "category"
+                "category",
             )
         )
 
@@ -126,7 +141,8 @@ class DiagnosticTestDetailView(
 # ==========================================================
 # Book Diagnostic Test
 #
-# POST: /api/tests/book/
+# POST:
+# /api/tests/book/
 # ==========================================================
 
 class TestBookingCreateView(
@@ -139,7 +155,14 @@ class TestBookingCreateView(
         IsAuthenticated
     ]
 
-    def perform_create(self, serializer):
+    # ======================================================
+    # Save Booking
+    # ======================================================
+
+    def perform_create(
+        self,
+        serializer
+    ):
 
         # --------------------------------------------------
         # Patient Profile Check
@@ -150,12 +173,17 @@ class TestBookingCreateView(
             "patient_profile"
         ):
 
-            from rest_framework.exceptions import ValidationError
+            from rest_framework.exceptions import (
+                ValidationError
+            )
 
             raise ValidationError({
 
                 "patient":
-                "Patient profile not found. Please complete your profile first."
+                (
+                    "Patient profile not found. "
+                    "Please complete your profile first."
+                )
 
             })
 
@@ -163,51 +191,70 @@ class TestBookingCreateView(
         # Get Patient
         # --------------------------------------------------
 
-        patient = self.request.user.patient_profile
-
-        # --------------------------------------------------
-        # Save Diagnostic Booking
-        # --------------------------------------------------
-
-        booking = serializer.save(
-            patient=patient
+        patient = (
+            self.request.user.patient_profile
         )
 
         # --------------------------------------------------
-        # Create Notification
-        # IMPORTANT:
-        # Notification will be created ONLY ONCE
-        # when a new booking is created.
+        # Create Booking + Notification
+        # in the same transaction
         # --------------------------------------------------
 
-        Notification.objects.create(
+        with transaction.atomic():
 
-            user=self.request.user,
+            booking = serializer.save(
+                patient=patient
+            )
 
-            notification_type="Diagnostic Booking",
+            # --------------------------------------------------
+            # IMPORTANT:
+            # Notification model supports:
+            #
+            # Appointment
+            # Payment
+            # Report
+            # Diagnostic
+            # General
+            #
+            # Therefore use "Diagnostic",
+            # NOT "Diagnostic Booking".
+            # --------------------------------------------------
 
-            title="Diagnostic Test Booking Successful",
+            Notification.objects.create(
 
-            message=(
+                user=self.request.user,
 
-                f"Your diagnostic test "
-                f"'{booking.diagnostic_test.name}' "
-                f"has been booked successfully. "
+                notification_type="Diagnostic",
 
-                f"Booking Number: "
-                f"{booking.booking_number}. "
+                title=(
+                    "Diagnostic Test Booking Successful"
+                ),
 
-                f"Booking Date: "
-                f"{booking.booking_date}. "
+                message=(
 
-                f"Booking Time: "
-                f"{booking.booking_time}."
+                    f"Your diagnostic test "
+                    f"'{booking.diagnostic_test.name}' "
+                    f"has been booked successfully. "
 
-            ),
+                    f"Booking Number: "
+                    f"{booking.booking_number}. "
 
-            is_read=False,
+                    f"Booking Date: "
+                    f"{booking.booking_date}. "
 
-        )
+                    f"Booking Time: "
+                    f"{booking.booking_time}."
+
+                ),
+
+                is_read=False,
+
+            )
+
+
+    # ======================================================
+    # Create Response
+    # ======================================================
 
     def create(
         self,
@@ -215,6 +262,37 @@ class TestBookingCreateView(
         *args,
         **kwargs
     ):
+
+        # --------------------------------------------------
+        # Patient Profile Check
+        # --------------------------------------------------
+
+        if not hasattr(
+            request.user,
+            "patient_profile"
+        ):
+
+            return Response(
+
+                {
+
+                    "success": False,
+
+                    "message":
+                    (
+                        "Patient profile not found. "
+                        "Please complete your profile first."
+                    ),
+
+                },
+
+                status=status.HTTP_403_FORBIDDEN,
+
+            )
+
+        # --------------------------------------------------
+        # Create Booking
+        # --------------------------------------------------
 
         response = super().create(
             request,
@@ -244,7 +322,8 @@ class TestBookingCreateView(
 # ==========================================================
 # My Diagnostic Test Bookings
 #
-# GET: /api/tests/bookings/
+# GET:
+# /api/tests/bookings/
 # ==========================================================
 
 class MyTestBookingListView(
@@ -259,12 +338,20 @@ class MyTestBookingListView(
 
     def get_queryset(self):
 
+        # --------------------------------------------------
+        # Patient Profile Check
+        # --------------------------------------------------
+
         if not hasattr(
             self.request.user,
             "patient_profile"
         ):
 
             return TestBooking.objects.none()
+
+        # --------------------------------------------------
+        # Patient's Own Bookings
+        # --------------------------------------------------
 
         return (
 
@@ -306,7 +393,8 @@ class MyTestBookingListView(
 # ==========================================================
 # Test Booking Details
 #
-# GET: /api/tests/bookings/<id>/
+# GET:
+# /api/tests/bookings/<id>/
 # ==========================================================
 
 class TestBookingDetailView(
@@ -321,12 +409,20 @@ class TestBookingDetailView(
 
     def get_queryset(self):
 
+        # --------------------------------------------------
+        # Patient Profile Check
+        # --------------------------------------------------
+
         if not hasattr(
             self.request.user,
             "patient_profile"
         ):
 
             return TestBooking.objects.none()
+
+        # --------------------------------------------------
+        # Only Own Booking
+        # --------------------------------------------------
 
         return (
 
@@ -358,10 +454,13 @@ class TestBookingDetailView(
 # ==========================================================
 # Cancel Diagnostic Test Booking
 #
-# PATCH: /api/tests/bookings/<id>/cancel/
+# PATCH:
+# /api/tests/bookings/<id>/cancel/
 # ==========================================================
 
-class TestBookingCancelView(APIView):
+class TestBookingCancelView(
+    APIView
+):
 
     permission_classes = [
         IsAuthenticated
@@ -389,21 +488,36 @@ class TestBookingCancelView(APIView):
                     "success": False,
 
                     "message":
-                    "Patient profile not found."
+                    (
+                        "Patient profile not found. "
+                        "Please complete your profile first."
+                    ),
 
                 },
 
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_403_FORBIDDEN,
 
             )
 
         # --------------------------------------------------
-        # Get Booking
+        # Get Own Booking
         # --------------------------------------------------
 
         booking = get_object_or_404(
 
-            TestBooking,
+            TestBooking.objects.select_related(
+
+                "patient",
+
+                "patient__user",
+
+                "family_member",
+
+                "diagnostic_test",
+
+                "diagnostic_test__category",
+
+            ),
 
             pk=pk,
 
@@ -426,6 +540,12 @@ class TestBookingCancelView(APIView):
                     "message":
                     "Booking is already cancelled.",
 
+                    "booking_number":
+                    booking.booking_number,
+
+                    "status":
+                    booking.status,
+
                 },
 
                 status=status.HTTP_400_BAD_REQUEST,
@@ -433,7 +553,7 @@ class TestBookingCancelView(APIView):
             )
 
         # --------------------------------------------------
-        # Completed Booking Cannot Be Cancelled
+        # Completed Booking
         # --------------------------------------------------
 
         if booking.status == "Completed":
@@ -447,6 +567,12 @@ class TestBookingCancelView(APIView):
                     "message":
                     "Completed booking cannot be cancelled.",
 
+                    "booking_number":
+                    booking.booking_number,
+
+                    "status":
+                    booking.status,
+
                 },
 
                 status=status.HTTP_400_BAD_REQUEST,
@@ -454,44 +580,58 @@ class TestBookingCancelView(APIView):
             )
 
         # --------------------------------------------------
-        # Cancel Booking
+        # Cancel Booking + Notification
         # --------------------------------------------------
 
-        booking.status = "Cancelled"
+        with transaction.atomic():
 
-        booking.save(
-            update_fields=[
-                "status",
-                "updated_at",
-            ]
-        )
+            booking.status = "Cancelled"
+
+            booking.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
+
+            # --------------------------------------------------
+            # Cancellation Notification
+            # --------------------------------------------------
+
+            Notification.objects.create(
+
+                user=request.user,
+
+                notification_type="Diagnostic",
+
+                title=(
+                    "Diagnostic Test Booking Cancelled"
+                ),
+
+                message=(
+
+                    f"Your diagnostic test booking "
+                    f"'{booking.diagnostic_test.name}' "
+                    f"has been cancelled. "
+
+                    f"Booking Number: "
+                    f"{booking.booking_number}. "
+
+                    f"Booking Date: "
+                    f"{booking.booking_date}. "
+
+                    f"Booking Time: "
+                    f"{booking.booking_time}."
+
+                ),
+
+                is_read=False,
+
+            )
 
         # --------------------------------------------------
-        # Create Cancellation Notification
+        # Success Response
         # --------------------------------------------------
-
-        Notification.objects.create(
-
-            user=request.user,
-
-            notification_type="Diagnostic Booking",
-
-            title="Diagnostic Test Booking Cancelled",
-
-            message=(
-
-                f"Your diagnostic test booking "
-                f"'{booking.diagnostic_test.name}' "
-                f"has been cancelled. "
-
-                f"Booking Number: "
-                f"{booking.booking_number}."
-
-            ),
-
-            is_read=False,
-
-        )
 
         return Response(
 
@@ -500,13 +640,32 @@ class TestBookingCancelView(APIView):
                 "success": True,
 
                 "message":
-                "Diagnostic test booking cancelled successfully.",
+                (
+                    "Diagnostic test booking "
+                    "cancelled successfully."
+                ),
 
-                "booking_number":
-                booking.booking_number,
+                "data": {
 
-                "status":
-                booking.status,
+                    "id":
+                    booking.id,
+
+                    "booking_number":
+                    booking.booking_number,
+
+                    "test_name":
+                    booking.diagnostic_test.name,
+
+                    "booking_date":
+                    booking.booking_date,
+
+                    "booking_time":
+                    booking.booking_time,
+
+                    "status":
+                    booking.status,
+
+                },
 
             },
 

@@ -38,20 +38,6 @@ class PatientProfile(models.Model):
     )
 
     # ------------------------------------------------------
-    # Patient Phone
-    # ------------------------------------------------------
-    # Optional because phone already exists in CustomUser.
-    # We keep this field for patient-specific profile data.
-    # ------------------------------------------------------
-
-    phone_number = models.CharField(
-        max_length=15,
-        unique=True,
-        blank=True,
-        null=True,
-    )
-
-    # ------------------------------------------------------
     # Gender
     # ------------------------------------------------------
 
@@ -134,7 +120,11 @@ class PatientProfile(models.Model):
 
     def __str__(self):
 
-        full_name = self.user.get_full_name()
+        full_name = (
+            self.user
+            .get_full_name()
+            .strip()
+        )
 
         if full_name:
             return full_name
@@ -149,12 +139,20 @@ class PatientProfile(models.Model):
     def is_complete(self):
 
         required_fields = [
-            self.phone_number,
+
+            # Phone is stored in CustomUser
+            self.user.phone,
+
             self.gender,
+
             self.date_of_birth,
+
             self.blood_group,
+
             self.address,
+
             self.emergency_contact,
+
         ]
 
         return all(
@@ -170,12 +168,20 @@ class PatientProfile(models.Model):
     def completion_percentage(self):
 
         fields = [
-            self.phone_number,
+
+            # Phone comes from CustomUser
+            self.user.phone,
+
             self.gender,
+
             self.date_of_birth,
+
             self.blood_group,
+
             self.address,
+
             self.emergency_contact,
+
         ]
 
         completed = sum(
@@ -215,40 +221,15 @@ class PatientProfile(models.Model):
                 )
 
         # --------------------------------------------------
-        # Phone validation
-        # --------------------------------------------------
-
-        if self.phone_number:
-
-            phone = self.phone_number.strip()
-
-            if not phone.isdigit():
-
-                raise ValidationError(
-                    {
-                        "phone_number":
-                        "Phone number must contain only digits."
-                    }
-                )
-
-            if len(phone) < 10 or len(phone) > 15:
-
-                raise ValidationError(
-                    {
-                        "phone_number":
-                        "Phone number must contain 10 to 15 digits."
-                    }
-                )
-
-            self.phone_number = phone
-
-        # --------------------------------------------------
         # Emergency contact validation
         # --------------------------------------------------
 
         if self.emergency_contact:
 
-            emergency = self.emergency_contact.strip()
+            emergency = (
+                self.emergency_contact
+                .strip()
+            )
 
             if not emergency.isdigit():
 
@@ -349,6 +330,9 @@ class FamilyMember(models.Model):
 
     # ------------------------------------------------------
     # Phone
+    #
+    # This phone belongs to the family member.
+    # It is NOT the patient's phone.
     # ------------------------------------------------------
 
     phone_number = models.CharField(
@@ -385,7 +369,10 @@ class FamilyMember(models.Model):
 
     def __str__(self):
 
-        return f"{self.name} ({self.relation})"
+        return (
+            f"{self.name} "
+            f"({self.relation})"
+        )
 
     # ======================================================
     # Validation
@@ -402,7 +389,9 @@ class FamilyMember(models.Model):
         if self.name:
 
             self.name = " ".join(
-                self.name.strip().split()
+                self.name
+                .strip()
+                .split()
             )
 
         if not self.name:
@@ -433,7 +422,10 @@ class FamilyMember(models.Model):
 
         if self.phone_number:
 
-            phone = self.phone_number.strip()
+            phone = (
+                self.phone_number
+                .strip()
+            )
 
             if not phone.isdigit():
 

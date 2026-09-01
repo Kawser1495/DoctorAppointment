@@ -133,16 +133,28 @@ class TestBookingSerializer(serializers.ModelSerializer):
         ]
 
     # ======================================================
-    # Patient Name
+    # Patient / Booking Person Name
     # ======================================================
 
     def get_patient_name(self, obj):
+
+        # --------------------------------------------------
+        # Family Member Booking
+        # --------------------------------------------------
 
         if obj.family_member:
 
             return obj.family_member.name
 
-        full_name = obj.patient.user.get_full_name().strip()
+        # --------------------------------------------------
+        # Self Booking
+        # --------------------------------------------------
+
+        full_name = (
+            obj.patient.user
+            .get_full_name()
+            .strip()
+        )
 
         if full_name:
 
@@ -158,115 +170,161 @@ class TestBookingSerializer(serializers.ModelSerializer):
 
         request = self.context.get("request")
 
-        # --------------------------------------------------
+        # ==================================================
         # Authentication
-        # --------------------------------------------------
+        # ==================================================
 
         if not request or not request.user.is_authenticated:
 
             raise serializers.ValidationError({
+
                 "authentication":
                 "Authentication is required."
+
             })
 
-        # --------------------------------------------------
+        # ==================================================
         # Patient Profile
-        # --------------------------------------------------
+        # ==================================================
 
-        if not hasattr(
-            request.user,
-            "patient_profile"
-        ):
+        try:
+
+            patient = request.user.patient_profile
+
+        except Exception:
 
             raise serializers.ValidationError({
+
                 "patient":
-                "Patient profile not found. Please complete your profile first."
+                (
+                    "Patient profile not found. "
+                    "Please complete your profile first."
+                )
+
             })
 
-        patient = request.user.patient_profile
-
-        # --------------------------------------------------
+        # ==================================================
         # Submitted Data
-        # --------------------------------------------------
+        # ==================================================
 
-        family_member = data.get("family_member")
+        family_member = data.get(
+            "family_member"
+        )
 
-        diagnostic_test = data.get("diagnostic_test")
+        diagnostic_test = data.get(
+            "diagnostic_test"
+        )
 
-        booking_date = data.get("booking_date")
+        booking_date = data.get(
+            "booking_date"
+        )
 
-        booking_time = data.get("booking_time")
+        booking_time = data.get(
+            "booking_time"
+        )
 
-        # --------------------------------------------------
+        # ==================================================
         # Required Fields
-        # --------------------------------------------------
+        # ==================================================
 
         if not diagnostic_test:
 
             raise serializers.ValidationError({
+
                 "diagnostic_test":
                 "Diagnostic test is required."
+
             })
 
         if not booking_date:
 
             raise serializers.ValidationError({
+
                 "booking_date":
                 "Booking date is required."
+
             })
 
         if not booking_time:
 
             raise serializers.ValidationError({
+
                 "booking_time":
                 "Booking time is required."
+
             })
 
-        # --------------------------------------------------
+        # ==================================================
         # Past Date
-        # --------------------------------------------------
+        # ==================================================
 
         if booking_date < timezone.localdate():
 
             raise serializers.ValidationError({
+
                 "booking_date":
                 "Past date booking is not allowed."
+
             })
 
-        # --------------------------------------------------
+        # ==================================================
         # Test Availability
-        # --------------------------------------------------
+        # ==================================================
 
         if not diagnostic_test.is_available:
 
             raise serializers.ValidationError({
+
                 "diagnostic_test":
                 "This diagnostic test is currently unavailable."
+
             })
+
+        # ==================================================
+        # Category Availability
+        # ==================================================
 
         if not diagnostic_test.category.is_active:
 
             raise serializers.ValidationError({
+
                 "diagnostic_test":
                 "This test category is currently inactive."
+
             })
 
-        # --------------------------------------------------
+        # ==================================================
         # Family Member Ownership
-        # --------------------------------------------------
+        # ==================================================
 
         if family_member:
 
             if family_member.patient_id != patient.id:
 
                 raise serializers.ValidationError({
+
                     "family_member":
-                    "This family member does not belong to you."
+                    (
+                        "This family member does not belong "
+                        "to your account."
+                    )
+
                 })
 
-        # --------------------------------------------------
+        # ==================================================
         # Duplicate Booking
-        # --------------------------------------------------
+        # ==================================================
+        #
+        # Same:
+        #   Patient
+        #   Diagnostic Test
+        #   Booking Date
+        #   Booking Person
+        #
+        # is not allowed.
+        #
+        # Cancelled booking is ignored.
+        # ==================================================
 
         existing_booking = TestBooking.objects.filter(
 
@@ -282,36 +340,78 @@ class TestBookingSerializer(serializers.ModelSerializer):
 
         )
 
-        # Same family member / same patient check
+        # --------------------------------------------------
+        # Booking For Family Member
+        # --------------------------------------------------
 
         if family_member:
 
             existing_booking = existing_booking.filter(
+
                 family_member=family_member
+
             )
+
+        # --------------------------------------------------
+        # Booking For Myself
+        # --------------------------------------------------
 
         else:
 
             existing_booking = existing_booking.filter(
+
                 family_member__isnull=True
+
             )
+
+        # --------------------------------------------------
+        # Update Support
+        # --------------------------------------------------
 
         if self.instance:
 
-            existing_booking = existing_booking.exclude(
-                pk=self.instance.pk
+            existing_booking = (
+                existing_booking
+                .exclude(
+                    pk=self.instance.pk
+                )
             )
+
+        # --------------------------------------------------
+        # Duplicate Found
+        # --------------------------------------------------
 
         if existing_booking.exists():
 
-            raise serializers.ValidationError({
+            if family_member:
 
-                "non_field_errors": [
+                raise serializers.ValidationError({
 
-                    "A booking for this diagnostic test already exists for this patient on the selected date."
+                    "non_field_errors": [
 
-                ]
+                        (
+                            "This diagnostic test is already "
+                            "booked for this family member "
+                            "on the selected date."
+                        )
 
-            })
+                    ]
+
+                })
+
+            else:
+
+                raise serializers.ValidationError({
+
+                    "non_field_errors": [
+
+                        (
+                            "This diagnostic test is already "
+                            "booked for you on the selected date."
+                        )
+
+                    ]
+
+                })
 
         return data

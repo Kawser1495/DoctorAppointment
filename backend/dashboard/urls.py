@@ -9,8 +9,19 @@ app_name = "dashboard"
 urlpatterns = [
 
     # ==========================================================
-    # Dashboard
-    # GET: /api/dashboard/
+    # Dashboard API
+    #
+    # GET:
+    # /api/dashboard/
+    #
+    # Authentication:
+    # Required
+    #
+    # Dashboard depends on user role:
+    # - Patient
+    # - Doctor
+    # - Admin
+    # - Receptionist
     # ==========================================================
 
     path(

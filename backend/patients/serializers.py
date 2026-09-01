@@ -28,34 +28,70 @@ class PatientProfileSerializer(
 
     full_name = serializers.SerializerMethodField()
 
+    # ======================================================
+    # Phone
+    #
+    # Phone is stored in CustomUser.
+    # PatientProfile no longer stores a duplicate phone.
+    # ======================================================
+
+    phone = serializers.CharField(
+        source="user.phone",
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+
     class Meta:
 
         model = PatientProfile
 
         fields = [
+
             "id",
+
             "user",
+
             "username",
+
             "email",
+
             "full_name",
-            "phone_number",
+
+            "phone",
+
             "gender",
+
             "date_of_birth",
+
             "blood_group",
+
             "address",
+
             "emergency_contact",
+
             "created_at",
+
             "updated_at",
+
         ]
 
         read_only_fields = [
+
             "id",
+
             "user",
+
             "username",
+
             "email",
+
             "full_name",
+
             "created_at",
+
             "updated_at",
+
         ]
 
     # ======================================================
@@ -64,7 +100,11 @@ class PatientProfileSerializer(
 
     def get_full_name(self, obj):
 
-        full_name = obj.user.get_full_name()
+        full_name = (
+            obj.user
+            .get_full_name()
+            .strip()
+        )
 
         if full_name:
             return full_name
@@ -90,9 +130,11 @@ class PatientProfileSerializer(
 
     # ======================================================
     # Phone Validation
+    #
+    # Phone belongs to CustomUser.
     # ======================================================
 
-    def validate_phone_number(self, value):
+    def validate_phone(self, value):
 
         if value is None or value == "":
             return value
@@ -152,25 +194,44 @@ class FamilyMemberSerializer(
         model = FamilyMember
 
         fields = [
+
             "id",
+
             "patient",
+
             "name",
+
             "relation",
+
             "age",
+
             "gender",
+
             "phone_number",
+
             "created_at",
+
         ]
 
         read_only_fields = [
+
             "id",
+
             "patient",
+
             "created_at",
+
         ]
+
+    # ======================================================
+    # Name Validation
+    # ======================================================
 
     def validate_name(self, value):
 
-        value = value.strip()
+        value = " ".join(
+            value.strip().split()
+        )
 
         if not value:
 
@@ -179,6 +240,10 @@ class FamilyMemberSerializer(
             )
 
         return value
+
+    # ======================================================
+    # Age Validation
+    # ======================================================
 
     def validate_age(self, value):
 
@@ -189,6 +254,13 @@ class FamilyMemberSerializer(
             )
 
         return value
+
+    # ======================================================
+    # Phone Validation
+    #
+    # Family member has its own phone,
+    # so this field remains here.
+    # ======================================================
 
     def validate_phone_number(self, value):
 

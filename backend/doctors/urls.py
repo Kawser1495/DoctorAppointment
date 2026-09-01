@@ -1,7 +1,10 @@
 from django.urls import path
 
 from .views import (
-    # Public
+    # ======================================================
+    # Public / Patient Side
+    # ======================================================
+
     DepartmentListView,
     DoctorListView,
     DoctorDetailView,
@@ -10,7 +13,10 @@ from .views import (
     DoctorScheduleListView,
     AvailableTimeSlotAPIView,
 
-    # Doctor Private
+    # ======================================================
+    # Doctor Private Side
+    # ======================================================
+
     DoctorMyProfileView,
     DoctorDashboardView,
 )
@@ -27,7 +33,9 @@ urlpatterns = [
 
     # ------------------------------------------------------
     # Departments
-    # GET: /api/doctors/departments/
+    #
+    # GET:
+    # /api/doctors/departments/
     # ------------------------------------------------------
 
     path(
@@ -39,7 +47,9 @@ urlpatterns = [
 
     # ------------------------------------------------------
     # All Doctors
-    # GET: /api/doctors/doctors/
+    #
+    # GET:
+    # /api/doctors/doctors/
     # ------------------------------------------------------
 
     path(
@@ -50,8 +60,10 @@ urlpatterns = [
 
 
     # ------------------------------------------------------
-    # Single Doctor Details
-    # GET: /api/doctors/doctors/<id>/
+    # Doctor Details
+    #
+    # GET:
+    # /api/doctors/doctors/<id>/
     # ------------------------------------------------------
 
     path(
@@ -63,7 +75,9 @@ urlpatterns = [
 
     # ------------------------------------------------------
     # Doctor Schedules
-    # GET: /api/doctors/doctors/<doctor_id>/schedules/
+    #
+    # GET:
+    # /api/doctors/doctors/<doctor_id>/schedules/
     # ------------------------------------------------------
 
     path(
@@ -75,7 +89,9 @@ urlpatterns = [
 
     # ------------------------------------------------------
     # Doctor Search
-    # GET: /api/doctors/search/?search=cardiology
+    #
+    # GET:
+    # /api/doctors/search/?search=cardiology
     # ------------------------------------------------------
 
     path(
@@ -87,7 +103,9 @@ urlpatterns = [
 
     # ------------------------------------------------------
     # Doctors By Department
-    # GET: /api/doctors/departments/<department_id>/doctors/
+    #
+    # GET:
+    # /api/doctors/departments/<department_id>/doctors/
     # ------------------------------------------------------
 
     path(
@@ -99,6 +117,7 @@ urlpatterns = [
 
     # ------------------------------------------------------
     # Available Time Slots
+    #
     # GET:
     # /api/doctors/time-slots/?doctor=1&date=2026-08-31
     # ------------------------------------------------------
@@ -116,7 +135,9 @@ urlpatterns = [
 
     # ------------------------------------------------------
     # Doctor Dashboard
-    # GET: /api/doctors/dashboard/
+    #
+    # GET:
+    # /api/doctors/dashboard/
     # ------------------------------------------------------
 
     path(
@@ -129,9 +150,12 @@ urlpatterns = [
     # ------------------------------------------------------
     # My Doctor Profile
     #
-    # GET:   /api/doctors/me/profile/
-    # PATCH: /api/doctors/me/profile/
-    # PUT:   /api/doctors/me/profile/
+    # GET:
+    # /api/doctors/me/profile/
+    # PATCH:
+    # /api/doctors/me/profile/
+    # PUT:
+    # /api/doctors/me/profile/
     # ------------------------------------------------------
 
     path(

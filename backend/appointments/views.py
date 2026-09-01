@@ -1,22 +1,85 @@
 from django.db import transaction
 
-from rest_framework import generics
+from rest_framework import generics, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
-
 
 from notifications.models import Notification
-
 from doctors.models import TimeSlot
-
 from patients.models import PatientProfile
 
 from .models import Appointment
+from .serializers import AppointmentSerializer
 
-from .serializers import (
-    AppointmentSerializer
-)
+
+# ==========================================================
+# Helper Functions
+# ==========================================================
+
+def get_patient_profile(user):
+    """
+    Return PatientProfile for logged-in user.
+
+    Raises ValidationError if:
+    - user is not authenticated
+    - user is not a patient
+    - patient profile does not exist
+    """
+
+    if not user or not user.is_authenticated:
+        raise ValidationError({
+            "detail": "Authentication is required."
+        })
+
+    if getattr(user, "role", None) != "patient":
+        raise ValidationError({
+            "detail": "Only patients can perform this action."
+        })
+
+    try:
+        return user.patient_profile
+
+    except PatientProfile.DoesNotExist:
+        raise ValidationError({
+            "patient": (
+                "Patient profile not found. "
+                "Please complete your patient profile first."
+            )
+        })
+
+
+def get_doctor_name(doctor):
+    """
+    Return doctor display name.
+    """
+
+    full_name = (
+        doctor.user.get_full_name().strip()
+    )
+
+    if full_name:
+        return f"Dr. {full_name}"
+
+    return f"Dr. {doctor.user.username}"
+
+
+def create_appointment_notification(
+    *,
+    user,
+    title,
+    message,
+):
+    """
+    Centralized appointment notification creator.
+    """
+
+    Notification.objects.create(
+        user=user,
+        notification_type="Appointment",
+        title=title,
+        message=message,
+    )
 
 
 # ==========================================================
@@ -36,121 +99,183 @@ class BookAppointmentView(
         IsAuthenticated
     ]
 
-
     def perform_create(self, serializer):
 
-        try:
+        # ==================================================
+        # Get logged-in patient
+        # ==================================================
 
-            patient = (
-                self.request.user.patient_profile
-            )
-
-        except AttributeError:
-
-            from rest_framework.exceptions import ValidationError
-
-            raise ValidationError({
-
-                "patient":
-                "Patient profile not found. Please complete your profile first."
-
-            })
-
+        patient = get_patient_profile(
+            self.request.user
+        )
 
         # ==================================================
-        # Atomic transaction
-        #
-        # Prevent two users booking the last seat at the same
-        # time.
+        # Patient Profile Completion Check
+        # ==================================================
+
+        incomplete_fields = []
+
+        if not patient.phone_number:
+            incomplete_fields.append("phone_number")
+
+        if not patient.gender:
+            incomplete_fields.append("gender")
+
+        if not patient.date_of_birth:
+            incomplete_fields.append("date_of_birth")
+
+        if not patient.blood_group:
+            incomplete_fields.append("blood_group")
+
+        if not patient.address:
+            incomplete_fields.append("address")
+
+        if not patient.emergency_contact:
+            incomplete_fields.append(
+                "emergency_contact"
+            )
+
+        if incomplete_fields:
+
+            raise ValidationError({
+                "profile": (
+                    "Please complete your patient profile "
+                    "before booking an appointment."
+                ),
+
+                "missing_fields": incomplete_fields,
+            })
+
+        # ==================================================
+        # Atomic Transaction
         # ==================================================
 
         with transaction.atomic():
+
+            # ------------------------------------------------
+            # Lock TimeSlot
+            # ------------------------------------------------
 
             slot_id = serializer.validated_data[
                 "slot"
             ].id
 
-
-            slot = TimeSlot.objects.select_for_update().get(
-
-                id=slot_id
-
+            slot = (
+                TimeSlot.objects
+                .select_for_update()
+                .select_related(
+                    "schedule",
+                    "schedule__doctor",
+                )
+                .get(
+                    id=slot_id
+                )
             )
 
+            # ------------------------------------------------
+            # Slot Active Check
+            # ------------------------------------------------
 
-            # ==================================================
-            # Re-check after locking
-            # ==================================================
-
-            if slot.booked_count >= slot.max_patient:
-
-                from rest_framework.exceptions import ValidationError
+            if not slot.is_active:
 
                 raise ValidationError({
-
                     "slot":
-                    "This time slot has just become full."
-
+                    "This time slot is currently unavailable."
                 })
 
+            # ------------------------------------------------
+            # Schedule Active Check
+            # ------------------------------------------------
 
-            # ==================================================
+            if not slot.schedule.is_active:
+
+                raise ValidationError({
+                    "slot":
+                    "Doctor schedule is currently inactive."
+                })
+
+            # ------------------------------------------------
+            # Capacity Check
+            #
+            # IMPORTANT:
+            # This project currently uses max_patient.
+            # Keep this consistent with doctors.models.TimeSlot.
+            # ------------------------------------------------
+
+            if (
+                slot.max_patient
+                and
+                slot.booked_count >= slot.max_patient
+            ):
+
+                raise ValidationError({
+                    "slot":
+                    "This time slot has just become full."
+                })
+
+            # ------------------------------------------------
             # Create Appointment
-            # ==================================================
+            # ------------------------------------------------
 
             appointment = serializer.save(
-
                 patient=patient,
-
                 status="Pending",
-
             )
 
-
-            # ==================================================
-            # Create Notification for Patient
-            # ==================================================
-
-            doctor_name = (
-                appointment.doctor.user.get_full_name()
-            )
-
-            if not doctor_name:
-
-                doctor_name = (
-                    appointment.doctor.user.username
-                )
-
-
-            Notification.objects.create(
-
-                user=self.request.user,
-
-                notification_type="Appointment",
-
-                title="Appointment Booked Successfully",
-
-                message=(
-                    f"Your appointment with Dr. {doctor_name} "
-                    f"has been booked successfully. "
-                    f"Your appointment is currently pending."
-                ),
-
-            )
-
-
-            # ==================================================
-            # Increase booked count
-            # ==================================================
+            # ------------------------------------------------
+            # Increase Booked Count
+            # ------------------------------------------------
 
             slot.booked_count += 1
 
             slot.save(
-
                 update_fields=[
                     "booked_count"
                 ]
+            )
 
+            # ------------------------------------------------
+            # Doctor Name
+            # ------------------------------------------------
+
+            doctor_name = get_doctor_name(
+                appointment.doctor
+            )
+
+            # ------------------------------------------------
+            # Target Name
+            # ------------------------------------------------
+
+            if appointment.family_member:
+
+                target_name = (
+                    appointment.family_member.name
+                )
+
+            else:
+
+                target_name = (
+                    patient.user.get_full_name().strip()
+                    or
+                    patient.user.username
+                )
+
+            # ------------------------------------------------
+            # Notification
+            # ------------------------------------------------
+
+            create_appointment_notification(
+
+                user=self.request.user,
+
+                title="Appointment Booked Successfully",
+
+                message=(
+                    f"Appointment {appointment.booking_number} "
+                    f"for {target_name} with {doctor_name} "
+                    f"has been booked successfully. "
+                    f"Your appointment is currently pending."
+                ),
             )
 
 
@@ -171,36 +296,40 @@ class PatientAppointmentListView(
         IsAuthenticated
     ]
 
-
     def get_queryset(self):
 
         try:
 
-            patient = (
-                self.request.user.patient_profile
+            patient = get_patient_profile(
+                self.request.user
             )
 
-        except AttributeError:
+        except ValidationError:
 
             return Appointment.objects.none()
 
+        return (
+            Appointment.objects
+            .filter(
+                patient=patient
+            )
+            .select_related(
+                "patient",
+                "patient__user",
 
-        return Appointment.objects.filter(
+                "family_member",
 
-            patient=patient
+                "doctor",
+                "doctor__user",
+                "doctor__department",
 
-        ).select_related(
-
-            "doctor",
-
-            "doctor__user",
-
-            "doctor__department",
-
-            "slot",
-
-            "family_member",
-
+                "slot",
+                "slot__schedule",
+            )
+            .order_by(
+                "-appointment_date",
+                "-created_at",
+            )
         )
 
 
@@ -223,36 +352,36 @@ class AppointmentDetailView(
 
     lookup_field = "id"
 
-
     def get_queryset(self):
 
         try:
 
-            patient = (
-                self.request.user.patient_profile
+            patient = get_patient_profile(
+                self.request.user
             )
 
-        except AttributeError:
+        except ValidationError:
 
             return Appointment.objects.none()
 
+        return (
+            Appointment.objects
+            .filter(
+                patient=patient
+            )
+            .select_related(
+                "patient",
+                "patient__user",
 
-        return Appointment.objects.filter(
+                "family_member",
 
-            patient=patient
+                "doctor",
+                "doctor__user",
+                "doctor__department",
 
-        ).select_related(
-
-            "doctor",
-
-            "doctor__user",
-
-            "doctor__department",
-
-            "slot",
-
-            "family_member",
-
+                "slot",
+                "slot__schedule",
+            )
         )
 
 
@@ -275,159 +404,147 @@ class CancelAppointmentView(
 
     lookup_field = "id"
 
-
     def get_queryset(self):
 
         try:
 
-            patient = (
-                self.request.user.patient_profile
+            patient = get_patient_profile(
+                self.request.user
             )
 
-        except AttributeError:
+        except ValidationError:
 
             return Appointment.objects.none()
 
-
-        return Appointment.objects.filter(
-
-            patient=patient
-
+        return (
+            Appointment.objects
+            .filter(
+                patient=patient
+            )
+            .select_related(
+                "doctor",
+                "doctor__user",
+                "family_member",
+                "slot",
+            )
         )
 
-
-    def patch(self, request, *args, **kwargs):
+    def patch(
+        self,
+        request,
+        *args,
+        **kwargs
+    ):
 
         appointment = self.get_object()
 
+        # ==================================================
+        # Only Pending / Confirmed Can Be Cancelled
+        # ==================================================
 
-        # ----------------------------------------------
-        # Cannot cancel completed appointment
-        # ----------------------------------------------
-
-        if appointment.status == "Completed":
-
-            return Response(
-
-                {
-
-                    "detail":
-                    "Completed appointments cannot be cancelled."
-
-                },
-
-                status=status.HTTP_400_BAD_REQUEST
-
-            )
-
-
-        # ----------------------------------------------
-        # Already cancelled
-        # ----------------------------------------------
-
-        if appointment.status == "Cancelled":
+        if appointment.status not in [
+            "Pending",
+            "Confirmed",
+        ]:
 
             return Response(
-
                 {
-
-                    "detail":
-                    "This appointment is already cancelled."
-
+                    "detail": (
+                        "Only pending or confirmed "
+                        "appointments can be cancelled."
+                    )
                 },
-
-                status=status.HTTP_400_BAD_REQUEST
-
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # ==================================================
+        # Atomic Transaction
+        # ==================================================
 
         with transaction.atomic():
 
-            slot = TimeSlot.objects.select_for_update().get(
+            # ------------------------------------------------
+            # Lock Slot
+            # ------------------------------------------------
 
-                id=appointment.slot.id
-
+            slot = (
+                TimeSlot.objects
+                .select_for_update()
+                .get(
+                    id=appointment.slot_id
+                )
             )
 
-
-            # ==================================================
+            # ------------------------------------------------
             # Cancel Appointment
-            # ==================================================
+            # ------------------------------------------------
 
             appointment.status = "Cancelled"
 
             appointment.save(
-
                 update_fields=[
                     "status",
                     "updated_at",
                 ]
-
             )
 
-
-            # ==================================================
-            # Create Cancellation Notification
-            # ==================================================
-
-            doctor_name = (
-                appointment.doctor.user.get_full_name()
-            )
-
-            if not doctor_name:
-
-                doctor_name = (
-                    appointment.doctor.user.username
-                )
-
-
-            Notification.objects.create(
-
-                user=request.user,
-
-                notification_type="Appointment",
-
-                title="Appointment Cancelled",
-
-                message=(
-                    f"Your appointment with Dr. {doctor_name} "
-                    f"has been cancelled successfully."
-                ),
-
-            )
-
-
-            # ==================================================
-            # Reduce booked count
-            # ==================================================
+            # ------------------------------------------------
+            # Reduce Booked Count
+            # ------------------------------------------------
 
             if slot.booked_count > 0:
 
                 slot.booked_count -= 1
 
                 slot.save(
-
                     update_fields=[
                         "booked_count"
                     ]
-
                 )
 
+            # ------------------------------------------------
+            # Doctor Name
+            # ------------------------------------------------
+
+            doctor_name = get_doctor_name(
+                appointment.doctor
+            )
+
+            # ------------------------------------------------
+            # Notification
+            # ------------------------------------------------
+
+            create_appointment_notification(
+
+                user=request.user,
+
+                title="Appointment Cancelled",
+
+                message=(
+                    f"Your appointment "
+                    f"{appointment.booking_number} "
+                    f"with {doctor_name} "
+                    f"has been cancelled successfully."
+                ),
+            )
 
         return Response(
-
             {
-
                 "message":
-                "Appointment cancelled successfully."
+                    "Appointment cancelled successfully.",
 
+                "appointment":
+                    AppointmentSerializer(
+                        appointment,
+                        context={
+                            "request": request
+                        }
+                    ).data,
             },
-
-            status=status.HTTP_200_OK
-
+            status=status.HTTP_200_OK,
         )
-        
-        
+
+
 # ==========================================================
 # Doctor Appointment List
 #
@@ -449,14 +566,15 @@ class DoctorAppointmentListView(
 
         user = self.request.user
 
-        # --------------------------------------------------
-        # Only Doctor
-        # --------------------------------------------------
+        if getattr(user, "role", None) != "doctor":
+
+            return Appointment.objects.none()
 
         if not hasattr(
             user,
             "doctor_profile"
         ):
+
             return Appointment.objects.none()
 
         doctor = user.doctor_profile
@@ -509,10 +627,15 @@ class DoctorAppointmentDetailView(
 
         user = self.request.user
 
+        if getattr(user, "role", None) != "doctor":
+
+            return Appointment.objects.none()
+
         if not hasattr(
             user,
             "doctor_profile"
         ):
+
             return Appointment.objects.none()
 
         doctor = user.doctor_profile
@@ -561,14 +684,30 @@ class DoctorConfirmAppointmentView(
 
         user = self.request.user
 
+        if getattr(user, "role", None) != "doctor":
+
+            return Appointment.objects.none()
+
         if not hasattr(
             user,
             "doctor_profile"
         ):
+
             return Appointment.objects.none()
 
-        return Appointment.objects.filter(
-            doctor=user.doctor_profile
+        return (
+            Appointment.objects
+            .filter(
+                doctor=user.doctor_profile
+            )
+            .select_related(
+                "patient",
+                "patient__user",
+                "doctor",
+                "doctor__user",
+                "family_member",
+                "slot",
+            )
         )
 
     def patch(
@@ -580,9 +719,9 @@ class DoctorConfirmAppointmentView(
 
         appointment = self.get_object()
 
-        # --------------------------------------------------
-        # Only Pending appointment can be confirmed
-        # --------------------------------------------------
+        # ==================================================
+        # Status Check
+        # ==================================================
 
         if appointment.status != "Pending":
 
@@ -593,8 +732,12 @@ class DoctorConfirmAppointmentView(
                         "can be confirmed."
                     )
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # ==================================================
+        # Confirm
+        # ==================================================
 
         appointment.status = "Confirmed"
 
@@ -605,40 +748,42 @@ class DoctorConfirmAppointmentView(
             ]
         )
 
-        # --------------------------------------------------
-        # Notify patient
-        # --------------------------------------------------
+        # ==================================================
+        # Notification
+        # ==================================================
 
-        Notification.objects.create(
+        doctor_name = get_doctor_name(
+            appointment.doctor
+        )
+
+        create_appointment_notification(
+
             user=appointment.patient.user,
-
-            notification_type="Appointment",
 
             title="Appointment Confirmed",
 
             message=(
                 f"Your appointment "
                 f"{appointment.booking_number} "
-                f"with Dr. "
-                f"{appointment.doctor.user.get_full_name()} "
+                f"with {doctor_name} "
                 f"has been confirmed."
             ),
         )
 
         return Response(
             {
-                "message": (
-                    "Appointment confirmed successfully."
-                ),
+                "message":
+                    "Appointment confirmed successfully.",
 
-                "appointment": AppointmentSerializer(
-                    appointment,
-                    context={
-                        "request": request
-                    }
-                ).data,
+                "appointment":
+                    AppointmentSerializer(
+                        appointment,
+                        context={
+                            "request": request
+                        }
+                    ).data,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
@@ -665,14 +810,30 @@ class DoctorRejectAppointmentView(
 
         user = self.request.user
 
+        if getattr(user, "role", None) != "doctor":
+
+            return Appointment.objects.none()
+
         if not hasattr(
             user,
             "doctor_profile"
         ):
+
             return Appointment.objects.none()
 
-        return Appointment.objects.filter(
-            doctor=user.doctor_profile
+        return (
+            Appointment.objects
+            .filter(
+                doctor=user.doctor_profile
+            )
+            .select_related(
+                "patient",
+                "patient__user",
+                "doctor",
+                "doctor__user",
+                "family_member",
+                "slot",
+            )
         )
 
     def patch(
@@ -684,9 +845,9 @@ class DoctorRejectAppointmentView(
 
         appointment = self.get_object()
 
-        # --------------------------------------------------
-        # Only Pending appointment can be rejected
-        # --------------------------------------------------
+        # ==================================================
+        # Only Pending Can Be Rejected
+        # ==================================================
 
         if appointment.status != "Pending":
 
@@ -697,10 +858,26 @@ class DoctorRejectAppointmentView(
                         "can be rejected."
                     )
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         with transaction.atomic():
+
+            # ------------------------------------------------
+            # Lock Slot
+            # ------------------------------------------------
+
+            slot = (
+                TimeSlot.objects
+                .select_for_update()
+                .get(
+                    id=appointment.slot_id
+                )
+            )
+
+            # ------------------------------------------------
+            # Reject Appointment
+            # ------------------------------------------------
 
             appointment.status = "Rejected"
 
@@ -711,13 +888,9 @@ class DoctorRejectAppointmentView(
                 ]
             )
 
-            # --------------------------------------------------
-            # Release slot
-            # --------------------------------------------------
-
-            slot = TimeSlot.objects.select_for_update().get(
-                id=appointment.slot_id
-            )
+            # ------------------------------------------------
+            # Release Slot
+            # ------------------------------------------------
 
             if slot.booked_count > 0:
 
@@ -729,37 +902,46 @@ class DoctorRejectAppointmentView(
                     ]
                 )
 
-            # --------------------------------------------------
-            # Notify patient
-            # --------------------------------------------------
+            # ------------------------------------------------
+            # Doctor Name
+            # ------------------------------------------------
 
-            doctor_name = (
-                appointment.doctor.user.get_full_name()
-                or appointment.doctor.user.username
+            doctor_name = get_doctor_name(
+                appointment.doctor
             )
 
-            Notification.objects.create(
-                user=appointment.patient.user,
+            # ------------------------------------------------
+            # Notification
+            # ------------------------------------------------
 
-                notification_type="Appointment",
+            create_appointment_notification(
+
+                user=appointment.patient.user,
 
                 title="Appointment Rejected",
 
                 message=(
                     f"Your appointment "
                     f"{appointment.booking_number} "
-                    f"with Dr. {doctor_name} "
+                    f"with {doctor_name} "
                     f"has been rejected."
                 ),
             )
 
         return Response(
             {
-                "message": (
-                    "Appointment rejected successfully."
-                )
+                "message":
+                    "Appointment rejected successfully.",
+
+                "appointment":
+                    AppointmentSerializer(
+                        appointment,
+                        context={
+                            "request": request
+                        }
+                    ).data,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
@@ -786,14 +968,30 @@ class DoctorCompleteAppointmentView(
 
         user = self.request.user
 
+        if getattr(user, "role", None) != "doctor":
+
+            return Appointment.objects.none()
+
         if not hasattr(
             user,
             "doctor_profile"
         ):
+
             return Appointment.objects.none()
 
-        return Appointment.objects.filter(
-            doctor=user.doctor_profile
+        return (
+            Appointment.objects
+            .filter(
+                doctor=user.doctor_profile
+            )
+            .select_related(
+                "patient",
+                "patient__user",
+                "doctor",
+                "doctor__user",
+                "family_member",
+                "slot",
+            )
         )
 
     def patch(
@@ -805,9 +1003,9 @@ class DoctorCompleteAppointmentView(
 
         appointment = self.get_object()
 
-        # --------------------------------------------------
-        # Only Confirmed appointment can be completed
-        # --------------------------------------------------
+        # ==================================================
+        # Only Confirmed Can Be Completed
+        # ==================================================
 
         if appointment.status != "Confirmed":
 
@@ -818,8 +1016,12 @@ class DoctorCompleteAppointmentView(
                         "can be completed."
                     )
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # ==================================================
+        # Complete Appointment
+        # ==================================================
 
         appointment.status = "Completed"
 
@@ -830,160 +1032,40 @@ class DoctorCompleteAppointmentView(
             ]
         )
 
-        # --------------------------------------------------
-        # Notify patient
-        # --------------------------------------------------
+        # ==================================================
+        # Notification
+        # ==================================================
 
-        doctor_name = (
-            appointment.doctor.user.get_full_name()
-            or appointment.doctor.user.username
+        doctor_name = get_doctor_name(
+            appointment.doctor
         )
 
-        Notification.objects.create(
-            user=appointment.patient.user,
+        create_appointment_notification(
 
-            notification_type="Appointment",
+            user=appointment.patient.user,
 
             title="Appointment Completed",
 
             message=(
                 f"Your appointment "
                 f"{appointment.booking_number} "
-                f"with Dr. {doctor_name} "
+                f"with {doctor_name} "
                 f"has been completed."
             ),
         )
 
         return Response(
             {
-                "message": (
-                    "Appointment completed successfully."
-                ),
+                "message":
+                    "Appointment completed successfully.",
 
-                "appointment": AppointmentSerializer(
-                    appointment,
-                    context={
-                        "request": request
-                    }
-                ).data,
+                "appointment":
+                    AppointmentSerializer(
+                        appointment,
+                        context={
+                            "request": request
+                        }
+                    ).data,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
-        
-        
-        # ==========================================================
-        # Admin User Management
-        #
-        # GET:
-        # /api/accounts/admin/users/
-        #
-        # Admin only
-        # ==========================================================
-
-        class AdminUserListView(
-            generics.ListAPIView
-        ):
-
-            queryset = CustomUser.objects.all().order_by(
-                "-created_at"
-            )
-
-            serializer_class = AdminUserSerializer
-
-            permission_classes = [
-                IsAuthenticated,
-                IsAdminUser,
-            ]
-
-            # ======================================================
-            # Search + Role + Status Filter
-            # ======================================================
-
-            def get_queryset(self):
-
-                queryset = super().get_queryset()
-
-                search = self.request.query_params.get(
-                    "search",
-                    ""
-                ).strip()
-
-                role = self.request.query_params.get(
-                    "role",
-                    ""
-                ).strip().lower()
-
-                is_active = self.request.query_params.get(
-                    "is_active",
-                    ""
-                ).strip().lower()
-
-
-                # --------------------------------------------------
-                # Search
-                # --------------------------------------------------
-
-                if search:
-
-                    queryset = queryset.filter(
-
-                        models.Q(
-                            username__icontains=search
-                        )
-
-                        |
-
-                        models.Q(
-                            email__icontains=search
-                        )
-
-                        |
-
-                        models.Q(
-                            first_name__icontains=search
-                        )
-
-                        |
-
-                        models.Q(
-                            last_name__icontains=search
-                        )
-
-                    )
-
-
-                # --------------------------------------------------
-                # Role
-                # --------------------------------------------------
-
-                if role in [
-                    "admin",
-                    "doctor",
-                    "patient",
-                    "receptionist",
-                ]:
-
-                    queryset = queryset.filter(
-                        role=role
-                    )
-
-
-                # --------------------------------------------------
-                # Active / Inactive
-                # --------------------------------------------------
-
-                if is_active == "true":
-
-                    queryset = queryset.filter(
-                        is_active=True
-                    )
-
-                elif is_active == "false":
-
-                    queryset = queryset.filter(
-                        is_active=False
-                    )
-
-
-                return queryset        
-            

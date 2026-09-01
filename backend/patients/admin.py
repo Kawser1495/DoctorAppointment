@@ -1,72 +1,89 @@
 from django.contrib import admin
 
-from .models import PatientProfile, FamilyMember
+from .models import (
+    PatientProfile,
+    FamilyMember,
+)
 
 
-# ==========================================
+# ==========================================================
 # Patient Profile Admin
-# ==========================================
+# ==========================================================
 
 @admin.register(PatientProfile)
 class PatientProfileAdmin(admin.ModelAdmin):
 
-    list_display = (
+    list_display = [
         "id",
         "user",
-        "phone_number",
+        "phone",
         "gender",
+        "date_of_birth",
         "blood_group",
-        "emergency_contact",
         "created_at",
-    )
+    ]
 
-    search_fields = (
+    search_fields = [
+        "user__username",
         "user__first_name",
         "user__last_name",
-        "user__username",
-        "phone_number",
-        "blood_group",
-    )
+        "user__phone",
+    ]
 
-    list_filter = (
+    list_filter = [
         "gender",
         "blood_group",
+    ]
+
+    readonly_fields = [
+        "created_at",
+        "updated_at",
+    ]
+
+    # ======================================================
+    # Patient Phone
+    # ======================================================
+
+    @admin.display(
+        description="Phone",
+        ordering="user__phone",
     )
+    def phone(self, obj):
 
-    ordering = (
-        "user__first_name",
-    )
+        return obj.user.phone
 
 
-# ==========================================
+# ==========================================================
 # Family Member Admin
-# ==========================================
+# ==========================================================
 
 @admin.register(FamilyMember)
 class FamilyMemberAdmin(admin.ModelAdmin):
 
-    list_display = (
+    list_display = [
         "id",
-        "patient",
         "name",
+        "patient",
         "relation",
         "age",
         "gender",
         "phone_number",
         "created_at",
-    )
+    ]
 
-    search_fields = (
+    search_fields = [
         "name",
+        "patient__user__username",
         "patient__user__first_name",
         "patient__user__last_name",
-    )
+        "phone_number",
+    ]
 
-    list_filter = (
+    list_filter = [
         "relation",
         "gender",
-    )
+    ]
 
-    ordering = (
-        "name",
-    )
+    readonly_fields = [
+        "created_at",
+    ]
