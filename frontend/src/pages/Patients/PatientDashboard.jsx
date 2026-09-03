@@ -22,8 +22,8 @@ import {
     FaPlus,
     FaCalendarAlt,
     FaStethoscope,
-    FaReceipt,
     FaClipboardList,
+    FaUserFriends,
 } from "react-icons/fa";
 
 import useAuth from "../../context/useAuth";
@@ -32,6 +32,30 @@ import {
     getMyAppointments,
 } from "../../services/appointmentService";
 
+import {
+    getDoctors,
+} from "../../services/doctorService";
+
+import {
+    getMyTestBookings,
+} from "../../services/diagnosticService";
+
+import {
+    getMedicalReports,
+} from "../../services/reportService";
+
+import {
+    getMyPayments,
+} from "../../services/paymentService";
+
+import {
+    getFamilyMembers,
+} from "../../services/familyService";
+
+import {
+    getNotifications,
+} from "../../services/notificationService";
+
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
 
@@ -39,58 +63,120 @@ import "../../pages/Patients/patientDashboard.css";
 
 
 // ==========================================================
-// Helpers
+// Helper: Normalize API Response
 // ==========================================================
 
-const normalizeAppointments = (response) => {
+const normalizeListResponse = (
+    response
+) => {
 
-    const data = response?.data;
+    if (
+        Array.isArray(response)
+    ) {
+
+        return response;
+
+    }
 
 
-    // Direct array
-    if (Array.isArray(data)) {
+    if (
+        Array.isArray(response?.data)
+    ) {
+
+        return response.data;
+
+    }
+
+
+    if (
+        Array.isArray(response?.results)
+    ) {
+
+        return response.results;
+
+    }
+
+
+    if (
+        Array.isArray(response?.data?.results)
+    ) {
+
+        return response.data.results;
+
+    }
+
+
+    if (
+        Array.isArray(response?.data?.data)
+    ) {
+
+        return response.data.data;
+
+    }
+
+
+    return [];
+
+};
+
+
+// ==========================================================
+// Normalize Appointments
+// ==========================================================
+
+const normalizeAppointments = (
+    response
+) => {
+
+    const data =
+        response?.data;
+
+
+    if (
+        Array.isArray(data)
+    ) {
 
         return data;
 
     }
 
 
-    // Django REST Framework pagination
-    if (Array.isArray(data?.results)) {
+    if (
+        Array.isArray(data?.results)
+    ) {
 
         return data.results;
 
     }
 
 
-    // Nested data array
-    if (Array.isArray(data?.data)) {
+    if (
+        Array.isArray(data?.data)
+    ) {
 
         return data.data;
 
     }
 
 
-    // Nested appointments
-    if (Array.isArray(data?.appointments)) {
+    if (
+        Array.isArray(data?.appointments)
+    ) {
 
         return data.appointments;
 
     }
 
 
-    // Nested results
-    if (Array.isArray(data?.data?.results)) {
+    if (
+        Array.isArray(
+            data?.data?.results
+        )
+    ) {
 
         return data.data.results;
 
     }
-
-
-    console.warn(
-        "Unexpected appointments API response:",
-        response
-    );
 
 
     return [];
@@ -102,32 +188,49 @@ const normalizeAppointments = (response) => {
 // Status Badge
 // ==========================================================
 
-const getStatusClass = (status) => {
+const getStatusClass = (
+    status
+) => {
 
     const normalized =
-        String(status || "")
+        String(
+            status || ""
+        )
             .trim()
             .toLowerCase();
 
 
-    switch (normalized) {
+    switch (
+        normalized
+    ) {
 
         case "pending":
+
             return "patient-status pending";
 
+
         case "confirmed":
+
             return "patient-status confirmed";
 
+
         case "completed":
+
             return "patient-status completed";
 
+
         case "cancelled":
+
             return "patient-status cancelled";
 
+
         case "rejected":
+
             return "patient-status rejected";
 
+
         default:
+
             return "patient-status default";
 
     }
@@ -139,9 +242,13 @@ const getStatusClass = (status) => {
 // Format Date
 // ==========================================================
 
-const formatDate = (date) => {
+const formatDate = (
+    date
+) => {
 
-    if (!date) {
+    if (
+        !date
+    ) {
 
         return "-";
 
@@ -152,7 +259,11 @@ const formatDate = (date) => {
         new Date(date);
 
 
-    if (Number.isNaN(parsedDate.getTime())) {
+    if (
+        Number.isNaN(
+            parsedDate.getTime()
+        )
+    ) {
 
         return String(date);
 
@@ -166,6 +277,35 @@ const formatDate = (date) => {
             month: "short",
             day: "numeric",
         }
+    );
+
+};
+
+
+// ==========================================================
+// Format Currency
+// ==========================================================
+
+const formatCurrency = (
+    amount
+) => {
+
+    const numericAmount =
+        Number(amount || 0);
+
+
+    return new Intl.NumberFormat(
+        "en-BD",
+        {
+            style: "currency",
+            currency: "BDT",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+        }
+    ).format(
+        Number.isFinite(numericAmount)
+            ? numericAmount
+            : 0
     );
 
 };
@@ -193,6 +333,42 @@ export default function PatientDashboard() {
 
 
     const [
+        doctors,
+        setDoctors,
+    ] = useState([]);
+
+
+    const [
+        diagnosticBookings,
+        setDiagnosticBookings,
+    ] = useState([]);
+
+
+    const [
+        reports,
+        setReports,
+    ] = useState([]);
+
+
+    const [
+        payments,
+        setPayments,
+    ] = useState([]);
+
+
+    const [
+        familyMembers,
+        setFamilyMembers,
+    ] = useState([]);
+
+
+    const [
+        notifications,
+        setNotifications,
+    ] = useState([]);
+
+
+    const [
         loading,
         setLoading,
     ] = useState(true);
@@ -205,7 +381,7 @@ export default function PatientDashboard() {
 
 
     // ======================================================
-    // Load Appointments
+    // Load Dashboard Data
     // ======================================================
 
     useEffect(() => {
@@ -213,77 +389,289 @@ export default function PatientDashboard() {
         let mounted = true;
 
 
-        const loadAppointments = async () => {
+        const loadDashboardData =
+            async () => {
 
-            try {
+                try {
 
-                setLoading(true);
+                    setLoading(true);
 
-                setError("");
-
-
-                const response =
-                    await getMyAppointments();
+                    setError("");
 
 
-                console.log(
-                    "Patient Dashboard Appointments:",
-                    response
-                );
+                    const results =
+                        await Promise.allSettled(
+                            [
+
+                                getMyAppointments(),
+
+                                getDoctors(),
+
+                                getMyTestBookings(),
+
+                                getMedicalReports(),
+
+                                getMyPayments(),
+
+                                getFamilyMembers(),
+
+                                getNotifications(),
+
+                            ]
+                        );
 
 
-                const appointmentData =
-                    normalizeAppointments(
-                        response
-                    );
+                    if (
+                        !mounted
+                    ) {
+
+                        return;
+
+                    }
 
 
-                if (mounted) {
+                    // ==========================================
+                    // Appointments
+                    // ==========================================
 
-                    setAppointments(
-                        appointmentData
-                    );
+                    if (
+                        results[0].status ===
+                        "fulfilled"
+                    ) {
+
+                        setAppointments(
+                            normalizeAppointments(
+                                results[0].value
+                            )
+                        );
+
+                    }
+
+                    else {
+
+                        console.error(
+                            "Appointments error:",
+                            results[0].reason
+                        );
+
+                        setAppointments([]);
+
+                    }
+
+
+                    // ==========================================
+                    // Doctors
+                    // ==========================================
+
+                    if (
+                        results[1].status ===
+                        "fulfilled"
+                    ) {
+
+                        setDoctors(
+                            normalizeListResponse(
+                                results[1].value
+                            )
+                        );
+
+                    }
+
+                    else {
+
+                        console.error(
+                            "Doctors error:",
+                            results[1].reason
+                        );
+
+                        setDoctors([]);
+
+                    }
+
+
+                    // ==========================================
+                    // Diagnostic Bookings
+                    // ==========================================
+
+                    if (
+                        results[2].status ===
+                        "fulfilled"
+                    ) {
+
+                        setDiagnosticBookings(
+                            normalizeListResponse(
+                                results[2].value
+                            )
+                        );
+
+                    }
+
+                    else {
+
+                        console.error(
+                            "Diagnostic bookings error:",
+                            results[2].reason
+                        );
+
+                        setDiagnosticBookings([]);
+
+                    }
+
+
+                    // ==========================================
+                    // Medical Reports
+                    // ==========================================
+
+                    if (
+                        results[3].status ===
+                        "fulfilled"
+                    ) {
+
+                        setReports(
+                            normalizeListResponse(
+                                results[3].value
+                            )
+                        );
+
+                    }
+
+                    else {
+
+                        console.error(
+                            "Reports error:",
+                            results[3].reason
+                        );
+
+                        setReports([]);
+
+                    }
+
+
+                    // ==========================================
+                    // Payments
+                    // ==========================================
+
+                    if (
+                        results[4].status ===
+                        "fulfilled"
+                    ) {
+
+                        setPayments(
+                            normalizeListResponse(
+                                results[4].value
+                            )
+                        );
+
+                    }
+
+                    else {
+
+                        console.error(
+                            "Payments error:",
+                            results[4].reason
+                        );
+
+                        setPayments([]);
+
+                    }
+
+
+                    // ==========================================
+                    // Family Members
+                    // ==========================================
+
+                    if (
+                        results[5].status ===
+                        "fulfilled"
+                    ) {
+
+                        setFamilyMembers(
+                            normalizeListResponse(
+                                results[5].value
+                            )
+                        );
+
+                    }
+
+                    else {
+
+                        console.error(
+                            "Family members error:",
+                            results[5].reason
+                        );
+
+                        setFamilyMembers([]);
+
+                    }
+
+
+                    // ==========================================
+                    // Notifications
+                    // ==========================================
+
+                    if (
+                        results[6].status ===
+                        "fulfilled"
+                    ) {
+
+                        setNotifications(
+                            normalizeListResponse(
+                                results[6].value
+                            )
+                        );
+
+                    }
+
+                    else {
+
+                        console.error(
+                            "Notifications error:",
+                            results[6].reason
+                        );
+
+                        setNotifications([]);
+
+                    }
 
                 }
 
-            }
-
-            catch (err) {
-
-                console.error(
-                    "Patient dashboard appointment error:",
+                catch (
                     err
-                );
+                ) {
 
-
-                if (mounted) {
-
-                    setAppointments([]);
-
-                    setError(
-                        err?.response?.data?.detail ||
-                        err?.response?.data?.message ||
-                        "Unable to load your appointments."
+                    console.error(
+                        "Dashboard loading error:",
+                        err
                     );
 
+
+                    if (
+                        mounted
+                    ) {
+
+                        setError(
+                            "Unable to load dashboard data."
+                        );
+
+                    }
+
                 }
 
-            }
+                finally {
 
-            finally {
+                    if (
+                        mounted
+                    ) {
 
-                if (mounted) {
+                        setLoading(false);
 
-                    setLoading(false);
+                    }
 
                 }
 
-            }
-
-        };
+            };
 
 
-        loadAppointments();
+        loadDashboardData();
 
 
         return () => {
@@ -299,70 +687,279 @@ export default function PatientDashboard() {
     // Safe Appointments
     // ======================================================
 
-    const safeAppointments = useMemo(() => {
+    const safeAppointments =
+        useMemo(() => {
 
-        return Array.isArray(appointments)
-            ? appointments
-            : [];
+            return Array.isArray(
+                appointments
+            )
+                ? appointments
+                : [];
 
-    }, [appointments]);
+        }, [
+            appointments,
+        ]);
 
 
     // ======================================================
     // Appointment Statistics
     // ======================================================
 
-    const statistics = useMemo(() => {
+    const appointmentStatistics =
+        useMemo(() => {
 
-        const result = {
+            const result = {
 
-            total: safeAppointments.length,
+                total:
+                    safeAppointments.length,
 
-            pending: 0,
+                pending:
+                    0,
 
-            confirmed: 0,
+                confirmed:
+                    0,
 
-            completed: 0,
+                completed:
+                    0,
 
-        };
+            };
 
 
-        safeAppointments.forEach(
-            (appointment) => {
+            safeAppointments.forEach(
+                (
+                    appointment
+                ) => {
 
-                const status =
-                    String(
-                        appointment?.status || ""
+                    const status =
+                        String(
+                            appointment?.status ||
+                            ""
+                        )
+                            .trim()
+                            .toLowerCase();
+
+
+                    if (
+                        status ===
+                        "pending"
+                    ) {
+
+                        result.pending +=
+                            1;
+
+                    }
+
+
+                    else if (
+                        status ===
+                        "confirmed"
+                    ) {
+
+                        result.confirmed +=
+                            1;
+
+                    }
+
+
+                    else if (
+                        status ===
+                        "completed"
+                    ) {
+
+                        result.completed +=
+                            1;
+
+                    }
+
+                }
+            );
+
+
+            return result;
+
+        }, [
+            safeAppointments,
+        ]);
+
+
+    // ======================================================
+    // Dashboard Overview Statistics
+    // ======================================================
+
+    const overviewStatistics =
+        useMemo(() => {
+
+            const safePayments =
+                Array.isArray(
+                    payments
+                )
+                    ? payments
+                    : [];
+
+
+            const safeNotifications =
+                Array.isArray(
+                    notifications
+                )
+                    ? notifications
+                    : [];
+
+
+            // ==============================================
+            // Unread Notifications
+            // ==============================================
+
+            const unreadNotifications =
+                safeNotifications.filter(
+                    (notification) => {
+                        return !notification?.is_read;
+                    }
+                ).length;
+
+
+            // ==============================================
+            // Total Paid Amount
+            //
+            // Only payment_status = Paid
+            // ==============================================
+
+            const paymentAmount =
+                safePayments.reduce(
+                    (
+                        total,
+                        payment
+                    ) => {
+
+                        const paymentStatus =
+                            String(
+                                payment?.payment_status ||
+                                payment?.status ||
+                                ""
+                            )
+                                .trim()
+                                .toLowerCase();
+
+
+                        if (
+                            paymentStatus !==
+                            "paid"
+                        ) {
+
+                            return total;
+
+                        }
+
+
+                        const amount =
+                            Number(
+                                payment?.amount ||
+                                0
+                            );
+
+
+                        return (
+                            total +
+                            (
+                                Number.isFinite(
+                                    amount
+                                )
+                                    ? amount
+                                    : 0
+                            )
+                        );
+
+                    },
+                    0
+                );
+
+
+            return {
+
+                // Total Appointments
+                appointments:
+                    safeAppointments.length,
+
+
+                // Pending Appointments
+                pending:
+                    appointmentStatistics.pending,
+
+
+                // Confirmed Appointments
+                confirmed:
+                    appointmentStatistics.confirmed,
+
+
+                // Total Payment Records
+                payments:
+                    safePayments.length,
+
+
+                // Diagnostic Bookings
+                diagnostics:
+                    Array.isArray(
+                        diagnosticBookings
                     )
-                        .trim()
-                        .toLowerCase();
+                        ? diagnosticBookings.length
+                        : 0,
 
 
-                if (status === "pending") {
-
-                    result.pending += 1;
-
-                }
-
-                else if (status === "confirmed") {
-
-                    result.confirmed += 1;
-
-                }
-
-                else if (status === "completed") {
-
-                    result.completed += 1;
-
-                }
-
-            }
-        );
+                // Available Doctors
+                doctors:
+                    Array.isArray(
+                        doctors
+                    )
+                        ? doctors.length
+                        : 0,
 
 
-        return result;
+                // Medical Reports
+                reports:
+                    Array.isArray(
+                        reports
+                    )
+                        ? reports.length
+                        : 0,
 
-    }, [safeAppointments]);
+
+                // Total Paid Amount
+                paymentAmount,
+
+
+                // Family Members
+                family:
+                    Array.isArray(
+                        familyMembers
+                    )
+                        ? familyMembers.length
+                        : 0,
+
+
+                // Unread Notifications
+                notifications:
+                    unreadNotifications,
+
+            };
+
+        }, [
+
+            safeAppointments,
+
+            appointmentStatistics,
+
+            diagnosticBookings,
+
+            doctors,
+
+            reports,
+
+            payments,
+
+            familyMembers,
+
+            notifications,
+
+        ]);
 
 
     // ======================================================
@@ -375,7 +972,10 @@ export default function PatientDashboard() {
             return safeAppointments
                 .slice()
                 .sort(
-                    (a, b) => {
+                    (
+                        a,
+                        b
+                    ) => {
 
                         const dateA =
                             new Date(
@@ -393,13 +993,21 @@ export default function PatientDashboard() {
                             );
 
 
-                        return dateB - dateA;
+                        return (
+                            dateB -
+                            dateA
+                        );
 
                     }
                 )
-                .slice(0, 5);
+                .slice(
+                    0,
+                    5
+                );
 
-        }, [safeAppointments]);
+        }, [
+            safeAppointments,
+        ]);
 
 
     // ======================================================
@@ -422,37 +1030,21 @@ export default function PatientDashboard() {
         <div className="patient-dashboard">
 
 
-            {/* ==================================================
-                Common Navbar
-            ================================================== */}
-
             <Navbar />
 
-
-            {/* ==================================================
-                Dashboard Layout
-            ================================================== */}
 
             <div className="dashboard-container">
 
 
-                {/* ==================================================
-                    Common Sidebar
-                ================================================== */}
-
                 <Sidebar />
 
-
-                {/* ==================================================
-                    Patient Dashboard Content
-                ================================================== */}
 
                 <main className="patient-dashboard-content">
 
 
-                    {/* ==================================================
+                    {/* ==========================================
                         Welcome Banner
-                    ================================================== */}
+                    ========================================== */}
 
                     <div className="patient-welcome-banner">
 
@@ -470,8 +1062,9 @@ export default function PatientDashboard() {
 
                             <p>
                                 Manage your appointments,
-                                prescriptions, reports and
-                                healthcare services from one place.
+                                diagnostic tests, medical reports,
+                                payments and healthcare services
+                                from one place.
                             </p>
 
 
@@ -514,9 +1107,9 @@ export default function PatientDashboard() {
                     </div>
 
 
-                    {/* ==================================================
-                        Statistics
-                    ================================================== */}
+                    {/* ==========================================
+                        Your Overview
+                    ========================================== */}
 
                     <div className="patient-section-title">
 
@@ -535,10 +1128,14 @@ export default function PatientDashboard() {
                     </div>
 
 
+                    {/* ==========================================
+                        10 Overview Cards
+                    ========================================== */}
+
                     <div className="patient-stat-grid">
 
 
-                        {/* Total */}
+                        {/* 1. Total Appointments */}
 
                         <div className="patient-stat-card">
 
@@ -555,7 +1152,9 @@ export default function PatientDashboard() {
                                 </span>
 
                                 <strong>
-                                    {statistics.total}
+                                    {
+                                        overviewStatistics.appointments
+                                    }
                                 </strong>
 
                             </div>
@@ -563,7 +1162,7 @@ export default function PatientDashboard() {
                         </div>
 
 
-                        {/* Pending */}
+                        {/* 2. Pending */}
 
                         <div className="patient-stat-card">
 
@@ -580,7 +1179,9 @@ export default function PatientDashboard() {
                                 </span>
 
                                 <strong>
-                                    {statistics.pending}
+                                    {
+                                        overviewStatistics.pending
+                                    }
                                 </strong>
 
                             </div>
@@ -588,11 +1189,11 @@ export default function PatientDashboard() {
                         </div>
 
 
-                        {/* Confirmed */}
+                        {/* 3. Confirmed */}
 
                         <div className="patient-stat-card">
 
-                            <div className="patient-stat-icon purple">
+                            <div className="patient-stat-icon blue">
 
                                 <FaCheckCircle />
 
@@ -605,7 +1206,9 @@ export default function PatientDashboard() {
                                 </span>
 
                                 <strong>
-                                    {statistics.confirmed}
+                                    {
+                                        overviewStatistics.confirmed
+                                    }
                                 </strong>
 
                             </div>
@@ -613,36 +1216,205 @@ export default function PatientDashboard() {
                         </div>
 
 
-                        {/* Completed */}
+                        {/* 4. Payments */}
 
                         <div className="patient-stat-card">
 
                             <div className="patient-stat-icon green">
 
-                                <FaCheckCircle />
+                                <FaMoneyBillWave />
 
                             </div>
 
                             <div>
 
                                 <span>
-                                    Completed
+                                    Payments
                                 </span>
 
                                 <strong>
-                                    {statistics.completed}
+                                    {
+                                        overviewStatistics.payments
+                                    }
                                 </strong>
 
                             </div>
 
                         </div>
 
+
+                        {/* 5. Diagnostic Bookings */}
+
+                        <div className="patient-stat-card">
+
+                            <div className="patient-stat-icon purple">
+
+                                <FaFlask />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Diagnostic Bookings
+                                </span>
+
+                                <strong>
+                                    {
+                                        overviewStatistics.diagnostics
+                                    }
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* 6. Available Doctors */}
+
+                        <div className="patient-stat-card">
+
+                            <div className="patient-stat-icon blue">
+
+                                <FaUserMd />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Available Doctors
+                                </span>
+
+                                <strong>
+                                    {
+                                        overviewStatistics.doctors
+                                    }
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* 7. Medical Reports */}
+
+                        <div className="patient-stat-card">
+
+                            <div className="patient-stat-icon orange">
+
+                                <FaFileMedical />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Medical Reports
+                                </span>
+
+                                <strong>
+                                    {
+                                        overviewStatistics.reports
+                                    }
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* 8. Payments Amount */}
+
+                        <div className="patient-stat-card patient-payment-amount-card">
+
+                            <div className="patient-stat-icon green">
+
+                                <FaMoneyBillWave />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Payments Amount
+                                </span>
+
+                                <strong className="patient-payment-amount">
+
+                                    {
+                                        formatCurrency(
+                                            overviewStatistics.paymentAmount
+                                        )
+                                    }
+
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* 9. Family Members */}
+
+                        <div className="patient-stat-card">
+
+                            <div className="patient-stat-icon purple">
+
+                                <FaUserFriends />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Family Members
+                                </span>
+
+                                <strong>
+                                    {
+                                        overviewStatistics.family
+                                    }
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* 10. Notifications */}
+
+                        <div className="patient-stat-card">
+
+                            <div className="patient-stat-icon orange">
+
+                                <FaBell />
+
+                            </div>
+
+                            <div>
+
+                                <span>
+                                    Notifications
+                                </span>
+
+                                <strong>
+                                    {
+                                        overviewStatistics.notifications
+                                    }
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
                     </div>
 
 
-                    {/* ==================================================
+                    {/* ==========================================
                         Healthcare Services
-                    ================================================== */}
+                    ========================================== */}
 
                     <div className="patient-section-title">
 
@@ -663,8 +1435,6 @@ export default function PatientDashboard() {
 
                     <div className="patient-service-grid">
 
-
-                        {/* Doctors */}
 
                         <Link
                             to="/doctors"
@@ -696,8 +1466,6 @@ export default function PatientDashboard() {
                         </Link>
 
 
-                        {/* Appointments */}
-
                         <Link
                             to="/appointments"
                             className="patient-service-card"
@@ -727,8 +1495,6 @@ export default function PatientDashboard() {
 
                         </Link>
 
-
-                        {/* Medical Reports */}
 
                         <Link
                             to="/reports"
@@ -760,8 +1526,6 @@ export default function PatientDashboard() {
                         </Link>
 
 
-                        {/* Payments */}
-
                         <Link
                             to="/payments"
                             className="patient-service-card"
@@ -791,8 +1555,6 @@ export default function PatientDashboard() {
 
                         </Link>
 
-
-                        {/* Family Members */}
 
                         <Link
                             to="/family"
@@ -824,8 +1586,6 @@ export default function PatientDashboard() {
                         </Link>
 
 
-                        {/* Notifications */}
-
                         <Link
                             to="/notifications"
                             className="patient-service-card"
@@ -856,8 +1616,6 @@ export default function PatientDashboard() {
                         </Link>
 
 
-                        {/* Diagnostic Tests */}
-
                         <Link
                             to="/tests"
                             className="patient-service-card"
@@ -876,7 +1634,7 @@ export default function PatientDashboard() {
                                 </h3>
 
                                 <p>
-                                    Book and manage diagnostic tests
+                                    Book diagnostic tests
                                 </p>
 
                             </div>
@@ -887,8 +1645,6 @@ export default function PatientDashboard() {
 
                         </Link>
 
-
-                        {/* My Diagnostic Bookings */}
 
                         <Link
                             to="/my-diagnostic-bookings"
@@ -908,7 +1664,7 @@ export default function PatientDashboard() {
                                 </h3>
 
                                 <p>
-                                    View bookings and make payments
+                                    View your test bookings
                                 </p>
 
                             </div>
@@ -919,51 +1675,18 @@ export default function PatientDashboard() {
 
                         </Link>
 
-
-                        {/* Prescriptions */}
-
-                        <Link
-                            to="/reports"
-                            className="patient-service-card"
-                        >
-
-                            <div className="patient-service-icon violet">
-
-                                <FaReceipt />
-
-                            </div>
-
-                            <div>
-
-                                <h3>
-                                    Prescriptions
-                                </h3>
-
-                                <p>
-                                    Access your prescriptions
-                                </p>
-
-                            </div>
-
-                            <FaArrowRight
-                                className="patient-service-arrow"
-                            />
-
-                        </Link>
 
                     </div>
 
 
-                    {/* ==================================================
+                    {/* ==========================================
                         Bottom Content
-                    ================================================== */}
+                    ========================================== */}
 
                     <div className="patient-main-grid">
 
 
-                        {/* ==================================================
-                            Recent Appointments
-                        ================================================== */}
+                        {/* Recent Appointments */}
 
                         <div className="patient-panel">
 
@@ -996,8 +1719,6 @@ export default function PatientDashboard() {
                             </div>
 
 
-                            {/* Loading */}
-
                             {loading && (
 
                                 <div className="patient-empty-state">
@@ -1005,7 +1726,7 @@ export default function PatientDashboard() {
                                     <div className="patient-spinner" />
 
                                     <p>
-                                        Loading appointments...
+                                        Loading dashboard...
                                     </p>
 
                                 </div>
@@ -1013,20 +1734,17 @@ export default function PatientDashboard() {
                             )}
 
 
-                            {/* Error */}
+                            {!loading &&
+                                error && (
 
-                            {!loading && error && (
+                                    <div className="patient-error">
 
-                                <div className="patient-error">
+                                        {error}
 
-                                    {error}
+                                    </div>
 
-                                </div>
+                                )}
 
-                            )}
-
-
-                            {/* Empty */}
 
                             {!loading &&
                                 !error &&
@@ -1066,8 +1784,6 @@ export default function PatientDashboard() {
 
                                 )}
 
-
-                            {/* Appointment List */}
 
                             {!loading &&
                                 !error &&
@@ -1118,11 +1834,13 @@ export default function PatientDashboard() {
                                                             <FaCalendarAlt />
 
                                                             <span>
+
                                                                 {
                                                                     formatDate(
                                                                         appointmentDate
                                                                     )
                                                                 }
+
                                                             </span>
 
                                                         </div>
@@ -1189,9 +1907,7 @@ export default function PatientDashboard() {
                         </div>
 
 
-                        {/* ==================================================
-                            Quick Access
-                        ================================================== */}
+                        {/* Quick Access */}
 
                         <div className="patient-panel patient-side-panel">
 
@@ -1214,8 +1930,6 @@ export default function PatientDashboard() {
 
                             <div className="patient-quick-links">
 
-
-                                {/* Book Appointment */}
 
                                 <Link
                                     to="/appointments/book"
@@ -1245,27 +1959,25 @@ export default function PatientDashboard() {
                                 </Link>
 
 
-                                {/* Payment History */}
-
                                 <Link
-                                    to="/payments"
+                                    to="/tests"
                                     className="patient-quick-link"
                                 >
 
                                     <span className="green">
 
-                                        <FaMoneyBillWave />
+                                        <FaFlask />
 
                                     </span>
 
                                     <div>
 
                                         <strong>
-                                            Payment History
+                                            Book Diagnostic Test
                                         </strong>
 
                                         <small>
-                                            View your transactions
+                                            Schedule a laboratory test
                                         </small>
 
                                     </div>
@@ -1274,8 +1986,6 @@ export default function PatientDashboard() {
 
                                 </Link>
 
-
-                                {/* Medical Reports */}
 
                                 <Link
                                     to="/reports"
@@ -1305,27 +2015,25 @@ export default function PatientDashboard() {
                                 </Link>
 
 
-                                {/* Family Members */}
-
                                 <Link
-                                    to="/family"
+                                    to="/payments"
                                     className="patient-quick-link"
                                 >
 
-                                    <span className="pink">
+                                    <span className="green">
 
-                                        <FaUsers />
+                                        <FaMoneyBillWave />
 
                                     </span>
 
                                     <div>
 
                                         <strong>
-                                            Family Members
+                                            Payment History
                                         </strong>
 
                                         <small>
-                                            Manage family profiles
+                                            View your transactions
                                         </small>
 
                                     </div>
@@ -1334,8 +2042,6 @@ export default function PatientDashboard() {
 
                                 </Link>
 
-
-                                {/* Notifications */}
 
                                 <Link
                                     to="/notifications"
@@ -1365,36 +2071,6 @@ export default function PatientDashboard() {
                                 </Link>
 
 
-                                {/* Diagnostic Bookings */}
-
-                                <Link
-                                    to="/my-diagnostic-bookings"
-                                    className="patient-quick-link"
-                                >
-
-                                    <span className="violet">
-
-                                        <FaClipboardList />
-
-                                    </span>
-
-                                    <div>
-
-                                        <strong>
-                                            My Diagnostic Bookings
-                                        </strong>
-
-                                        <small>
-                                            View bookings and make payments
-                                        </small>
-
-                                    </div>
-
-                                    <FaArrowRight />
-
-                                </Link>
-
-
                             </div>
 
                         </div>
@@ -1402,9 +2078,7 @@ export default function PatientDashboard() {
                     </div>
 
 
-                    {/* ==================================================
-                        Footer
-                    ================================================== */}
+                    {/* Footer */}
 
                     <div className="patient-dashboard-footer">
 

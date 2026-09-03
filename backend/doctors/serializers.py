@@ -52,6 +52,17 @@ class DoctorSerializer(
     doctor_name = (
         serializers.SerializerMethodField()
     )
+    
+    
+    first_name = serializers.CharField(
+        source="user.first_name",
+        read_only=True,
+    )
+
+    last_name = serializers.CharField(
+        source="user.last_name",
+        read_only=True,
+    )
 
     username = serializers.CharField(
         source="user.username",
@@ -94,6 +105,8 @@ class DoctorSerializer(
 
             # User
             "doctor_name",
+            "first_name",
+            "last_name",
             "username",
             "email",
             "phone",

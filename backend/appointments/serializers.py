@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.utils import timezone
 
 from rest_framework import serializers
@@ -27,6 +29,12 @@ class AppointmentSerializer(
         source="doctor.specialization",
         read_only=True,
     )
+
+    patient_profile = serializers.SerializerMethodField()
+
+    family_member_details = serializers.SerializerMethodField()
+
+    appointment_time = serializers.SerializerMethodField()
 
     # ======================================================
     # Consultation Fee
@@ -124,6 +132,12 @@ class AppointmentSerializer(
 
             "status",
 
+            "patient_profile",
+
+            "family_member_details",
+
+            "appointment_time",
+
             # ----------------------------------------------
             # Timestamps
             # ----------------------------------------------
@@ -149,6 +163,12 @@ class AppointmentSerializer(
             "status",
 
             "consultation_fee",
+
+            "patient_profile",
+
+            "family_member_details",
+
+            "appointment_time",
 
             "created_at",
 
@@ -213,6 +233,71 @@ class AppointmentSerializer(
         if obj.family_member:
 
             return obj.family_member.name
+
+        return None
+
+    # ==========================================================
+    # Patient Details
+    # ==========================================================
+
+    def get_patient_profile(self, obj):
+
+        if not obj.patient:
+            return None
+
+        patient = obj.patient
+
+        birth_date = getattr(patient, "date_of_birth", None)
+
+        age = None
+
+        if birth_date:
+            today = date.today()
+            age = today.year - birth_date.year - (
+                (today.month, today.day) < (birth_date.month, birth_date.day)
+            )
+
+        return {
+            "id": patient.id,
+            "full_name": patient.user.get_full_name() or patient.user.username,
+            "age": age,
+            "gender": patient.gender,
+            "blood_group": patient.blood_group,
+            "phone": patient.user.phone,
+            "email": patient.user.email,
+            "address": patient.address,
+            "emergency_contact": patient.emergency_contact,
+        }
+
+    # ==========================================================
+    # Family Member Details
+    # ==========================================================
+
+    def get_family_member_details(self, obj):
+
+        family_member = obj.family_member
+
+        if not family_member:
+            return None
+
+        return {
+            "id": family_member.id,
+            "name": family_member.name,
+            "age": family_member.age,
+            "gender": family_member.gender,
+            "relation": family_member.relation,
+            "phone_number": family_member.phone_number,
+            "blood_group": obj.patient.blood_group if obj.patient else None,
+        }
+
+    # ==========================================================
+    # Appointment Time
+    # ==========================================================
+
+    def get_appointment_time(self, obj):
+
+        if obj.slot:
+            return obj.slot.slot_time.strftime("%H:%M:%S")
 
         return None
 

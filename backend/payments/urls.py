@@ -6,6 +6,7 @@ from .views import (
     PaymentDetailView,
     PaymentStatusUpdateView,
     AdminPaymentListView,
+    PaymentRefundView,
 )
 
 
@@ -16,7 +17,7 @@ urlpatterns = [
 
     # ==========================================
     # Create Payment
-    # POST: /api/payments/create/
+    # POST /api/payments/create/
     # ==========================================
 
     path(
@@ -28,7 +29,7 @@ urlpatterns = [
 
     # ==========================================
     # My Payment History
-    # GET: /api/payments/
+    # GET /api/payments/
     # ==========================================
 
     path(
@@ -40,7 +41,7 @@ urlpatterns = [
 
     # ==========================================
     # Admin Payment Management
-    # GET: /api/payments/admin/
+    # GET /api/payments/admin/
     # ==========================================
 
     path(
@@ -51,8 +52,8 @@ urlpatterns = [
 
 
     # ==========================================
-    # Single Payment Details
-    # GET: /api/payments/<id>/
+    # Payment Details
+    # GET /api/payments/<id>/
     # ==========================================
 
     path(
@@ -64,13 +65,25 @@ urlpatterns = [
 
     # ==========================================
     # Update Payment Status
-    # PATCH: /api/payments/<id>/status/
+    # PATCH /api/payments/<id>/status/
     # ==========================================
 
     path(
         "<int:pk>/status/",
         PaymentStatusUpdateView.as_view(),
         name="payment-status-update",
+    ),
+
+
+    # ==========================================
+    # Refund Payment
+    # PATCH /api/payments/<id>/refund/
+    # ==========================================
+
+    path(
+        "<int:pk>/refund/",
+        PaymentRefundView.as_view(),
+        name="payment-refund",
     ),
 
 ]

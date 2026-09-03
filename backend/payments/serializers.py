@@ -1,16 +1,19 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from .models import Payment
 
 
-class PaymentSerializer(serializers.ModelSerializer):
+class PaymentSerializer(
+    serializers.ModelSerializer
+):
 
     # ==========================================================
-    # Read-Only Information
+    # Read Only Fields
     # ==========================================================
 
-    patient_name = serializers.CharField(
-        source="patient.user.get_full_name",
+    patient_name = serializers.SerializerMethodField(
         read_only=True
     )
 
@@ -21,6 +24,19 @@ class PaymentSerializer(serializers.ModelSerializer):
     doctor_name = serializers.SerializerMethodField(
         read_only=True
     )
+
+    payment_type = serializers.CharField(
+        read_only=True
+    )
+
+    expected_amount = serializers.SerializerMethodField(
+        read_only=True
+    )
+
+    remaining_amount = serializers.SerializerMethodField(
+        read_only=True
+    )
+
 
     # ==========================================================
     # Meta
@@ -43,14 +59,29 @@ class PaymentSerializer(serializers.ModelSerializer):
             "appointment_booking",
             "doctor_name",
 
-            # Diagnostic Test
+            # Diagnostic
             "test_booking",
 
-            # Payment Information
+            # Type
+            "payment_type",
+
+            # Payment
+            "payment_mode",
             "amount",
+            "expected_amount",
+            "remaining_amount",
+
+            # Payment Information
             "payment_method",
             "transaction_id",
+
+            # Status
             "payment_status",
+
+            # Refund
+            "is_refundable",
+
+            # Dates
             "payment_date",
 
         ]
@@ -65,70 +96,235 @@ class PaymentSerializer(serializers.ModelSerializer):
             "appointment_booking",
             "doctor_name",
 
+            "payment_type",
+
+            "amount",
+            "expected_amount",
+            "remaining_amount",
+
             "payment_status",
+
+            "is_refundable",
+
             "payment_date",
 
         ]
 
+
     # ==========================================================
-    # Appointment Booking Number
+    # Patient Name
     # ==========================================================
 
-    def get_appointment_booking(self, obj):
+    def get_patient_name(
+        self,
+        obj
+    ):
+
+        if not obj.patient:
+
+            return "N/A"
+
+        full_name = (
+            obj.patient.user.get_full_name()
+        )
+
+        return (
+            full_name
+            or
+            obj.patient.user.username
+        )
+
+
+    # ==========================================================
+    # Appointment Booking
+    # ==========================================================
+
+    def get_appointment_booking(
+        self,
+        obj
+    ):
 
         if obj.appointment:
 
-            return obj.appointment.booking_number
+            return (
+                obj.appointment.booking_number
+            )
 
         return None
+
 
     # ==========================================================
     # Doctor Name
     # ==========================================================
 
-    def get_doctor_name(self, obj):
+    def get_doctor_name(
+        self,
+        obj
+    ):
 
         if obj.appointment:
 
-            return obj.appointment.doctor.user.get_full_name()
+            doctor_user = (
+                obj.appointment
+                .doctor
+                .user
+            )
+
+            full_name = (
+                doctor_user.get_full_name()
+            )
+
+            return (
+                full_name
+                or
+                doctor_user.username
+            )
 
         return None
 
+
     # ==========================================================
-    # Transaction ID Validation
+    # Expected Amount
     # ==========================================================
 
-    def validate_transaction_id(self, value):
+    def get_expected_amount(
+        self,
+        obj
+    ):
 
-        # Remove unnecessary spaces
+        if obj.appointment:
+
+            return (
+                obj.appointment
+                .doctor
+                .consultation_fee
+            )
+
+        if obj.test_booking:
+
+            return (
+                obj.test_booking
+                .diagnostic_test
+                .price
+            )
+
+        return Decimal("0.00")
+
+
+    # ==========================================================
+    # Remaining Amount
+    # ==========================================================
+
+    def get_remaining_amount(
+        self,
+        obj
+    ):
+
+        if obj.appointment:
+
+            total = (
+                obj.appointment
+                .doctor
+                .consultation_fee
+            )
+
+            payments = Payment.objects.filter(
+
+                appointment=obj.appointment,
+
+                payment_status="Paid",
+
+            )
+
+        elif obj.test_booking:
+
+            total = (
+                obj.test_booking
+                .diagnostic_test
+                .price
+            )
+
+            payments = Payment.objects.filter(
+
+                test_booking=obj.test_booking,
+
+                payment_status="Paid",
+
+            )
+
+        else:
+
+            return Decimal("0.00")
+
+
+        paid_amount = sum(
+
+            (
+                payment.amount
+                for payment in payments
+            ),
+
+            Decimal("0.00")
+
+        )
+
+
+        remaining = (
+            Decimal(total)
+            -
+            paid_amount
+        )
+
+
+        return max(
+
+            remaining,
+
+            Decimal("0.00")
+
+        )
+
+
+    # ==========================================================
+    # Transaction Validation
+    # ==========================================================
+
+    def validate_transaction_id(
+        self,
+        value
+    ):
+
         value = value.strip()
 
-        # Empty Transaction ID
         if not value:
 
             raise serializers.ValidationError(
                 "Transaction ID is required."
             )
 
-        # Minimum length
+
         if len(value) < 4:
 
             raise serializers.ValidationError(
                 "Transaction ID is too short."
             )
 
-        # Check duplicate Transaction ID
-        existing_payment = Payment.objects.filter(
-            transaction_id__iexact=value
+
+        existing_payment = (
+            Payment.objects.filter(
+                transaction_id__iexact=value
+            )
         )
 
-        # If updating an existing payment,
-        # don't compare it with itself.
+
         if self.instance:
 
-            existing_payment = existing_payment.exclude(
-                pk=self.instance.pk
+            existing_payment = (
+                existing_payment.exclude(
+                    pk=self.instance.pk
+                )
             )
+
 
         if existing_payment.exists():
 
@@ -136,27 +332,29 @@ class PaymentSerializer(serializers.ModelSerializer):
                 "This Transaction ID has already been used."
             )
 
+
         return value
 
+
     # ==========================================================
-    # Existing Validation
+    # Main Validation
     # ==========================================================
 
-    def validate(self, attrs):
+    def validate(
+        self,
+        attrs
+    ):
 
-        request = self.context.get("request")
+        request = self.context.get(
+            "request"
+        )
 
-        appointment = attrs.get("appointment")
 
-        test_booking = attrs.get("test_booking")
-
-        amount = attrs.get("amount")
-
-        # ======================================================
-        # Authentication Check
-        # ======================================================
-
-        if not request or not request.user.is_authenticated:
+        if (
+            not request
+            or
+            not request.user.is_authenticated
+        ):
 
             raise serializers.ValidationError({
 
@@ -165,13 +363,17 @@ class PaymentSerializer(serializers.ModelSerializer):
 
             })
 
+
         # ======================================================
-        # Patient Profile Check
+        # Patient Profile
         # ======================================================
 
         if not hasattr(
+
             request.user,
+
             "patient_profile"
+
         ):
 
             raise serializers.ValidationError({
@@ -181,56 +383,64 @@ class PaymentSerializer(serializers.ModelSerializer):
 
             })
 
-        patient = request.user.patient_profile
+
+        patient = (
+            request.user.patient_profile
+        )
+
+
+        appointment = attrs.get(
+            "appointment"
+        )
+
+
+        test_booking = attrs.get(
+            "test_booking"
+        )
+
+
+        payment_mode = attrs.get(
+            "payment_mode"
+        )
+
 
         # ======================================================
-        # Exactly ONE Payment Source Required
+        # Exactly One Payment Source
         # ======================================================
 
-        if not appointment and not test_booking:
+        if (
+            appointment is None
+            and
+            test_booking is None
+        ):
 
             raise serializers.ValidationError({
 
                 "payment_for":
-                "Either an appointment or a test booking is required."
+                (
+                    "Either appointment or "
+                    "test booking is required."
+                )
 
             })
 
-        # ======================================================
-        # Cannot Pay for Both
-        # ======================================================
 
-        if appointment and test_booking:
+        if (
+            appointment is not None
+            and
+            test_booking is not None
+        ):
 
             raise serializers.ValidationError({
 
                 "payment_for":
-                "Payment can be made for either an appointment "
-                "or a test booking, not both."
+                (
+                    "Payment can belong to "
+                    "only one source."
+                )
 
             })
 
-        # ======================================================
-        # Amount Validation
-        # ======================================================
-
-        if amount is None:
-
-            raise serializers.ValidationError({
-
-                "amount":
-                "Payment amount is required."
-
-            })
-
-        if amount <= 0:
-
-            raise serializers.ValidationError({
-
-                "amount":
-                "Payment amount must be greater than zero."
-
-            })
 
         # ======================================================
         # Appointment Payment
@@ -238,28 +448,25 @@ class PaymentSerializer(serializers.ModelSerializer):
 
         if appointment:
 
-            # --------------------------------------------------
-            # Ownership Check
-            # --------------------------------------------------
-
             if appointment.patient_id != patient.id:
 
                 raise serializers.ValidationError({
 
                     "appointment":
-                    "You cannot make payment for another "
-                    "patient's appointment."
+                    (
+                        "You cannot pay for another "
+                        "patient's appointment."
+                    )
 
                 })
 
-            # --------------------------------------------------
-            # Appointment Status
-            # --------------------------------------------------
 
             if appointment.status in [
 
                 "Cancelled",
+
                 "Rejected",
+
                 "No Show",
 
             ]:
@@ -267,138 +474,212 @@ class PaymentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
 
                     "appointment":
-                    "Payment cannot be made for this appointment."
+                    (
+                        "Payment cannot be made "
+                        "for this appointment."
+                    )
 
                 })
 
-            # --------------------------------------------------
-            # Duplicate Appointment Payment
-            # --------------------------------------------------
 
-            existing_payment = Payment.objects.filter(
+            total_amount = Decimal(
 
-                appointment=appointment
+                appointment
+                .doctor
+                .consultation_fee
 
             )
 
-            # Exclude current payment during update
-            if self.instance:
 
-                existing_payment = existing_payment.exclude(
+            already_paid = sum(
 
-                    pk=self.instance.pk
+                Payment.objects.filter(
 
-                )
+                    appointment=appointment,
 
-            if existing_payment.exists():
+                    payment_status="Paid",
 
-                raise serializers.ValidationError({
+                ).values_list(
 
-                    "appointment":
-                    "A payment already exists for this appointment."
+                    "amount",
 
-                })
+                    flat=True
 
-            # --------------------------------------------------
-            # Correct Amount
-            # --------------------------------------------------
+                ),
 
-            expected_amount = (
-                appointment.doctor.consultation_fee
+                Decimal("0.00")
+
             )
 
-            if amount != expected_amount:
-
-                raise serializers.ValidationError({
-
-                    "amount":
-                    f"Payment amount must be exactly "
-                    f"{expected_amount}."
-
-                })
 
         # ======================================================
-        # Diagnostic Test Payment
+        # Diagnostic Payment
         # ======================================================
 
-        if test_booking:
-
-            # --------------------------------------------------
-            # Ownership Check
-            # --------------------------------------------------
+        else:
 
             if test_booking.patient_id != patient.id:
 
                 raise serializers.ValidationError({
 
                     "test_booking":
-                    "You cannot make payment for another "
-                    "patient's test booking."
+                    (
+                        "You cannot pay for another "
+                        "patient's diagnostic booking."
+                    )
 
                 })
 
-            # --------------------------------------------------
-            # Test Booking Status
-            # --------------------------------------------------
 
             if test_booking.status == "Cancelled":
 
                 raise serializers.ValidationError({
 
                     "test_booking":
-                    "Payment cannot be made for a cancelled "
-                    "test booking."
+                    (
+                        "Payment cannot be made "
+                        "for a cancelled diagnostic booking."
+                    )
 
                 })
 
-            # --------------------------------------------------
-            # Duplicate Test Payment
-            # --------------------------------------------------
 
-            existing_payment = Payment.objects.filter(
+            total_amount = Decimal(
 
-                test_booking=test_booking
+                test_booking
+                .diagnostic_test
+                .price
 
             )
 
-            # Exclude current payment during update
-            if self.instance:
 
-                existing_payment = existing_payment.exclude(
+            already_paid = sum(
 
-                    pk=self.instance.pk
+                Payment.objects.filter(
 
-                )
+                    test_booking=test_booking,
 
-            if existing_payment.exists():
+                    payment_status="Paid",
 
-                raise serializers.ValidationError({
+                ).values_list(
 
-                    "test_booking":
-                    "A payment already exists for this test booking."
+                    "amount",
 
-                })
+                    flat=True
 
-            # --------------------------------------------------
-            # Correct Amount
-            # --------------------------------------------------
+                ),
 
-            expected_amount = (
-                test_booking.diagnostic_test.price
+                Decimal("0.00")
+
             )
 
-            if amount != expected_amount:
-
-                raise serializers.ValidationError({
-
-                    "amount":
-                    f"Payment amount must be exactly "
-                    f"{expected_amount}."
-
-                })
 
         # ======================================================
-        # Final Validation
+        # Remaining Amount
         # ======================================================
+
+        remaining_amount = (
+
+            total_amount
+            -
+            already_paid
+
+        )
+
+
+        if remaining_amount <= Decimal("0.00"):
+
+            raise serializers.ValidationError({
+
+                "payment":
+                "This service has already been fully paid."
+
+            })
+
+
+        # ======================================================
+        # Full Payment
+        # ======================================================
+
+        if payment_mode == "Full":
+
+            calculated_amount = (
+                remaining_amount
+            )
+
+
+        # ======================================================
+        # Partial Payment
+        # ======================================================
+
+        elif payment_mode == "Partial":
+
+            minimum_partial = (
+
+                total_amount
+                *
+                Decimal("0.20")
+
+            )
+
+
+            calculated_amount = min(
+
+                minimum_partial,
+
+                remaining_amount
+
+            )
+
+
+        else:
+
+            raise serializers.ValidationError({
+
+                "payment_mode":
+                "Invalid payment mode."
+
+            })
+
+
+        attrs["calculated_amount"] = (
+            calculated_amount
+        )
+
 
         return attrs
+
+
+    # ==========================================================
+    # Create Payment
+    # ==========================================================
+
+    def create(
+        self,
+        validated_data
+    ):
+
+        amount = validated_data.pop(
+            "calculated_amount"
+        )
+
+
+        validated_data["amount"] = (
+            amount
+        )
+
+
+        validated_data["is_refundable"] = (
+
+            validated_data.get(
+                "payment_mode"
+            )
+            ==
+            "Full"
+
+        )
+
+
+        return super().create(
+            validated_data
+        )

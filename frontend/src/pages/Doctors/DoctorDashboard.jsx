@@ -4,6 +4,7 @@ import {
     useMemo,
     useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
     getDoctorAppointments,
@@ -47,6 +48,7 @@ export default function DoctorDashboard() {
 
     const [statusFilter, setStatusFilter] = useState("All");
 
+    const navigate = useNavigate();
 
     // ==========================================================
     // Load Doctor Appointments
@@ -171,9 +173,26 @@ export default function DoctorDashboard() {
 
     const handleRefresh = async () => {
 
+        console.log("Refresh button clicked");
+
+        setRefreshing(true);
+        setError("");
+        setSuccess("");
+
         await loadAppointments(false);
 
+        setSuccess("Dashboard refreshed successfully.");
+
     };
+
+    const openAppointmentDetails = async (appointment) => {
+
+        if (!appointment?.id) return;
+
+        navigate(`/doctor/appointments/${appointment.id}`);
+
+    };
+
 
 
     // ==========================================================
@@ -247,7 +266,7 @@ export default function DoctorDashboard() {
 
 
             let response;
-
+            let actionText = "appointment";
 
             // --------------------------------------------------
             // Confirm
@@ -256,6 +275,8 @@ export default function DoctorDashboard() {
             if (
                 newStatus === "Confirmed"
             ) {
+
+                actionText = "confirmed";
 
                 response =
                     await confirmDoctorAppointment(
@@ -273,6 +294,8 @@ export default function DoctorDashboard() {
                 newStatus === "Rejected"
             ) {
 
+                actionText = "rejected";
+
                 response =
                     await rejectDoctorAppointment(
                         id
@@ -288,6 +311,8 @@ export default function DoctorDashboard() {
             else if (
                 newStatus === "Completed"
             ) {
+
+                actionText = "completed";
 
                 response =
                     await completeDoctorAppointment(
@@ -305,7 +330,7 @@ export default function DoctorDashboard() {
 
                 response?.data?.message ||
 
-                `Appointment ${newStatus.toLowerCase()} successfully.`
+                `Appointment ${actionText} successfully.`
 
             );
 
@@ -580,6 +605,18 @@ export default function DoctorDashboard() {
             icon: "fas fa-clipboard-check",
             tone: "success",
         },
+        {
+            label: "Rejected",
+            value: statistics.rejected,
+            icon: "fas fa-times-circle",
+            tone: "danger",
+        },
+        {
+            label: "Today's Appointments",
+            value: statistics.today,
+            icon: "fas fa-calendar-day",
+            tone: "secondary",
+        },
     ];
 
 
@@ -610,7 +647,7 @@ export default function DoctorDashboard() {
 
             case "pending":
 
-                return "bg-warning text-dark";
+                return "d-none";
 
 
             case "confirmed":
@@ -874,12 +911,12 @@ export default function DoctorDashboard() {
 
                 <div className="doctor-dashboard__stats row g-3 mb-4">
                     {summaryStats.map((stat) => (
-                        <div key={stat.label} className="col-xl-3 col-md-6">
+                        <div key={`${stat.label}-${stat.value}`} className="col-xl-2 col-lg-3 col-md-6">
                             <div className={`doctor-dashboard__stat card border-0 h-100 ${stat.tone}`}>
                                 <div className="card-body">
                                     <div className="d-flex justify-content-between align-items-start">
                                         <div>
-                                            <p>{stat.label}</p>
+                                            {stat.label ? <p>{stat.label}</p> : null}
                                             <h3>{stat.value}</h3>
                                         </div>
                                         <div className="doctor-dashboard__icon">
@@ -922,7 +959,6 @@ export default function DoctorDashboard() {
                                             onChange={(event) => setStatusFilter(event.target.value)}
                                         >
                                             <option value="All">All Status</option>
-                                            <option value="Pending">Pending</option>
                                             <option value="Confirmed">Confirmed</option>
                                             <option value="Completed">Completed</option>
                                             <option value="Rejected">Rejected</option>
@@ -955,7 +991,12 @@ export default function DoctorDashboard() {
                                                     const isProcessing = actionLoading === appointment.id;
                                                     const status = String(appointment.status || "").trim();
                                                     return (
-                                                        <tr key={appointment.id}>
+                                                        <tr
+                                                            key={appointment.id}
+                                                            onClick={() => openAppointmentDetails(appointment)}
+                                                            className="doctor-dashboard__row"
+                                                            style={{ cursor: "pointer" }}
+                                                        >
                                                             <td><strong>{appointment.booking_number || `#${appointment.id}`}</strong></td>
                                                             <td>
                                                                 <div className="fw-semibold">{appointment.patient_name || "Patient"}</div>
@@ -966,29 +1007,38 @@ export default function DoctorDashboard() {
                                                             <td>{formatDate(appointment.appointment_date)}</td>
                                                             <td>{formatTime(appointment.slot_time)}</td>
                                                             <td>
-                                                                <span className={`badge ${getStatusBadgeClass(status)}`}>
-                                                                    {status || "Unknown"}
-                                                                </span>
+                                                                {status === "Pending" ? (
+                                                                    <span className="text-muted">—</span>
+                                                                ) : (
+                                                                    <span className={`badge ${getStatusBadgeClass(status)}`}>
+                                                                        {status || "Unknown"}
+                                                                    </span>
+                                                                )}
                                                             </td>
-                                                            <td className="text-end">
-                                                                {status === "Pending" && (
-                                                                    <div className="d-flex justify-content-end gap-2">
-                                                                        <button className="btn btn-sm btn-success" disabled={isProcessing} onClick={() => handleStatusChange(appointment.id, "Confirmed")}>
-                                                                            {isProcessing ? <span className="spinner-border spinner-border-sm" /> : <><i className="fas fa-check me-1" />Confirm</>}
-                                                                        </button>
-                                                                        <button className="btn btn-sm btn-outline-danger" disabled={isProcessing} onClick={() => handleStatusChange(appointment.id, "Rejected")}>
-                                                                            {isProcessing ? <span className="spinner-border spinner-border-sm" /> : <><i className="fas fa-times me-1" />Reject</>}
-                                                                        </button>
-                                                                    </div>
-                                                                )}
-                                                                {status === "Confirmed" && (
-                                                                    <button className="btn btn-sm btn-primary" disabled={isProcessing} onClick={() => handleStatusChange(appointment.id, "Completed")}>
-                                                                        {isProcessing ? <span className="spinner-border spinner-border-sm" /> : <><i className="fas fa-check-double me-1" />Complete</>}
+                                                            <td className="text-end" onClick={(event) => event.stopPropagation()}>
+                                                                <div className="doctor-dashboard__action-group">
+                                                                    <button className="btn btn-sm btn-outline-primary" onClick={() => openAppointmentDetails(appointment)}>
+                                                                        View
                                                                     </button>
-                                                                )}
-                                                                {status === "Completed" && <span className="text-success fw-semibold"><i className="fas fa-check-circle me-1" />Completed</span>}
-                                                                {status === "Rejected" && <span className="text-danger"><i className="fas fa-times-circle me-1" />Rejected</span>}
-                                                                {status === "Cancelled" && <span className="text-muted"><i className="fas fa-ban me-1" />Cancelled</span>}
+                                                                    {status === "Pending" && (
+                                                                        <div className="doctor-dashboard__status-stack">
+                                                                            <button className="btn btn-sm btn-success" disabled={isProcessing} onClick={() => handleStatusChange(appointment.id, "Confirmed")}>
+                                                                                {isProcessing ? <span className="spinner-border spinner-border-sm" /> : <><i className="fas fa-check me-1" />Confirm</>}
+                                                                            </button>
+                                                                            <button className="btn btn-sm btn-outline-danger" disabled={isProcessing} onClick={() => handleStatusChange(appointment.id, "Rejected")}>
+                                                                                {isProcessing ? <span className="spinner-border spinner-border-sm" /> : <><i className="fas fa-times me-1" />Reject</>}
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                    {status === "Confirmed" && (
+                                                                        <button className="btn btn-sm btn-primary" disabled={isProcessing} onClick={() => handleStatusChange(appointment.id, "Completed")}>
+                                                                            {isProcessing ? <span className="spinner-border spinner-border-sm" /> : <><i className="fas fa-check-double me-1" />Complete</>}
+                                                                        </button>
+                                                                    )}
+                                                                    {status === "Completed" && <span className="text-success fw-semibold"><i className="fas fa-check-circle me-1" />Completed</span>}
+                                                                    {status === "Rejected" && <span className="text-danger"><i className="fas fa-times-circle me-1" />Rejected</span>}
+                                                                    {status === "Cancelled" && <span className="text-muted"><i className="fas fa-ban me-1" />Cancelled</span>}
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     );
@@ -1006,7 +1056,6 @@ export default function DoctorDashboard() {
                             <div className="card-header bg-transparent border-0 py-3">
                                 <div className="d-flex justify-content-between align-items-center">
                                     <h5 className="mb-0">Today's clinic rhythm</h5>
-                                    <span className="badge bg-light text-dark">{statistics.today} today</span>
                                 </div>
                             </div>
                             <div className="card-body pt-0">
@@ -1022,6 +1071,7 @@ export default function DoctorDashboard() {
                         </div>
                     </div>
                 </div>
+
 
             </div>
 

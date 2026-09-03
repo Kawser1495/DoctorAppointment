@@ -1,19 +1,167 @@
-from django.db import IntegrityError, transaction
-from django.shortcuts import get_object_or_404
+from django.db import (
+    IntegrityError,
+    transaction,
+)
 
-from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from django.shortcuts import (
+    get_object_or_404,
+)
 
-from .models import Payment
-from .serializers import PaymentSerializer
-from notifications.models import Notification
+from rest_framework import (
+    generics,
+    status,
+)
+
+from rest_framework.exceptions import (
+    ValidationError,
+)
+
+from rest_framework.permissions import (
+    IsAuthenticated,
+)
+
+from rest_framework.response import (
+    Response,
+)
+
+from rest_framework.views import (
+    APIView,
+)
+
+from .models import (
+    Payment,
+)
+
+from .serializers import (
+    PaymentSerializer,
+)
+
+from notifications.models import (
+    Notification,
+)
+
+
+# ==========================================================
+# Helper Function
+# Payment Success Notification
+# ==========================================================
+
+def create_payment_notification(
+    payment
+):
+
+    # ======================================================
+    # Prevent Duplicate Notification
+    # ======================================================
+
+    if payment.payment_notification_sent:
+
+        return False
+
+
+    # ======================================================
+    # Payment Source
+    # ======================================================
+
+    if payment.appointment:
+
+        service_name = (
+            "doctor appointment"
+        )
+
+    elif payment.test_booking:
+
+        service_name = (
+            "diagnostic test"
+        )
+
+    else:
+
+        service_name = (
+            "healthcare service"
+        )
+
+
+    # ======================================================
+    # Create Notification
+    # ======================================================
+
+    Notification.objects.create(
+
+        user=payment.patient.user,
+
+        notification_type="Payment",
+
+        title="Payment Successful",
+
+        message=(
+            f"Your payment of BDT "
+            f"{payment.amount} "
+            f"for {service_name} "
+            f"has been completed successfully."
+        ),
+
+        is_read=False,
+
+    )
+
+
+    return True
+
+
+# ==========================================================
+# Helper Function
+# Payment Refund Notification
+# ==========================================================
+
+def create_refund_notification(
+    payment
+):
+
+    if payment.appointment:
+
+        service_name = (
+            "doctor appointment"
+        )
+
+    elif payment.test_booking:
+
+        service_name = (
+            "diagnostic test"
+        )
+
+    else:
+
+        service_name = (
+            "healthcare service"
+        )
+
+
+    Notification.objects.create(
+
+        user=payment.patient.user,
+
+        notification_type="Payment",
+
+        title="Payment Refunded",
+
+        message=(
+            f"Your payment of BDT "
+            f"{payment.amount} "
+            f"for {service_name} "
+            f"has been refunded successfully."
+        ),
+
+        is_read=False,
+
+    )
 
 
 # ==========================================================
 # Create Payment
-# POST: /api/payments/create/
+#
+# POST:
+# /api/payments/create/
 # ==========================================================
 
 class PaymentCreateView(
@@ -26,18 +174,24 @@ class PaymentCreateView(
         IsAuthenticated
     ]
 
+
     # ======================================================
-    # Save Payment
+    # Create Payment
     # ======================================================
 
-    def perform_create(self, serializer):
+    def perform_create(
+        self,
+        serializer
+    ):
+
+        # ==================================================
+        # Patient Profile Check
+        # ==================================================
 
         if not hasattr(
             self.request.user,
             "patient_profile"
         ):
-
-            from rest_framework.exceptions import ValidationError
 
             raise ValidationError({
 
@@ -46,14 +200,62 @@ class PaymentCreateView(
 
             })
 
-        serializer.save(
 
-            patient=self.request.user.patient_profile
+        # ==================================================
+        # Create Payment Directly As Paid
+        #
+        # Because this project currently uses
+        # Transaction ID based simulated payment.
+        # ==================================================
+
+        payment = serializer.save(
+
+            patient=(
+                self.request.user
+                .patient_profile
+            ),
+
+            payment_status="Paid",
 
         )
 
+
+        # ==================================================
+        # Payment Notification
+        # ==================================================
+
+        notification_created = (
+            create_payment_notification(
+                payment
+            )
+        )
+
+
+        # ==================================================
+        # Mark Notification As Sent
+        # ==================================================
+
+        if notification_created:
+
+            payment.payment_notification_sent = (
+                True
+            )
+
+            payment.save(
+
+                update_fields=[
+
+                    "payment_notification_sent",
+
+                    "updated_at",
+
+                ]
+
+            )
+
+
     # ======================================================
-    # Create Payment
+    # Create Response
     # ======================================================
 
     def create(
@@ -63,9 +265,9 @@ class PaymentCreateView(
         **kwargs
     ):
 
-        # --------------------------------------------------
+        # ==================================================
         # Patient Profile Check
-        # --------------------------------------------------
+        # ==================================================
 
         if not hasattr(
             request.user,
@@ -75,19 +277,20 @@ class PaymentCreateView(
             return Response(
 
                 {
+
                     "success": False,
 
                     "message":
                     "Patient profile not found."
+
                 },
 
-                status=status.HTTP_403_FORBIDDEN
+                status=(
+                    status.HTTP_403_FORBIDDEN
+                )
 
             )
 
-        # --------------------------------------------------
-        # Database Transaction
-        # --------------------------------------------------
 
         try:
 
@@ -101,209 +304,291 @@ class PaymentCreateView(
 
                 )
 
+
             return Response(
 
                 {
+
                     "success": True,
 
                     "message":
-                    "Payment submitted successfully.",
+                    "Payment completed successfully.",
 
                     "data":
-                    response.data
+                    response.data,
 
                 },
 
-                status=status.HTTP_201_CREATED
+                status=(
+                    status.HTTP_201_CREATED
+                )
 
             )
 
-        # --------------------------------------------------
-        # Duplicate Transaction ID
-        # --------------------------------------------------
 
-        except IntegrityError as error:
-
-            error_message = str(error).lower()
-
-            if (
-                "transaction_id" in error_message
-                or "unique" in error_message
-            ):
-
-                return Response(
-
-                    {
-                        "success": False,
-
-                        "message":
-                        "This Transaction ID has already been used.",
-
-                        "errors": {
-                            "transaction_id": [
-                                "This Transaction ID has already been used."
-                            ]
-                        }
-
-                    },
-
-                    status=status.HTTP_400_BAD_REQUEST
-
-                )
-
-            # ------------------------------------------------
-            # Other database error
-            # ------------------------------------------------
+        except IntegrityError:
 
             return Response(
 
                 {
+
                     "success": False,
 
                     "message":
-                    "Payment could not be processed.",
-
-                    "errors": {
-                        "database": [
-                            "A database error occurred while processing the payment."
-                        ]
-                    }
+                    (
+                        "Transaction ID already exists."
+                    ),
 
                 },
 
-                status=status.HTTP_400_BAD_REQUEST
+                status=(
+                    status.HTTP_400_BAD_REQUEST
+                )
 
             )
 
 
 # ==========================================================
 # My Payment History
-# GET: /api/payments/
+#
+# GET:
+# /api/payments/
 # ==========================================================
 
 class PaymentListView(
     generics.ListAPIView
 ):
 
-    serializer_class = PaymentSerializer
+    serializer_class = (
+        PaymentSerializer
+    )
 
     permission_classes = [
-        IsAuthenticated
+
+        IsAuthenticated,
+
     ]
 
-    def get_queryset(self):
 
-        user = self.request.user
+    def get_queryset(
+        self
+    ):
+
+        user = (
+            self.request.user
+        )
+
+
+        # ==================================================
+        # Patient Profile Check
+        # ==================================================
 
         if not hasattr(
             user,
-            "patient_profile"
+            "patient_profile",
         ):
 
-            return Payment.objects.none()
+            return (
+                Payment.objects.none()
+            )
+
+
+        # ==================================================
+        # Patient Payments
+        # ==================================================
 
         return (
+
             Payment.objects
+
             .select_related(
+
                 "patient",
+
                 "patient__user",
+
                 "appointment",
+
                 "appointment__doctor",
+
                 "appointment__doctor__user",
+
                 "test_booking",
+
             )
+
             .filter(
-                patient=user.patient_profile
+
+                patient=(
+                    user.patient_profile
+                )
+
             )
+
             .order_by(
+
                 "-payment_date"
+
             )
+
         )
 
 
 # ==========================================================
 # Payment Details
-# GET: /api/payments/<id>/
+#
+# GET:
+# /api/payments/<id>/
 # ==========================================================
 
 class PaymentDetailView(
     generics.RetrieveAPIView
 ):
 
-    serializer_class = PaymentSerializer
+    serializer_class = (
+        PaymentSerializer
+    )
 
     permission_classes = [
-        IsAuthenticated
+
+        IsAuthenticated,
+
     ]
 
-    def get_queryset(self):
 
-        user = self.request.user
+    def get_queryset(
+        self
+    ):
+
+        user = (
+            self.request.user
+        )
+
+
+        # ==================================================
+        # Patient Profile Check
+        # ==================================================
 
         if not hasattr(
             user,
-            "patient_profile"
+            "patient_profile",
         ):
 
-            return Payment.objects.none()
+            return (
+                Payment.objects.none()
+            )
+
 
         return (
+
             Payment.objects
+
             .select_related(
+
                 "patient",
+
                 "patient__user",
+
                 "appointment",
+
                 "appointment__doctor",
+
                 "appointment__doctor__user",
+
                 "test_booking",
+
             )
+
             .filter(
-                patient=user.patient_profile
+
+                patient=(
+                    user.patient_profile
+                )
+
             )
+
         )
 
 
 # ==========================================================
-# Admin Payment Management
-# GET: /api/payments/admin/
+# Admin Payment List
+#
+# GET:
+# /api/payments/admin/
 # ==========================================================
 
 class AdminPaymentListView(
     generics.ListAPIView
 ):
 
-    serializer_class = PaymentSerializer
+    serializer_class = (
+        PaymentSerializer
+    )
 
     permission_classes = [
-        IsAuthenticated
+
+        IsAuthenticated,
+
     ]
 
-    def get_queryset(self):
 
-        if not self.request.user.is_staff:
+    def get_queryset(
+        self
+    ):
 
-            return Payment.objects.none()
+        # ==================================================
+        # Admin Check
+        # ==================================================
+
+        if not (
+            self.request.user.is_staff
+        ):
+
+            return (
+                Payment.objects.none()
+            )
+
+
+        # ==================================================
+        # All Payments
+        # ==================================================
 
         return (
+
             Payment.objects
+
             .select_related(
+
                 "patient",
+
                 "patient__user",
+
                 "appointment",
+
                 "appointment__doctor",
+
                 "appointment__doctor__user",
+
                 "test_booking",
+
             )
-            .all()
+
             .order_by(
+
                 "-payment_date"
+
             )
+
         )
 
 
 # ==========================================================
-# Payment Status Update
-# PATCH: /api/payments/<id>/status/
+# Update Payment Status
+#
+# PATCH:
+# /api/payments/<id>/status/
+#
+# Only Admin
 # ==========================================================
 
 class PaymentStatusUpdateView(
@@ -311,17 +596,59 @@ class PaymentStatusUpdateView(
 ):
 
     permission_classes = [
-        IsAuthenticated
+
+        IsAuthenticated,
+
     ]
+
+
+    # ======================================================
+    # Valid Status
+    # ======================================================
 
     VALID_STATUS = [
 
         "Pending",
+
         "Paid",
+
         "Failed",
-        "Refunded"
 
     ]
+
+
+    # ======================================================
+    # Status Transitions
+    # ======================================================
+
+    STATUS_TRANSITIONS = {
+
+        "Pending": [
+
+            "Paid",
+
+            "Failed",
+
+        ],
+
+        "Failed": [
+
+            "Pending",
+
+            "Paid",
+
+        ],
+
+        "Paid": [],
+
+        "Refunded": [],
+
+    }
+
+
+    # ======================================================
+    # Update Status
+    # ======================================================
 
     def patch(
         self,
@@ -329,93 +656,572 @@ class PaymentStatusUpdateView(
         pk
     ):
 
-        # --------------------------------------------------
+        # ==================================================
         # Admin Check
-        # --------------------------------------------------
+        # ==================================================
 
         if not request.user.is_staff:
 
             return Response(
 
                 {
+
                     "success": False,
 
                     "message":
-                    "Admin access required."
+                    "Admin access required.",
+
                 },
 
-                status=status.HTTP_403_FORBIDDEN
+                status=(
+                    status.HTTP_403_FORBIDDEN
+                ),
 
             )
 
-        # --------------------------------------------------
-        # Get Payment
-        # --------------------------------------------------
 
-        payment = get_object_or_404(
-
-            Payment,
-            pk=pk
-
-        )
-
-        # --------------------------------------------------
+        # ==================================================
         # New Status
-        # --------------------------------------------------
+        # ==================================================
 
-        new_status = request.data.get(
-
-            "payment_status"
-
+        new_status = (
+            request.data.get(
+                "payment_status"
+            )
         )
+
+
+        # ==================================================
+        # Validate Status
+        # ==================================================
 
         if new_status not in self.VALID_STATUS:
 
             return Response(
 
                 {
+
                     "success": False,
 
                     "message":
-                    "Invalid payment status."
+                    "Invalid payment status.",
+
+                    "valid_statuses":
+                    self.VALID_STATUS,
+
                 },
 
-                status=status.HTTP_400_BAD_REQUEST
+                status=(
+                    status.HTTP_400_BAD_REQUEST
+                ),
 
             )
 
-        # --------------------------------------------------
-        # Update
-        # --------------------------------------------------
 
-        payment.payment_status = new_status
+        # ==================================================
+        # Database Transaction
+        # ==================================================
 
-        payment.save(
+        with transaction.atomic():
 
-            update_fields=[
-                "payment_status"
-            ]
+            payment = (
+                get_object_or_404(
 
-        )
+                    Payment.objects
+
+                    .select_related(
+
+                        "patient",
+
+                        "patient__user",
+
+                        "appointment",
+
+                        "test_booking",
+
+                    )
+
+                    .select_for_update(),
+
+                    pk=pk,
+
+                )
+            )
+
+
+            previous_status = (
+                payment.payment_status
+            )
+
+
+            # ==================================================
+            # Same Status
+            # ==================================================
+
+            if previous_status == new_status:
+
+                return Response(
+
+                    {
+
+                        "success": True,
+
+                        "message":
+                        "Payment already has this status.",
+
+                        "payment":
+                        PaymentSerializer(
+                            payment
+                        ).data,
+
+                    },
+
+                    status=(
+                        status.HTTP_200_OK
+                    ),
+
+                )
+
+
+            # ==================================================
+            # Refunded Protection
+            # ==================================================
+
+            if previous_status == "Refunded":
+
+                return Response(
+
+                    {
+
+                        "success": False,
+
+                        "message":
+                        (
+                            "Refunded payment cannot "
+                            "be modified."
+                        ),
+
+                    },
+
+                    status=(
+                        status.HTTP_400_BAD_REQUEST
+                    ),
+
+                )
+
+
+            # ==================================================
+            # Paid Protection
+            # ==================================================
+
+            if previous_status == "Paid":
+
+                return Response(
+
+                    {
+
+                        "success": False,
+
+                        "message":
+                        (
+                            "Paid payment cannot be "
+                            "modified from this endpoint. "
+                            "Use the refund endpoint "
+                            "for refunds."
+                        ),
+
+                    },
+
+                    status=(
+                        status.HTTP_400_BAD_REQUEST
+                    ),
+
+                )
+
+
+            # ==================================================
+            # Validate Transition
+            # ==================================================
+
+            allowed_statuses = (
+
+                self.STATUS_TRANSITIONS.get(
+
+                    previous_status,
+
+                    []
+
+                )
+
+            )
+
+
+            if new_status not in allowed_statuses:
+
+                return Response(
+
+                    {
+
+                        "success": False,
+
+                        "message":
+                        (
+                            f"Cannot change payment "
+                            f"status from "
+                            f"{previous_status} "
+                            f"to "
+                            f"{new_status}."
+                        ),
+
+                        "allowed_statuses":
+                        allowed_statuses,
+
+                    },
+
+                    status=(
+                        status.HTTP_400_BAD_REQUEST
+                    ),
+
+                )
+
+
+            # ==================================================
+            # Update Status
+            # ==================================================
+
+            payment.payment_status = (
+                new_status
+            )
+
+
+            # ==================================================
+            # Payment Notification
+            #
+            # This is useful for old Pending payments
+            # which admin later marks as Paid.
+            # ==================================================
+
+            if (
+
+                new_status == "Paid"
+
+                and
+
+                previous_status != "Paid"
+
+            ):
+
+                notification_created = (
+
+                    create_payment_notification(
+                        payment
+                    )
+
+                )
+
+
+                if notification_created:
+
+                    payment.payment_notification_sent = (
+                        True
+                    )
+
+
+            # ==================================================
+            # Save
+            # ==================================================
+
+            payment.save(
+
+                update_fields=[
+
+                    "payment_status",
+
+                    "payment_notification_sent",
+
+                    "updated_at",
+
+                ]
+
+            )
+
+
+        # ==================================================
+        # Success Response
+        # ==================================================
 
         return Response(
 
             {
+
                 "success": True,
 
                 "message":
-                "Payment status updated successfully.",
+                (
+                    "Payment status updated "
+                    "successfully."
+                ),
 
-                "payment_id":
-                payment.id,
-
-                "payment_status":
-                payment.payment_status
+                "payment":
+                PaymentSerializer(
+                    payment
+                ).data,
 
             },
 
-            status=status.HTTP_200_OK
+            status=(
+                status.HTTP_200_OK
+            ),
 
         )
 
-        
+
+# ==========================================================
+# Refund Payment
+#
+# PATCH:
+# /api/payments/<id>/refund/
+# ==========================================================
+
+class PaymentRefundView(
+    APIView
+):
+
+    permission_classes = [
+
+        IsAuthenticated,
+
+    ]
+
+
+    # ======================================================
+    # Refund Payment
+    # ======================================================
+
+    def patch(
+        self,
+        request,
+        pk
+    ):
+
+        # ==================================================
+        # Admin Check
+        # ==================================================
+
+        if not request.user.is_staff:
+
+            return Response(
+
+                {
+
+                    "success": False,
+
+                    "message":
+                    "Admin access required.",
+
+                },
+
+                status=(
+                    status.HTTP_403_FORBIDDEN
+                ),
+
+            )
+
+
+        # ==================================================
+        # Database Transaction
+        # ==================================================
+
+        with transaction.atomic():
+
+            payment = (
+                get_object_or_404(
+
+                    Payment.objects
+
+                    .select_related(
+
+                        "patient",
+
+                        "patient__user",
+
+                        "appointment",
+
+                        "test_booking",
+
+                    )
+
+                    .select_for_update(),
+
+                    pk=pk,
+
+                )
+            )
+
+
+            # ==================================================
+            # Already Refunded
+            # ==================================================
+
+            if payment.payment_status == "Refunded":
+
+                return Response(
+
+                    {
+
+                        "success": False,
+
+                        "message":
+                        (
+                            "This payment has already "
+                            "been refunded."
+                        ),
+
+                    },
+
+                    status=(
+                        status.HTTP_400_BAD_REQUEST
+                    ),
+
+                )
+
+
+            # ==================================================
+            # Payment Must Be Paid
+            # ==================================================
+
+            if payment.payment_status != "Paid":
+
+                return Response(
+
+                    {
+
+                        "success": False,
+
+                        "message":
+                        (
+                            "Only successfully paid "
+                            "payments can be refunded."
+                        ),
+
+                    },
+
+                    status=(
+                        status.HTTP_400_BAD_REQUEST
+                    ),
+
+                )
+
+
+            # ==================================================
+            # Partial Payment Cannot Be Refunded
+            # ==================================================
+
+            if payment.payment_mode == "Partial":
+
+                return Response(
+
+                    {
+
+                        "success": False,
+
+                        "message":
+                        (
+                            "Partial payments are "
+                            "non-refundable."
+                        ),
+
+                    },
+
+                    status=(
+                        status.HTTP_400_BAD_REQUEST
+                    ),
+
+                )
+
+
+            # ==================================================
+            # Refund Eligibility
+            # ==================================================
+
+            if not payment.is_refundable:
+
+                return Response(
+
+                    {
+
+                        "success": False,
+
+                        "message":
+                        (
+                            "This payment is not "
+                            "eligible for refund."
+                        ),
+
+                    },
+
+                    status=(
+                        status.HTTP_400_BAD_REQUEST
+                    ),
+
+                )
+
+
+            # ==================================================
+            # Update Payment Status
+            # ==================================================
+
+            payment.payment_status = (
+                "Refunded"
+            )
+
+
+            payment.save(
+
+                update_fields=[
+
+                    "payment_status",
+
+                    "updated_at",
+
+                ]
+
+            )
+
+
+            # ==================================================
+            # Refund Notification
+            # ==================================================
+
+            create_refund_notification(
+                payment
+            )
+
+
+        # ==================================================
+        # Success Response
+        # ==================================================
+
+        return Response(
+
+            {
+
+                "success": True,
+
+                "message":
+                (
+                    "Payment refunded successfully."
+                ),
+
+                "payment":
+                PaymentSerializer(
+                    payment
+                ).data,
+
+            },
+
+            status=(
+                status.HTTP_200_OK
+            ),
+
+        )

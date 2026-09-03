@@ -1,36 +1,58 @@
-import api from "./api";
+import api from "../api/axios";
 
+// ==========================================================
+// Get My Medical Reports
+//
+// GET:
+// /api/reports/patient/
+// ==========================================================
 
 export const getMedicalReports = async () => {
-
-    const response = await api.get(
+    return await api.get(
         "reports/patient/"
     );
-
-    return response.data;
-
 };
 
 
-export const getMedicalReportDetails = async (
-    reportId
-) => {
+// ==========================================================
+// Alias
+// Get My Medical Reports
+// ==========================================================
 
-    const response = await api.get(
-        `reports/${reportId}/`
+export const getMyReports = getMedicalReports;
+
+
+// ==========================================================
+// Get Medical Report Details
+//
+// GET:
+// /api/reports/<id>/
+// ==========================================================
+
+export const getMedicalReport = async (id) => {
+    return await api.get(
+        `reports/${id}/`
     );
-
-    return response.data;
-
 };
 
 
-export const getDoctorMedicalReports = async () => {
+// ==========================================================
+// Alias
+// Get Medical Report Details
+// ==========================================================
 
-    const response = await api.get(
+export const getReportDetails = getMedicalReport;
+
+
+// ==========================================================
+// Get Doctor Medical Reports
+//
+// GET:
+// /api/reports/doctor/
+// ==========================================================
+
+export const getDoctorReports = async () => {
+    return await api.get(
         "reports/doctor/"
     );
-
-    return response.data;
-
 };

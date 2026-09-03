@@ -1,83 +1,149 @@
-import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import {
+    useEffect,
+    useState,
+} from "react";
 
-import { getPaymentDetails } from "../../services/paymentService";
+import {
+    Link,
+    useParams,
+} from "react-router-dom";
+
+import {
+    getPaymentDetails,
+} from "../../services/paymentService";
+
 
 function PaymentDetails() {
 
-    const { id } = useParams();
+    const { id } =
+        useParams();
 
-    const [payment, setPayment] = useState(null);
 
-    const [loading, setLoading] = useState(true);
+    const [payment, setPayment] =
+        useState(null);
 
-    const [error, setError] = useState("");
+    const [loading, setLoading] =
+        useState(true);
+
+    const [error, setError] =
+        useState("");
 
 
     // ==========================================================
-    // Load Payment Details
+    // Status Badge
     // ==========================================================
 
-    useEffect(() => {
+    const getStatusClass =
+        (status) => {
 
-        const loadPaymentDetails = async () => {
+            switch (status) {
 
-            try {
+                case "Paid":
+                    return "bg-success";
 
-                setLoading(true);
+                case "Pending":
+                    return "bg-warning text-dark";
 
-                setError("");
+                case "Failed":
+                    return "bg-danger";
 
-                const response =
-                    await getPaymentDetails(id);
+                case "Refunded":
+                    return "bg-secondary";
 
-                console.log(
-                    "Payment Details:",
-                    response.data
-                );
-
-                const data =
-                    response.data?.data ||
-                    response.data;
-
-                setPayment(data);
-
-            } catch (error) {
-
-                console.error(
-                    "Payment Details Error:",
-                    error
-                );
-
-                if (error.response?.status === 404) {
-
-                    setError(
-                        "Payment not found."
-                    );
-
-                } else if (
-                    error.response?.status === 401
-                ) {
-
-                    setError(
-                        "Authentication required. Please login again."
-                    );
-
-                } else {
-
-                    setError(
-                        "Failed to load payment details."
-                    );
-
-                }
-
-            } finally {
-
-                setLoading(false);
+                default:
+                    return "bg-secondary";
 
             }
 
         };
+
+
+    // ==========================================================
+    // Load Payment
+    // ==========================================================
+
+    useEffect(() => {
+
+        const loadPaymentDetails =
+            async () => {
+
+                try {
+
+                    setLoading(true);
+
+                    setError("");
+
+
+                    const response =
+                        await getPaymentDetails(
+                            id
+                        );
+
+
+                    const data =
+
+                        response.data?.data ||
+
+                        response.data?.payment ||
+
+                        response.data;
+
+
+                    setPayment(
+                        data
+                    );
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        "Payment Details Error:",
+                        error
+                    );
+
+
+                    if (
+                        error.response?.status === 404
+                    ) {
+
+                        setError(
+                            "Payment not found."
+                        );
+
+                    }
+
+                    else if (
+                        error.response?.status === 401
+                    ) {
+
+                        setError(
+                            "Authentication required. Please login again."
+                        );
+
+                    }
+
+                    else {
+
+                        setError(
+                            error.response?.data?.message ||
+                            "Failed to load payment details."
+                        );
+
+                    }
+
+                }
+
+                finally {
+
+                    setLoading(
+                        false
+                    );
+
+                }
+
+            };
+
 
         loadPaymentDetails();
 
@@ -92,15 +158,13 @@ function PaymentDetails() {
 
         return (
 
-            <div className="container mt-5">
+            <div className="container mt-5 text-center">
 
-                <div className="text-center">
+                <h3>
 
-                    <h3>
-                        Loading Payment Details...
-                    </h3>
+                    Loading Payment Details...
 
-                </div>
+                </h3>
 
             </div>
 
@@ -129,7 +193,9 @@ function PaymentDetails() {
                     to="/payments"
                     className="btn btn-primary"
                 >
+
                     Back to Payment History
+
                 </Link>
 
             </div>
@@ -140,7 +206,7 @@ function PaymentDetails() {
 
 
     // ==========================================================
-    // Payment Not Found
+    // Not Found
     // ==========================================================
 
     if (!payment) {
@@ -155,13 +221,6 @@ function PaymentDetails() {
 
                 </div>
 
-                <Link
-                    to="/payments"
-                    className="btn btn-primary"
-                >
-                    Back to Payment History
-                </Link>
-
             </div>
 
         );
@@ -170,12 +229,13 @@ function PaymentDetails() {
 
 
     // ==========================================================
-    // Payment Details
+    // UI
     // ==========================================================
 
     return (
 
-        <div className="container mt-5">
+        <div className="container mt-5 mb-5">
+
 
             {/* ==================================================
                 Header
@@ -186,7 +246,9 @@ function PaymentDetails() {
                 <div>
 
                     <h2>
+
                         Payment Details
+
                     </h2>
 
                     <p className="text-muted mb-0">
@@ -197,18 +259,21 @@ function PaymentDetails() {
 
                 </div>
 
+
                 <Link
                     to="/payments"
                     className="btn btn-secondary"
                 >
+
                     Back
+
                 </Link>
 
             </div>
 
 
             {/* ==================================================
-                Payment Card
+                Card
             ================================================== */}
 
             <div className="card shadow-sm">
@@ -226,16 +291,15 @@ function PaymentDetails() {
 
                 <div className="card-body">
 
-                    {/* ==================================================
-                        Payment Information
-                    ================================================== */}
-
                     <div className="row">
+
 
                         <div className="col-md-6 mb-3">
 
                             <strong>
+
                                 Payment ID
+
                             </strong>
 
                             <p className="mb-0">
@@ -250,13 +314,37 @@ function PaymentDetails() {
                         <div className="col-md-6 mb-3">
 
                             <strong>
+
+                                Payment Type
+
+                            </strong>
+
+                            <p className="mb-0">
+
+                                {
+                                    payment.payment_type ||
+                                    "N/A"
+                                }
+
+                            </p>
+
+                        </div>
+
+
+                        <div className="col-md-6 mb-3">
+
+                            <strong>
+
                                 Booking Number
+
                             </strong>
 
                             <p className="mb-0">
 
-                                {payment.appointment_booking ||
-                                    "N/A"}
+                                {
+                                    payment.appointment_booking ||
+                                    "N/A"
+                                }
 
                             </p>
 
@@ -266,13 +354,17 @@ function PaymentDetails() {
                         <div className="col-md-6 mb-3">
 
                             <strong>
+
                                 Doctor
+
                             </strong>
 
                             <p className="mb-0">
 
-                                {payment.doctor_name ||
-                                    "N/A"}
+                                {
+                                    payment.doctor_name ||
+                                    "N/A"
+                                }
 
                             </p>
 
@@ -282,13 +374,17 @@ function PaymentDetails() {
                         <div className="col-md-6 mb-3">
 
                             <strong>
+
                                 Patient
+
                             </strong>
 
                             <p className="mb-0">
 
-                                {payment.patient_name ||
-                                    "N/A"}
+                                {
+                                    payment.patient_name ||
+                                    "N/A"
+                                }
 
                             </p>
 
@@ -298,7 +394,29 @@ function PaymentDetails() {
                         <div className="col-md-6 mb-3">
 
                             <strong>
-                                Amount
+
+                                Payment Mode
+
+                            </strong>
+
+                            <p className="mb-0">
+
+                                {
+                                    payment.payment_mode ||
+                                    "N/A"
+                                }
+
+                            </p>
+
+                        </div>
+
+
+                        <div className="col-md-6 mb-3">
+
+                            <strong>
+
+                                Paid Amount
+
                             </strong>
 
                             <p className="mb-0 text-success fw-bold">
@@ -313,13 +431,57 @@ function PaymentDetails() {
                         <div className="col-md-6 mb-3">
 
                             <strong>
+
+                                Expected Amount
+
+                            </strong>
+
+                            <p className="mb-0">
+
+                                ৳ {
+                                    payment.expected_amount ??
+                                    "N/A"
+                                }
+
+                            </p>
+
+                        </div>
+
+
+                        <div className="col-md-6 mb-3">
+
+                            <strong>
+
+                                Remaining Amount
+
+                            </strong>
+
+                            <p className="mb-0 text-danger">
+
+                                ৳ {
+                                    payment.remaining_amount ??
+                                    "N/A"
+                                }
+
+                            </p>
+
+                        </div>
+
+
+                        <div className="col-md-6 mb-3">
+
+                            <strong>
+
                                 Payment Method
+
                             </strong>
 
                             <p className="mb-0">
 
-                                {payment.payment_method ||
-                                    "N/A"}
+                                {
+                                    payment.payment_method ||
+                                    "N/A"
+                                }
 
                             </p>
 
@@ -329,13 +491,17 @@ function PaymentDetails() {
                         <div className="col-md-6 mb-3">
 
                             <strong>
+
                                 Transaction ID
+
                             </strong>
 
                             <p className="mb-0">
 
-                                {payment.transaction_id ||
-                                    "N/A"}
+                                {
+                                    payment.transaction_id ||
+                                    "N/A"
+                                }
 
                             </p>
 
@@ -345,24 +511,23 @@ function PaymentDetails() {
                         <div className="col-md-6 mb-3">
 
                             <strong>
+
                                 Payment Status
+
                             </strong>
 
                             <p className="mb-0">
 
                                 <span
-                                    className={`badge ${
+                                    className={`badge ${getStatusClass(
                                         payment.payment_status
-                                            ?.toLowerCase()
-                                            .replace(
-                                                /\s+/g,
-                                                "-"
-                                            )
-                                    }`}
+                                    )}`}
                                 >
 
-                                    {payment.payment_status ||
-                                        "Pending"}
+                                    {
+                                        payment.payment_status ||
+                                        "Pending"
+                                    }
 
                                 </span>
 
@@ -374,18 +539,45 @@ function PaymentDetails() {
                         <div className="col-md-6 mb-3">
 
                             <strong>
-                                Payment Date
+
+                                Refund Eligible
+
                             </strong>
 
                             <p className="mb-0">
 
-                                {payment.payment_date
+                                {
+                                    payment.is_refundable
 
-                                    ? new Date(
-                                        payment.payment_date
-                                    ).toLocaleString()
+                                        ? "Yes"
 
-                                    : "N/A"}
+                                        : "No"
+                                }
+
+                            </p>
+
+                        </div>
+
+
+                        <div className="col-md-6 mb-3">
+
+                            <strong>
+
+                                Payment Date
+
+                            </strong>
+
+                            <p className="mb-0">
+
+                                {
+                                    payment.payment_date
+
+                                        ? new Date(
+                                            payment.payment_date
+                                        ).toLocaleString()
+
+                                        : "N/A"
+                                }
 
                             </p>
 
@@ -399,32 +591,39 @@ function PaymentDetails() {
 
 
             {/* ==================================================
-                Bottom Actions
+                Actions
             ================================================== */}
 
-            <div className="mt-4 d-flex gap-2">
+            <div className="mt-4 d-flex flex-wrap gap-2">
 
                 <Link
                     to="/payments"
                     className="btn btn-primary"
                 >
+
                     Back to Payment History
+
                 </Link>
+
 
                 <Link
                     to={`/payments/${payment.id}/receipt`}
                     className="btn btn-success"
                 >
+
                     🧾 View Receipt
+
                 </Link>
+
+
                 <Link
                     to={`/payments/${payment.id}/invoice`}
                     className="btn btn-warning"
                 >
+
                     📄 View Invoice
+
                 </Link>
-
-
 
             </div>
 
@@ -433,5 +632,6 @@ function PaymentDetails() {
     );
 
 }
+
 
 export default PaymentDetails;

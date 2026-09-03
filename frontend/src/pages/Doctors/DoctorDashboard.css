@@ -79,6 +79,10 @@
 .doctor-dashboard__stat.warning { --tone: #f59e0b; }
 .doctor-dashboard__stat.info { --tone: #14b8a6; }
 .doctor-dashboard__stat.success { --tone: #22c55e; }
+.doctor-dashboard__stat.danger { --tone: #ef4444; }
+.doctor-dashboard__stat.secondary { --tone: #94a3b8; }
+.doctor-dashboard__stat.danger { --tone: #ef4444; }
+.doctor-dashboard__stat.secondary { --tone: #94a3b8; }
 
 .doctor-dashboard__stat .card-body {
     padding: 1.15rem 1.2rem;
@@ -91,6 +95,10 @@
     letter-spacing: 0.08em;
     color: #64748b;
     font-weight: 700;
+}
+
+.doctor-dashboard__stat p:empty {
+    display: none;
 }
 
 .doctor-dashboard__stat h3 {
@@ -114,6 +122,8 @@
 .doctor-dashboard__stat.warning .doctor-dashboard__icon { background: rgba(245, 158, 11, 0.12); color: #d97706; }
 .doctor-dashboard__stat.info .doctor-dashboard__icon { background: rgba(20, 184, 166, 0.12); color: #0f766e; }
 .doctor-dashboard__stat.success .doctor-dashboard__icon { background: rgba(34, 197, 94, 0.12); color: #16a34a; }
+.doctor-dashboard__stat.danger .doctor-dashboard__icon { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+.doctor-dashboard__stat.secondary .doctor-dashboard__icon { background: rgba(148, 163, 184, 0.12); color: #475569; }
 
 .doctor-dashboard__panel {
     border-radius: 20px;
@@ -221,6 +231,144 @@
 .doctor-dashboard__slotMeta {
     font-size: 0.8rem;
     color: #475569;
+}
+
+.doctor-dashboard__action-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+.doctor-dashboard__status-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 88px;
+}
+
+.doctor-dashboard__action-group .btn,
+.doctor-dashboard__status-stack .btn {
+    min-width: 70px;
+    white-space: nowrap;
+    padding: 0.42rem 0.72rem;
+    font-size: 0.72rem;
+    border-radius: 8px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    transition: all 0.15s ease-in-out;
+}
+
+.doctor-dashboard__action-group .btn:hover,
+.doctor-dashboard__status-stack .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.doctor-dashboard__action-group .btn-outline-primary {
+    color: #1d4ed8;
+    border-color: #93c5fd;
+    background: rgba(191, 219, 254, 0.18);
+}
+
+.doctor-dashboard__status-stack .btn-success {
+    background: linear-gradient(180deg, #2ec56d 0%, #1fa55a 100%);
+    border-color: #1d9b52;
+    color: #fff;
+    box-shadow: none;
+}
+
+.doctor-dashboard__status-stack .btn-outline-danger {
+    color: #cf2f2f;
+    border-color: #e35d5d;
+    background: linear-gradient(180deg, #fff2f2 0%, #fddede 100%);
+    box-shadow: none;
+}
+
+.doctor-dashboard__action-group .btn i,
+.doctor-dashboard__status-stack .btn i {
+    font-size: 0.62rem;
+}
+
+.doctor-dashboard__details-panel {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+    margin-top: 1.25rem;
+    padding: 1.25rem;
+}
+
+.doctor-dashboard__details-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 1rem;
+}
+
+.doctor-dashboard__details-body {
+    padding-top: 0.25rem;
+}
+
+.doctor-dashboard__detail-section {
+    background: #f8fbff;
+    border: 1px solid #e4ebf3;
+    border-radius: 16px;
+    padding: 1rem;
+}
+
+.doctor-dashboard__detail-section h6 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.doctor-dashboard__detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem 1rem;
+}
+
+.doctor-dashboard__detail-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.doctor-dashboard__detail-grid label {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    font-weight: 700;
+}
+
+.doctor-dashboard__detail-grid strong {
+    font-size: 0.96rem;
+    color: #0f172a;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.doctor-dashboard__full-width {
+    grid-column: 1 / -1;
+}
+
+.doctor-dashboard__modal-actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1.25rem;
 }
 
 @media (max-width: 768px) {

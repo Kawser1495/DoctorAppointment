@@ -1,75 +1,4 @@
-import api, { publicApi } from "./api";
-
-
-// ==========================================================
-// Helper Function
-//
-// Handles both:
-//
-// 1. Normal response:
-//    [ ... ]
-//
-// 2. Paginated response:
-//    {
-//        count: 10,
-//        results: [ ... ]
-//    }
-// ==========================================================
-
-const normalizeListResponse = (response) => {
-
-    if (
-        Array.isArray(response.data)
-    ) {
-
-        return response;
-
-    }
-
-
-    if (
-        Array.isArray(
-            response.data?.results
-        )
-    ) {
-
-        return {
-            ...response,
-
-            data: response.data.results,
-        };
-
-    }
-
-
-    return {
-        ...response,
-
-        data: [],
-    };
-
-};
-
-
-// ==========================================================
-// Get All Departments
-//
-// GET:
-// /api/doctors/departments/
-// ==========================================================
-
-export const getDepartments = async () => {
-
-    const response = await publicApi.get(
-        "doctors/departments/"
-    );
-
-
-    return normalizeListResponse(
-        response
-    );
-
-};
+import api from "../api/axios";
 
 
 // ==========================================================
@@ -81,42 +10,58 @@ export const getDepartments = async () => {
 
 export const getDoctors = async () => {
 
-    const response = await publicApi.get(
+    return await api.get(
         "doctors/doctors/"
-    );
-
-
-    return normalizeListResponse(
-        response
     );
 
 };
 
 
 // ==========================================================
-// Get Single Doctor Details
+// Get Doctor Details
 //
 // GET:
 // /api/doctors/doctors/<id>/
 // ==========================================================
 
-export const getDoctorById = async (
-    doctorId
-) => {
+export const getDoctorDetails = async (id) => {
 
-    if (
-        !doctorId
-    ) {
+    return await api.get(
+        `doctors/doctors/${id}/`
+    );
 
-        throw new Error(
-            "Doctor ID is required."
-        );
-
-    }
+};
 
 
-    return publicApi.get(
-        `doctors/doctors/${doctorId}/`
+// ==========================================================
+// Get Doctor By ID
+//
+// Alias for getDoctorDetails()
+//
+// GET:
+// /api/doctors/doctors/<id>/
+// ==========================================================
+
+export const getDoctorById = async (id) => {
+
+    return await api.get(
+        `doctors/doctors/${id}/`
+    );
+
+};
+
+
+// ==========================================================
+// Get Departments
+//
+// GET:
+// /api/doctors/departments/
+// ==========================================================
+
+export const getDepartments = async () => {
+
+    return await api.get(
+        "doctors/departments/"
     );
 
 };
@@ -126,163 +71,138 @@ export const getDoctorById = async (
 // Search Doctors
 //
 // GET:
-// /api/doctors/search/?search=cardiology
+// /api/doctors/search/?search=keyword
 // ==========================================================
 
-export const searchDoctors = async (
-    searchQuery = ""
-) => {
+export const searchDoctors = async (search) => {
 
-    const response = await publicApi.get(
+    return await api.get(
         "doctors/search/",
         {
             params: {
-                search: searchQuery,
+                search,
             },
         }
-    );
-
-
-    return normalizeListResponse(
-        response
     );
 
 };
 
 
 // ==========================================================
-// Doctors by Department
+// Get Doctors By Department
 //
 // GET:
-// /api/doctors/departments/<departmentId>/doctors/
+// /api/doctors/departments/<department_id>/doctors/
 // ==========================================================
 
 export const getDoctorsByDepartment = async (
     departmentId
 ) => {
 
-    if (
-        !departmentId
-    ) {
-
-        return {
-            data: [],
-        };
-
-    }
-
-
-    const response = await publicApi.get(
+    return await api.get(
         `doctors/departments/${departmentId}/doctors/`
     );
 
-
-    return normalizeListResponse(
-        response
-    );
-
 };
 
 
 // ==========================================================
-// Doctor profile
-// ==========================================================
-
-export const getDoctorProfile = async () => {
-
-    const response = await api.get(
-        "doctors/me/profile/"
-    );
-
-    return response;
-
-};
-
-
-export const updateDoctorProfile = async (
-    payload
-) => {
-
-    const response = await api.patch(
-        "doctors/me/profile/",
-        payload,
-        {
-            headers: {
-                "Content-Type":
-                    payload instanceof FormData
-                        ? "multipart/form-data"
-                        : "application/json",
-            },
-        }
-    );
-
-    return response;
-
-};
-
-
-export const getDoctorSchedules = async () => {
-
-    const response = await api.get(
-        "doctors/dashboard/"
-    );
-
-    return response;
-
-};
-
-
-// ==========================================================
-// Available Time Slots
+// Get Doctor Schedules
 //
 // GET:
-// /api/doctors/time-slots/?doctor=1
+// /api/doctors/doctors/<doctor_id>/schedules/
+// ==========================================================
+
+export const getDoctorSchedules = async (
+    doctorId
+) => {
+
+    return await api.get(
+        `doctors/doctors/${doctorId}/schedules/`
+    );
+
+};
+
+
+// ==========================================================
+// Get Available Time Slots
 //
-// OR:
-//
-// /api/doctors/time-slots/?doctor=1&date=2026-08-26
+// GET:
+// /api/doctors/time-slots/?doctor=<id>&date=<date>
 // ==========================================================
 
 export const getAvailableTimeSlots = async (
     doctorId,
-    date = ""
+    date
 ) => {
 
-    if (
-        !doctorId
-    ) {
-
-        return {
-            data: [],
-        };
-
-    }
-
-
-    const params = {
-        doctor: doctorId,
-    };
-
-
-    if (
-        date
-    ) {
-
-        params.date = date;
-
-    }
-
-
-    const response = await publicApi.get(
+    return await api.get(
         "doctors/time-slots/",
         {
-            params,
+            params: {
+                doctor: doctorId,
+                date,
+            },
         }
     );
 
+};
 
-    return normalizeListResponse(
-        response
+
+// ==========================================================
+// Get My Doctor Profile
+//
+// GET:
+// /api/doctors/me/profile/
+// ==========================================================
+
+export const getDoctorProfile = async () => {
+
+    return await api.get(
+        "doctors/me/profile/"
+    );
+
+};
+
+// ==========================================================
+// Update My Doctor Profile
+//
+// PATCH:
+// /api/doctors/me/profile/
+// ==========================================================
+
+export const updateDoctorProfile = async (
+    profileData
+) => {
+
+    return await api.patch(
+        "doctors/me/profile/",
+        profileData,
+        {
+            headers: {
+                "Content-Type":
+                    "multipart/form-data",
+            },
+        }
+    );
+
+};
+
+
+// ==========================================================
+// Replace My Doctor Profile
+//
+// PUT:
+// /api/doctors/me/profile/
+// ==========================================================
+
+export const replaceDoctorProfile = async (
+    profileData
+) => {
+
+    return await api.put(
+        "doctors/me/profile/",
+        profileData
     );
 
 };

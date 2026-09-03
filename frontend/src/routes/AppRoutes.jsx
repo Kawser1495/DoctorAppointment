@@ -55,6 +55,9 @@ import AdminSupport
 import DoctorDashboard
     from "../pages/Doctors/DoctorDashboard";
 
+import DoctorAppointmentDetails
+    from "../pages/Doctors/DoctorAppointmentDetails";
+
 import DoctorAppointments
     from "../pages/Doctors/DoctorAppointments";
 
@@ -377,6 +380,23 @@ export default function AppRoutes() {
                         >
 
                             <DoctorAppointments />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+                <Route
+                    path="/doctor/appointments/:id"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "doctor",
+                            ]}
+                        >
+
+                            <DoctorAppointmentDetails />
 
                         </RoleRoute>
 

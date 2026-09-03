@@ -1,9 +1,17 @@
 import {
+
     createPaymentApi,
+
     getMyPaymentsApi,
+
     getPaymentDetailsApi,
+
     getAdminPaymentsApi,
+
     updatePaymentStatusApi,
+
+    refundPaymentApi,
+
 } from "../api/paymentApi";
 
 
@@ -11,15 +19,19 @@ import {
 // Create Payment
 // ==========================================================
 
-export const createPayment = async (data) => {
+export const createPayment = async (
+    data
+) => {
 
-    return await createPaymentApi(data);
+    return await createPaymentApi(
+        data
+    );
 
 };
 
 
 // ==========================================================
-// My Payment History
+// My Payments
 // ==========================================================
 
 export const getMyPayments = async () => {
@@ -30,18 +42,22 @@ export const getMyPayments = async () => {
 
 
 // ==========================================================
-// Single Payment Details
+// Payment Details
 // ==========================================================
 
-export const getPaymentDetails = async (id) => {
+export const getPaymentDetails = async (
+    id
+) => {
 
-    return await getPaymentDetailsApi(id);
+    return await getPaymentDetailsApi(
+        id
+    );
 
 };
 
 
 // ==========================================================
-// Admin Payment Management
+// Admin Payments
 // ==========================================================
 
 export const getAdminPayments = async () => {
@@ -52,7 +68,7 @@ export const getAdminPayments = async () => {
 
 
 // ==========================================================
-// Admin Update Payment Status
+// Update Payment Status
 // ==========================================================
 
 export const updatePaymentStatus = async (
@@ -63,6 +79,21 @@ export const updatePaymentStatus = async (
     return await updatePaymentStatusApi(
         id,
         payment_status
+    );
+
+};
+
+
+// ==========================================================
+// Refund Payment
+// ==========================================================
+
+export const refundPayment = async (
+    paymentId
+) => {
+
+    return await refundPaymentApi(
+        paymentId
     );
 
 };

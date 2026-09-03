@@ -43,6 +43,9 @@ function DiagnosticPayment() {
     const [paymentMethod, setPaymentMethod] =
         useState("Bkash");
 
+    const [paymentMode, setPaymentMode] =
+        useState("Full");
+
     const [transactionId, setTransactionId] =
         useState("");
 
@@ -58,11 +61,15 @@ function DiagnosticPayment() {
 
                 setLoading(true);
 
+
                 const response =
-                    await getDiagnosticBookingDetails(id);
+                    await getDiagnosticBookingDetails(
+                        id
+                    );
+
 
                 console.log(
-                    "Diagnostic Booking:",
+                    "Diagnostic Booking Response:",
                     response.data
                 );
 
@@ -88,7 +95,10 @@ function DiagnosticPayment() {
                     error.response?.data
                 );
 
+
                 alert(
+                    error.response?.data?.message ||
+                    error.response?.data?.detail ||
                     "Unable to load diagnostic booking."
                 );
 
@@ -188,28 +198,35 @@ function DiagnosticPayment() {
 
 
     // ==========================================================
-    // Amount
+    // Get Amount Safely
     // ==========================================================
+
+    const rawAmount =
+
+        booking.remaining_amount ??
+
+        booking.amount ??
+
+        booking.test_price ??
+
+        booking.price ??
+
+        booking.diagnostic_test_price ??
+
+        booking.diagnostic_test?.price ??
+
+        0;
+
 
     const amount =
-        Number(
-            booking.amount ||
-            booking.price ||
-            booking.test_price ||
-            booking.diagnostic_test?.price ||
-            0
-        );
+        Number(rawAmount);
 
 
     // ==========================================================
-    // Handle Diagnostic Payment
+    // Handle Payment
     // ==========================================================
 
     const handlePayment = async () => {
-
-        // ------------------------------------------------------
-        // Clean Transaction ID
-        // ------------------------------------------------------
 
         const cleanTransactionId =
             transactionId.trim();
@@ -250,6 +267,12 @@ function DiagnosticPayment() {
             amount <= 0
         ) {
 
+            console.error(
+                "Invalid booking amount:",
+                booking
+            );
+
+
             alert(
                 "Invalid diagnostic test amount."
             );
@@ -260,24 +283,20 @@ function DiagnosticPayment() {
 
 
         // ======================================================
-        // IMPORTANT
+        // Payment Payload
         //
-        // Django PaymentSerializer expects:
-        //
-        // test_booking
-        //
-        // NOT:
-        //
-        // diagnostic_booking
+        // IMPORTANT:
+        // amount is calculated by Django backend.
+        // Do not depend on frontend amount.
         // ======================================================
 
         const payload = {
 
             test_booking:
-                booking.id,
+                Number(booking.id),
 
-            amount:
-                amount,
+            payment_mode:
+                paymentMode,
 
             payment_method:
                 paymentMethod,
@@ -288,19 +307,11 @@ function DiagnosticPayment() {
         };
 
 
-        // ------------------------------------------------------
-        // Debug
-        // ------------------------------------------------------
-
         console.log(
             "Diagnostic Payment Payload:",
             payload
         );
 
-
-        // ======================================================
-        // API Request
-        // ======================================================
 
         try {
 
@@ -319,19 +330,28 @@ function DiagnosticPayment() {
             );
 
 
-            // ==================================================
-            // Backend Response
-            //
-            // {
-            //     success: true,
-            //     message: "...",
-            //     data: {...}
-            // }
-            // ==================================================
-
             const paymentData =
                 response.data?.data ||
+                response.data?.payment ||
                 response.data;
+
+
+            if (!paymentData?.id) {
+
+                console.error(
+                    "Invalid Payment Response:",
+                    response.data
+                );
+
+
+                alert(
+                    response.data?.message ||
+                    "Payment was created but payment information could not be loaded."
+                );
+
+                return;
+
+            }
 
 
             // ==================================================
@@ -339,6 +359,7 @@ function DiagnosticPayment() {
             // ==================================================
 
             alert(
+                response.data?.message ||
                 "Payment submitted successfully."
             );
 
@@ -348,8 +369,11 @@ function DiagnosticPayment() {
             // ==================================================
 
             navigate(
+
                 "/payment-success",
+
                 {
+
                     state: {
 
                         payment:
@@ -359,15 +383,12 @@ function DiagnosticPayment() {
                             booking,
 
                     },
+
                 }
+
             );
 
         }
-
-
-        // ======================================================
-        // Error
-        // ======================================================
 
         catch (error) {
 
@@ -388,7 +409,7 @@ function DiagnosticPayment() {
 
 
             // ==================================================
-            // No Response
+            // No Server Response
             // ==================================================
 
             if (!error.response) {
@@ -403,28 +424,25 @@ function DiagnosticPayment() {
 
 
             // ==================================================
-            // DRF errors
-            //
-            // Example:
-            //
-            // {
-            //     "test_booking": [
-            //         "A payment already exists..."
-            //     ]
-            // }
+            // Backend General Message
             // ==================================================
 
-            if (data?.test_booking) {
+            if (data?.message) {
 
-                const message =
-                    Array.isArray(
-                        data.test_booking
-                    )
-                        ? data.test_booking[0]
-                        : data.test_booking;
+                alert(
+                    data.message
+                );
+
+                return;
+
+            }
 
 
-                alert(message);
+            if (data?.detail) {
+
+                alert(
+                    data.detail
+                );
 
                 return;
 
@@ -432,129 +450,51 @@ function DiagnosticPayment() {
 
 
             // ==================================================
-            // Transaction ID Error
+            // Validation Errors
             // ==================================================
 
-            if (data?.transaction_id) {
+            const validationFields = [
 
-                const message =
-                    Array.isArray(
-                        data.transaction_id
-                    )
-                        ? data.transaction_id[0]
-                        : data.transaction_id;
+                "payment_mode",
 
+                "test_booking",
 
-                alert(message);
+                "appointment",
 
-                return;
+                "transaction_id",
 
-            }
+                "payment_method",
 
+                "payment_for",
 
-            // ==================================================
-            // Amount Error
-            // ==================================================
+                "patient",
 
-            if (data?.amount) {
+                "authentication",
 
-                const message =
-                    Array.isArray(
-                        data.amount
-                    )
-                        ? data.amount[0]
-                        : data.amount;
+                "payment",
+
+                "amount",
+
+            ];
 
 
-                alert(message);
+            for (
+                const field of validationFields
+            ) {
 
-                return;
+                if (data?.[field]) {
 
-            }
+                    const message =
+                        Array.isArray(
+                            data[field]
+                        )
 
+                            ? data[field][0]
 
-            // ==================================================
-            // Payment For Error
-            // ==================================================
-
-            if (data?.payment_for) {
-
-                const message =
-                    Array.isArray(
-                        data.payment_for
-                    )
-                        ? data.payment_for[0]
-                        : data.payment_for;
+                            : data[field];
 
 
-                alert(message);
-
-                return;
-
-            }
-
-
-            // ==================================================
-            // Patient Error
-            // ==================================================
-
-            if (data?.patient) {
-
-                const message =
-                    Array.isArray(
-                        data.patient
-                    )
-                        ? data.patient[0]
-                        : data.patient;
-
-
-                alert(message);
-
-                return;
-
-            }
-
-
-            // ==================================================
-            // Authentication Error
-            // ==================================================
-
-            if (data?.authentication) {
-
-                const message =
-                    Array.isArray(
-                        data.authentication
-                    )
-                        ? data.authentication[0]
-                        : data.authentication;
-
-
-                alert(message);
-
-                return;
-
-            }
-
-
-            // ==================================================
-            // errors Object
-            // ==================================================
-
-            if (data?.errors) {
-
-                const errors =
-                    data.errors;
-
-
-                const firstError =
-                    Object.values(errors)
-                        .flat()
-                        .find(Boolean);
-
-
-                if (firstError) {
-
-                    alert(firstError);
+                    alert(message);
 
                     return;
 
@@ -564,17 +504,39 @@ function DiagnosticPayment() {
 
 
             // ==================================================
-            // General Message
+            // Generic DRF Object Error
             // ==================================================
 
+            if (data) {
+
+                const firstError =
+                    Object.values(data)
+                        .flat()
+                        .find(
+                            (value) =>
+                                typeof value ===
+                                "string"
+                        );
+
+
+                if (firstError) {
+
+                    alert(
+                        firstError
+                    );
+
+                    return;
+
+                }
+
+            }
+
+
             alert(
-                data?.message ||
-                data?.detail ||
                 "Payment failed. Please try again."
             );
 
         }
-
 
         finally {
 
@@ -611,16 +573,10 @@ function DiagnosticPayment() {
                 </div>
 
 
-                {/* ==================================================
-                    Body
-                ================================================== */}
-
                 <div className="card-body">
 
 
-                    {/* ==================================================
-                        Back Button
-                    ================================================== */}
+                    {/* Back */}
 
                     <button
 
@@ -644,7 +600,7 @@ function DiagnosticPayment() {
 
 
                     {/* ==================================================
-                        Diagnostic Information
+                        Booking Information
                     ================================================== */}
 
                     <h5>
@@ -695,32 +651,6 @@ function DiagnosticPayment() {
                     </p>
 
 
-                    <p>
-
-                        <strong>
-                            Booking Date:
-                        </strong>
-
-                        {" "}
-
-                        {booking.booking_date || "N/A"}
-
-                    </p>
-
-
-                    <p>
-
-                        <strong>
-                            Booking Time:
-                        </strong>
-
-                        {" "}
-
-                        {booking.booking_time || "N/A"}
-
-                    </p>
-
-
                     <hr />
 
 
@@ -730,19 +660,71 @@ function DiagnosticPayment() {
 
                     <h5>
 
-                        Total Amount
+                        Payment Amount
 
                     </h5>
 
 
                     <h2 className="text-success mb-4">
 
-                        ৳ {amount.toFixed(2)}
+                        ৳ {
+                            Number.isFinite(amount)
+
+                                ? amount.toFixed(2)
+
+                                : "0.00"
+                        }
 
                     </h2>
 
 
                     <hr />
+
+
+                    {/* ==================================================
+                        Payment Mode
+                    ================================================== */}
+
+                    <div className="mb-3">
+
+                        <label className="form-label">
+
+                            Payment Mode
+
+                        </label>
+
+
+                        <select
+
+                            className="form-select"
+
+                            value={paymentMode}
+
+                            onChange={(e) =>
+                                setPaymentMode(
+                                    e.target.value
+                                )
+                            }
+
+                            disabled={paymentLoading}
+
+                        >
+
+                            <option value="Full">
+
+                                Full Payment
+
+                            </option>
+
+                            <option value="Partial">
+
+                                Partial Payment
+
+                            </option>
+
+                        </select>
+
+                    </div>
 
 
                     {/* ==================================================
@@ -803,7 +785,7 @@ function DiagnosticPayment() {
                         Transaction ID
                     ================================================== */}
 
-                    <div className="mb-3">
+                    <div className="mb-4">
 
                         <label className="form-label">
 
@@ -867,7 +849,7 @@ function DiagnosticPayment() {
 
                                 ? "Processing Payment..."
 
-                                : "Confirm Payment"
+                                : `Confirm ${paymentMode} Payment`
 
                         }
 

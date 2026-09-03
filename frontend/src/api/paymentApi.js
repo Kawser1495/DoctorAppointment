@@ -3,7 +3,6 @@ import api from "./axios";
 
 // ==========================================================
 // Create Payment
-// POST /api/payments/create/
 // ==========================================================
 
 export const createPaymentApi = (data) => {
@@ -18,7 +17,6 @@ export const createPaymentApi = (data) => {
 
 // ==========================================================
 // My Payments
-// GET /api/payments/
 // ==========================================================
 
 export const getMyPaymentsApi = () => {
@@ -32,7 +30,6 @@ export const getMyPaymentsApi = () => {
 
 // ==========================================================
 // Payment Details
-// GET /api/payments/:id/
 // ==========================================================
 
 export const getPaymentDetailsApi = (id) => {
@@ -46,7 +43,6 @@ export const getPaymentDetailsApi = (id) => {
 
 // ==========================================================
 // Admin Payments
-// GET /api/payments/admin/
 // ==========================================================
 
 export const getAdminPaymentsApi = () => {
@@ -60,7 +56,6 @@ export const getAdminPaymentsApi = () => {
 
 // ==========================================================
 // Update Payment Status
-// PATCH /api/payments/:id/status/
 // ==========================================================
 
 export const updatePaymentStatusApi = (
@@ -73,6 +68,23 @@ export const updatePaymentStatusApi = (
         {
             payment_status,
         }
+    );
+
+};
+
+
+// ==========================================================
+// Refund Payment
+// Current backend endpoint
+// PATCH /api/payments/:id/refund/
+// ==========================================================
+
+export const refundPaymentApi = (
+    paymentId
+) => {
+
+    return api.patch(
+        `/payments/${paymentId}/refund/`
     );
 
 };

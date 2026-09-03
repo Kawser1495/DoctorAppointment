@@ -863,17 +863,27 @@ class DoctorRejectAppointmentView(
 
         with transaction.atomic():
 
+            slot = None
+
             # ------------------------------------------------
-            # Lock Slot
+            # Lock Slot Safely
             # ------------------------------------------------
 
-            slot = (
-                TimeSlot.objects
-                .select_for_update()
-                .get(
-                    id=appointment.slot_id
-                )
-            )
+            if appointment.slot_id is not None:
+
+                try:
+
+                    slot = (
+                        TimeSlot.objects
+                        .select_for_update()
+                        .get(
+                            id=appointment.slot_id
+                        )
+                    )
+
+                except TimeSlot.DoesNotExist:
+
+                    slot = None
 
             # ------------------------------------------------
             # Reject Appointment
@@ -892,13 +902,17 @@ class DoctorRejectAppointmentView(
             # Release Slot
             # ------------------------------------------------
 
-            if slot.booked_count > 0:
+            if slot is not None and slot.booked_count > 0:
 
-                slot.booked_count -= 1
+                slot.booked_count = max(
+                    slot.booked_count - 1,
+                    0,
+                )
 
                 slot.save(
                     update_fields=[
-                        "booked_count"
+                        "booked_count",
+                        "updated_at",
                     ]
                 )
 

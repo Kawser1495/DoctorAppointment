@@ -1,0 +1,548 @@
+/* =========================================================
+   Doctor Profile Page
+   ========================================================= */
+
+.doctor-profile-page {
+    min-height: 100vh;
+    padding: 32px;
+    background: #f5f7fb;
+}
+
+
+/* =========================================================
+   Main Container
+   ========================================================= */
+
+.doctor-profile-container {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+
+/* =========================================================
+   Page Header
+   ========================================================= */
+
+.doctor-profile-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+.doctor-profile-page-header h1 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 700;
+    color: #172033;
+}
+
+.doctor-profile-page-header p {
+    margin: 7px 0 0;
+    color: #697386;
+    font-size: 15px;
+}
+
+
+/* =========================================================
+   Buttons
+   ========================================================= */
+
+.doctor-profile-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.doctor-btn {
+    border: none;
+    border-radius: 9px;
+    padding: 11px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.doctor-btn:hover {
+    transform: translateY(-1px);
+}
+
+.doctor-btn-primary {
+    background: #2563eb;
+    color: white;
+}
+
+.doctor-btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.doctor-btn-secondary {
+    background: white;
+    color: #374151;
+    border: 1px solid #d9dee8;
+}
+
+.doctor-btn-secondary:hover {
+    background: #f8fafc;
+}
+
+.doctor-btn-success {
+    background: #16a34a;
+    color: white;
+}
+
+.doctor-btn-success:hover {
+    background: #15803d;
+}
+
+
+/* =========================================================
+   Alert
+   ========================================================= */
+
+.doctor-profile-alert {
+    padding: 13px 16px;
+    border-radius: 9px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.doctor-profile-alert-error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.doctor-profile-alert-success {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+
+/* =========================================================
+   Profile Hero Card
+   ========================================================= */
+
+.doctor-profile-hero {
+    background: white;
+    border: 1px solid #e6eaf0;
+    border-radius: 16px;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 25px;
+    margin-bottom: 22px;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+}
+
+.doctor-profile-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+
+
+/* =========================================================
+   Profile Image
+   ========================================================= */
+
+.doctor-profile-image-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.doctor-profile-image {
+    width: 125px;
+    height: 125px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #eef2ff;
+    display: block;
+}
+
+.doctor-profile-image-placeholder {
+    width: 125px;
+    height: 125px;
+    border-radius: 50%;
+    background: #eef2ff;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    font-weight: 700;
+    border: 4px solid #e0e7ff;
+}
+
+.doctor-image-upload {
+    margin-top: 12px;
+}
+
+.doctor-image-upload input {
+    max-width: 230px;
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   Doctor Hero Information
+   ========================================================= */
+
+.doctor-profile-hero-info h2 {
+    margin: 0 0 7px;
+    font-size: 25px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.doctor-profile-specialization {
+    margin: 0 0 12px;
+    color: #64748b;
+    font-size: 15px;
+}
+
+.doctor-profile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.doctor-profile-meta-item {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    padding: 7px 11px;
+    border-radius: 7px;
+    font-size: 13px;
+    color: #475569;
+}
+
+
+/* =========================================================
+   Availability
+   ========================================================= */
+
+.doctor-availability-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.doctor-availability-badge.available {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.doctor-availability-badge.unavailable {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.doctor-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+
+/* =========================================================
+   Cards
+   ========================================================= */
+
+.doctor-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.doctor-profile-card {
+    background: white;
+    border: 1px solid #e6eaf0;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 3px 14px rgba(15, 23, 42, 0.04);
+}
+
+.doctor-profile-card-full {
+    grid-column: 1 / -1;
+}
+
+.doctor-profile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 17px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #edf0f5;
+}
+
+.doctor-profile-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+}
+
+.doctor-profile-card-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #172033;
+}
+
+.doctor-profile-card-header p {
+    margin: 3px 0 0;
+    color: #8791a3;
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   Information Grid
+   ========================================================= */
+
+.doctor-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 25px;
+}
+
+.doctor-info-item {
+    min-width: 0;
+}
+
+.doctor-info-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8993a4;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.doctor-info-value {
+    color: #273142;
+    font-size: 15px;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.doctor-info-value.empty {
+    color: #a0a8b5;
+}
+
+
+/* =========================================================
+   Form
+   ========================================================= */
+
+.doctor-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 25px;
+}
+
+.doctor-form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.doctor-form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.doctor-form-group label {
+    margin-bottom: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.doctor-form-group input,
+.doctor-form-group select,
+.doctor-form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d8dee8;
+    border-radius: 8px;
+    padding: 11px 12px;
+    background: white;
+    color: #1f2937;
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s ease;
+}
+
+.doctor-form-group input:focus,
+.doctor-form-group select:focus,
+.doctor-form-group textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.doctor-form-group textarea {
+    resize: vertical;
+    min-height: 130px;
+}
+
+
+/* =========================================================
+   Read Only Input
+   ========================================================= */
+
+.doctor-readonly {
+    background: #f8fafc !important;
+    color: #64748b !important;
+}
+
+
+/* =========================================================
+   Availability Toggle
+   ========================================================= */
+
+.doctor-availability-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.doctor-availability-control input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.doctor-availability-control label {
+    margin: 0;
+    font-size: 14px;
+    color: #374151;
+}
+
+
+/* =========================================================
+   Biography
+   ========================================================= */
+
+.doctor-biography {
+    color: #4b5563;
+    font-size: 15px;
+    line-height: 1.8;
+    white-space: pre-line;
+}
+
+.doctor-biography.empty {
+    color: #9ca3af;
+}
+
+
+/* =========================================================
+   Consultation Fee
+   ========================================================= */
+
+.doctor-fee {
+    font-size: 22px;
+    font-weight: 700;
+    color: #15803d;
+}
+
+
+/* =========================================================
+   Save Area
+   ========================================================= */
+
+.doctor-profile-save-area {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+
+/* =========================================================
+   Loading
+   ========================================================= */
+
+.doctor-profile-loading {
+    min-height: 70vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f5f7fb;
+}
+
+.doctor-profile-loading-box {
+    background: white;
+    padding: 30px 40px;
+    border-radius: 12px;
+    color: #475569;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+}
+
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .doctor-profile-page {
+        padding: 20px;
+    }
+
+    .doctor-profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .doctor-profile-card-full {
+        grid-column: auto;
+    }
+
+    .doctor-profile-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .doctor-profile-page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .doctor-profile-hero-left {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .doctor-info-grid,
+    .doctor-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .doctor-form-group.full-width {
+        grid-column: auto;
+    }
+
+    .doctor-profile-card {
+        padding: 18px;
+    }
+
+}
