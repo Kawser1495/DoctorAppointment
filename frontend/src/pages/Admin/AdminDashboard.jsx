@@ -1,15 +1,18 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
 import useAuth from "../../context/useAuth";
+import { getDashboardData } from "../../services/dashboardApi";
+
 import "./AdminDashboard.css";
 
 
-// ==========================================================
-// Admin Dashboard
-// ==========================================================
-
 export default function AdminDashboard() {
-
     const { user, logout } = useAuth();
+
+    const [dashboard, setDashboard] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     const firstName =
         user?.first_name ||
@@ -17,19 +20,292 @@ export default function AdminDashboard() {
         "Administrator";
 
 
+    // ==========================================================
+    // LOAD DASHBOARD
+    // ==========================================================
+
+    useEffect(() => {
+        let mounted = true;
+
+        const loadDashboard = async () => {
+            try {
+                setLoading(true);
+                setError("");
+
+                const response = await getDashboardData();
+
+                if (!mounted) {
+                    return;
+                }
+
+                const responseData =
+                    response?.data || {};
+
+                setDashboard(
+                    responseData.data ||
+                    responseData
+                );
+            } catch (err) {
+                console.error(
+                    "Admin Dashboard Error:",
+                    err
+                );
+
+                if (!mounted) {
+                    return;
+                }
+
+                setError(
+                    err?.response?.data?.message ||
+                    err?.response?.data?.detail ||
+                    "Unable to load admin dashboard."
+                );
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadDashboard();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+
+    // ==========================================================
+    // FORMAT CURRENCY
+    // ==========================================================
+
+    const formatCurrency = (value) => {
+        const amount = Number(value || 0);
+
+        return new Intl.NumberFormat(
+            "en-BD",
+            {
+                style: "currency",
+                currency: "BDT",
+                maximumFractionDigits: 0,
+            }
+        ).format(amount);
+    };
+
+
+    // ==========================================================
+    // DASHBOARD CARDS
+    // ==========================================================
+
+    const stats = [
+        {
+            title: "Total Patients",
+            value: dashboard.total_patients,
+            icon: "fas fa-user-injured",
+            className: "stat-blue",
+            link: "/admin/patients",
+        },
+
+        {
+            title: "Total Doctors",
+            value: dashboard.total_doctors,
+            icon: "fas fa-user-md",
+            className: "stat-green",
+            link: "/admin/doctors",
+        },
+
+        {
+            title: "Pending Doctor Requests",
+            value: dashboard.pending_doctor_requests,
+            icon: "fas fa-user-clock",
+            className: "stat-orange",
+            link: "/admin/doctor-requests",
+        },
+
+        {
+            title: "Approved Doctors",
+            value: dashboard.approved_doctors,
+            icon: "fas fa-user-check",
+            className: "stat-teal",
+            link: "/admin/doctors",
+        },
+
+        {
+            title: "Total Appointments",
+            value: dashboard.total_appointments,
+            icon: "fas fa-calendar-check",
+            className: "stat-purple",
+            link: "/admin/appointments",
+        },
+
+        {
+            title: "Today's Appointments",
+            value: dashboard.today_appointments,
+            icon: "fas fa-calendar-day",
+            className: "stat-red",
+            link: "/admin/appointments",
+        },
+
+        {
+            title: "Upcoming Appointments",
+            value: dashboard.upcoming_appointments,
+            icon: "fas fa-calendar-alt",
+            className: "stat-indigo",
+            link: "/admin/appointments",
+        },
+
+        {
+            title: "Total Revenue",
+            value: formatCurrency(
+                dashboard.total_revenue
+            ),
+            icon: "fas fa-wallet",
+            className: "stat-money",
+            link: "/admin/payments",
+            currency: true,
+        },
+
+        {
+            title: "Pending Payments",
+            value: dashboard.pending_payments,
+            icon: "fas fa-credit-card",
+            className: "stat-pink",
+            link: "/admin/payments",
+        },
+
+        {
+            title: "Diagnostic Bookings",
+            value: dashboard.total_diagnostic_bookings,
+            icon: "fas fa-vials",
+            className: "stat-cyan",
+            link: "/tests",
+        },
+
+        {
+            title: "Medical Reports",
+            value: dashboard.total_medical_reports,
+            icon: "fas fa-file-medical",
+            className: "stat-dark",
+            link: "/reports",
+        },
+
+        {
+            title: "Notifications",
+            value: dashboard.total_notifications,
+            icon: "fas fa-bell",
+            className: "stat-yellow",
+            link: "/notifications",
+        },
+    ];
+
+
+    // ==========================================================
+    // APPOINTMENT STATUS
+    // ==========================================================
+
+    const appointmentStatuses = [
+        {
+            title: "Pending",
+            value: dashboard.pending_appointments,
+            icon: "fas fa-clock",
+            className: "status-pending",
+        },
+
+        {
+            title: "Confirmed",
+            value: dashboard.confirmed_appointments,
+            icon: "fas fa-check-circle",
+            className: "status-confirmed",
+        },
+
+        {
+            title: "Completed",
+            value: dashboard.completed_appointments,
+            icon: "fas fa-check-double",
+            className: "status-completed",
+        },
+
+        {
+            title: "Cancelled",
+            value: dashboard.cancelled_appointments,
+            icon: "fas fa-times-circle",
+            className: "status-cancelled",
+        },
+    ];
+
+
+    // ==========================================================
+    // LOADING
+    // ==========================================================
+
+    if (loading) {
+        return (
+            <div className="dashboard-loading">
+                <div className="loading-spinner"></div>
+
+                <h3>
+                    Loading Admin Dashboard
+                </h3>
+
+                <p>
+                    Please wait while we load
+                    system statistics...
+                </p>
+            </div>
+        );
+    }
+
+
+    // ==========================================================
+    // ERROR
+    // ==========================================================
+
+    if (error) {
+        return (
+            <div className="dashboard-error-page">
+                <div className="error-card">
+
+                    <div className="error-icon">
+                        <i className="fas fa-exclamation-triangle"></i>
+                    </div>
+
+                    <h3>
+                        Dashboard Unavailable
+                    </h3>
+
+                    <p>
+                        {error}
+                    </p>
+
+                    <button
+                        type="button"
+                        className="retry-btn"
+                        onClick={() =>
+                            window.location.reload()
+                        }
+                    >
+                        <i className="fas fa-redo"></i>
+                        Try Again
+                    </button>
+
+                </div>
+            </div>
+        );
+    }
+
+
+    // ==========================================================
+    // RENDER
+    // ==========================================================
+
     return (
-
         <div className="admin-dashboard">
-
 
             {/* ==================================================
                 SIDEBAR
             ================================================== */}
 
             <aside className="admin-sidebar">
-
-
-                {/* Logo */}
 
                 <div className="admin-logo">
 
@@ -38,213 +314,142 @@ export default function AdminDashboard() {
                     </div>
 
                     <div>
-
-                        <h4>
+                        <strong>
                             MediCare
-                        </h4>
+                        </strong>
 
                         <span>
-                            Admin Panel
+                            Connect
                         </span>
-
                     </div>
 
                 </div>
 
 
-
-                {/* Navigation */}
-
                 <nav className="admin-nav">
 
-
-                    {/* Main Menu */}
-
-                    <p className="nav-section-title">
-                        MAIN MENU
+                    <p className="nav-title">
+                        OVERVIEW
                     </p>
-
 
                     <Link
                         to="/admin/dashboard"
                         className="admin-nav-link active"
                     >
-                        <i className="fas fa-th-large"></i>
-
-                        <span>
-                            Dashboard
-                        </span>
+                        <i className="fas fa-chart-pie"></i>
+                        <span>Dashboard</span>
                     </Link>
 
+
+                    <p className="nav-title">
+                        MANAGEMENT
+                    </p>
 
                     <Link
-                        to="/admin/users"
+                        to="/admin/doctor-requests"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-users"></i>
+                        <i className="fas fa-user-clock"></i>
+                        <span>Doctor Requests</span>
 
-                        <span>
-                            User Management
-                        </span>
+                        {Number(
+                            dashboard.pending_doctor_requests || 0
+                        ) > 0 && (
+                            <span className="notification-badge">
+                                {dashboard.pending_doctor_requests}
+                            </span>
+                        )}
                     </Link>
-
 
                     <Link
                         to="/admin/doctors"
                         className="admin-nav-link"
                     >
                         <i className="fas fa-user-md"></i>
-
-                        <span>
-                            Doctors
-                        </span>
+                        <span>Doctors</span>
                     </Link>
 
+                    <Link
+                        to="/admin/patients"
+                        className="admin-nav-link"
+                    >
+                        <i className="fas fa-user-injured"></i>
+                        <span>Patients</span>
+                    </Link>
 
                     <Link
                         to="/admin/appointments"
                         className="admin-nav-link"
                     >
                         <i className="fas fa-calendar-check"></i>
-
-                        <span>
-                            Appointments
-                        </span>
+                        <span>Appointments</span>
                     </Link>
-
 
                     <Link
                         to="/admin/payments"
                         className="admin-nav-link"
                     >
                         <i className="fas fa-credit-card"></i>
-
-                        <span>
-                            Payments
-                        </span>
+                        <span>Payments</span>
                     </Link>
-
-
-
-                    {/* Services */}
-
-                    <p className="nav-section-title mt-4">
-                        SERVICES
-                    </p>
-
 
                     <Link
                         to="/tests"
                         className="admin-nav-link"
                     >
                         <i className="fas fa-vials"></i>
-
-                        <span>
-                            Diagnostics
-                        </span>
+                        <span>Diagnostics</span>
                     </Link>
-
 
                     <Link
                         to="/reports"
                         className="admin-nav-link"
                     >
                         <i className="fas fa-file-medical"></i>
-
-                        <span>
-                            Medical Reports
-                        </span>
+                        <span>Medical Reports</span>
                     </Link>
 
 
-
-                    {/* System */}
-
-                    <p className="nav-section-title mt-4">
+                    <p className="nav-title">
                         SYSTEM
                     </p>
-
 
                     <Link
                         to="/notifications"
                         className="admin-nav-link"
                     >
-
                         <i className="fas fa-bell"></i>
+                        <span>Notifications</span>
 
-                        <span>
-                            Notifications
-                        </span>
-
+                        {Number(
+                            dashboard.unread_notifications || 0
+                        ) > 0 && (
+                            <span className="notification-badge">
+                                {dashboard.unread_notifications}
+                            </span>
+                        )}
                     </Link>
-
 
                     <Link
                         to="/settings"
                         className="admin-nav-link"
                     >
                         <i className="fas fa-cog"></i>
-
-                        <span>
-                            Settings
-                        </span>
+                        <span>Settings</span>
                     </Link>
 
                 </nav>
 
 
-
-                {/* ==================================================
-                    SIDEBAR BOTTOM
-                ================================================== */}
-
                 <div className="sidebar-bottom">
-
-
-                    {/* Need Help */}
-
-                    <Link
-                        to="/admin/support"
-                        className="sidebar-help"
-                    >
-
-                        <div className="sidebar-help-icon">
-
-                            <i className="fas fa-headset"></i>
-
-                        </div>
-
-
-                        <div>
-
-                            <strong>
-                                Need Help?
-                            </strong>
-
-                            <span>
-                                Contact support
-                            </span>
-
-                        </div>
-
-                    </Link>
-
-
-
-                    {/* Logout */}
 
                     <button
                         type="button"
                         className="sidebar-logout"
                         onClick={logout}
                     >
-
                         <i className="fas fa-sign-out-alt"></i>
-
-                        <span>
-                            Logout
-                        </span>
-
+                        <span>Logout</span>
                     </button>
 
                 </div>
@@ -252,84 +457,57 @@ export default function AdminDashboard() {
             </aside>
 
 
-
             {/* ==================================================
-                MAIN AREA
+                MAIN
             ================================================== */}
 
             <main className="admin-main">
 
-
-
-                {/* ==================================================
-                    HEADER
-                ================================================== */}
+                {/* HEADER */}
 
                 <header className="admin-header">
 
-
-                    {/* Header Title */}
-
                     <div>
-
-                        <div className="breadcrumb-text">
-                            Admin Panel / Dashboard
-                        </div>
+                        <span className="breadcrumb-text">
+                            Admin
+                            <span>/</span>
+                            Dashboard
+                        </span>
 
                         <h2>
-                            Dashboard
+                            Admin Dashboard
                         </h2>
-
                     </div>
 
 
-
-                    {/* Header Right */}
-
                     <div className="admin-header-right">
-
-
-                        {/* ==================================================
-                            Notification Bell
-                        ================================================== */}
 
                         <Link
                             to="/notifications"
                             className="header-icon"
-                            aria-label="Notifications"
                             title="Notifications"
                         >
-
                             <i className="fas fa-bell"></i>
 
+                            {Number(
+                                dashboard.unread_notifications || 0
+                            ) > 0 && (
+                                <span className="notification-dot">
+                                    {dashboard.unread_notifications}
+                                </span>
+                            )}
                         </Link>
 
 
-
-                        {/* ==================================================
-                            Admin User
-                        ================================================== */}
-
                         <div className="admin-user">
 
-
-                            {/* Avatar */}
-
                             <div className="admin-avatar">
-
                                 {firstName
                                     .charAt(0)
-                                    .toUpperCase()
-                                }
-
+                                    .toUpperCase()}
                             </div>
 
-
-
-                            {/* User Information */}
-
                             <div className="admin-user-info">
-
                                 <strong>
                                     {firstName}
                                 </strong>
@@ -337,14 +515,7 @@ export default function AdminDashboard() {
                                 <span>
                                     Administrator
                                 </span>
-
                             </div>
-
-
-
-                            {/* Dropdown Icon */}
-
-                            <i className="fas fa-chevron-down admin-user-arrow"></i>
 
                         </div>
 
@@ -353,210 +524,118 @@ export default function AdminDashboard() {
                 </header>
 
 
-
-                {/* ==================================================
-                    CONTENT
-                ================================================== */}
+                {/* CONTENT */}
 
                 <div className="admin-content">
 
+                    {/* WELCOME */}
 
-
-                    {/* ==================================================
-                        WELCOME SECTION
-                    ================================================== */}
-
-                    <div className="welcome-section">
-
+                    <section className="welcome-section">
 
                         <div>
+
+                            <span className="welcome-badge">
+                                <i className="fas fa-shield-alt"></i>
+                                Administrator Access
+                            </span>
 
                             <h3>
                                 Welcome back, {firstName}! 👋
                             </h3>
 
                             <p>
-                                Here's what's happening with your
-                                healthcare system today.
+                                Monitor and manage your
+                                healthcare system from
+                                one central dashboard.
                             </p>
 
                         </div>
 
 
                         <Link
-                            to="/admin/appointments"
+                            to="/admin/doctor-requests"
                             className="primary-action"
                         >
-
-                            <i className="fas fa-calendar-plus"></i>
-
-                            Manage Appointments
-
+                            <i className="fas fa-user-clock"></i>
+                            Review Doctor Requests
                         </Link>
 
-                    </div>
-
+                    </section>
 
 
                     {/* ==================================================
                         STATISTICS
                     ================================================== */}
 
-                    <div className="stats-grid">
+                    <section className="stats-grid">
+
+                        {stats.map((stat) => (
+                            <Link
+                                to={stat.link}
+                                className="stat-card"
+                                key={stat.title}
+                            >
+
+                                <div className="stat-card-top">
+
+                                    <div className="stat-content">
+
+                                        <p>
+                                            {stat.title}
+                                        </p>
+
+                                        <h3>
+                                            {stat.currency
+                                                ? stat.value
+                                                : Number(
+                                                    stat.value || 0
+                                                ).toLocaleString()
+                                            }
+                                        </h3>
+
+                                        <span className="stat-link-text">
+                                            View details
+                                            <i className="fas fa-arrow-right"></i>
+                                        </span>
+
+                                    </div>
 
 
-                        {/* ==================================================
-                            PATIENTS
-                        ================================================== */}
-
-                        <div className="stat-card">
-
-                            <div className="stat-card-top">
-
-                                <div>
-
-                                    <p>
-                                        Total Patients
-                                    </p>
-
-                                    <h3>
-                                        0
-                                    </h3>
-
-                                </div>
-
-
-                                <div className="stat-icon patients">
-
-                                    <i className="fas fa-users"></i>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-
-                        {/* ==================================================
-                            DOCTORS
-                        ================================================== */}
-
-                        <div className="stat-card">
-
-                            <div className="stat-card-top">
-
-                                <div>
-
-                                    <p>
-                                        Total Doctors
-                                    </p>
-
-                                    <h3>
-                                        0
-                                    </h3>
+                                    <div
+                                        className={`stat-icon ${stat.className}`}
+                                    >
+                                        <i className={stat.icon}></i>
+                                    </div>
 
                                 </div>
 
+                            </Link>
+                        ))}
 
-                                <div className="stat-icon doctors">
-
-                                    <i className="fas fa-user-md"></i>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-
-                        {/* ==================================================
-                            APPOINTMENTS
-                        ================================================== */}
-
-                        <div className="stat-card">
-
-                            <div className="stat-card-top">
-
-                                <div>
-
-                                    <p>
-                                        Appointments
-                                    </p>
-
-                                    <h3>
-                                        0
-                                    </h3>
-
-                                </div>
-
-
-                                <div className="stat-icon appointments">
-
-                                    <i className="fas fa-calendar-check"></i>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-
-
-                        {/* ==================================================
-                            REVENUE
-                        ================================================== */}
-
-                        <div className="stat-card">
-
-                            <div className="stat-card-top">
-
-                                <div>
-
-                                    <p>
-                                        Total Revenue
-                                    </p>
-
-                                    <h3>
-                                        ৳0
-                                    </h3>
-
-                                </div>
-
-
-                                <div className="stat-icon revenue">
-
-                                    <i className="fas fa-wallet"></i>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
+                    </section>
 
 
                     {/* ==================================================
                         APPOINTMENT OVERVIEW
                     ================================================== */}
 
-                    <div className="section-card">
-
+                    <section className="section-card">
 
                         <div className="section-header">
 
-
                             <div>
+
+                                <span className="section-eyebrow">
+                                    OPERATIONS
+                                </span>
 
                                 <h4>
                                     Appointment Overview
                                 </h4>
 
                                 <p>
-                                    Current appointment status
+                                    Current appointment activity
+                                    across the healthcare system.
                                 </p>
 
                             </div>
@@ -566,137 +645,68 @@ export default function AdminDashboard() {
                                 to="/admin/appointments"
                                 className="view-all"
                             >
-
                                 View All
-
                                 <i className="fas fa-arrow-right"></i>
-
                             </Link>
 
                         </div>
-
 
 
                         <div className="appointment-grid">
 
+                            {appointmentStatuses.map(
+                                (item) => (
+                                    <div
+                                        className={`appointment-status ${item.className}`}
+                                        key={item.title}
+                                    >
 
-                            {/* Pending */}
+                                        <div className="status-icon">
+                                            <i className={item.icon}></i>
+                                        </div>
 
-                            <div className="appointment-status pending">
+                                        <div>
+                                            <span>
+                                                {item.title}
+                                            </span>
 
-                                <div className="status-icon">
-                                    <i className="fas fa-clock"></i>
-                                </div>
+                                            <strong>
+                                                {Number(
+                                                    item.value || 0
+                                                ).toLocaleString()}
+                                            </strong>
+                                        </div>
 
-                                <div>
-
-                                    <span>
-                                        Pending
-                                    </span>
-
-                                    <strong>
-                                        0
-                                    </strong>
-
-                                </div>
-
-                            </div>
-
-
-
-                            {/* Confirmed */}
-
-                            <div className="appointment-status confirmed">
-
-                                <div className="status-icon">
-                                    <i className="fas fa-check-circle"></i>
-                                </div>
-
-                                <div>
-
-                                    <span>
-                                        Confirmed
-                                    </span>
-
-                                    <strong>
-                                        0
-                                    </strong>
-
-                                </div>
-
-                            </div>
-
-
-
-                            {/* Completed */}
-
-                            <div className="appointment-status completed">
-
-                                <div className="status-icon">
-                                    <i className="fas fa-check-double"></i>
-                                </div>
-
-                                <div>
-
-                                    <span>
-                                        Completed
-                                    </span>
-
-                                    <strong>
-                                        0
-                                    </strong>
-
-                                </div>
-
-                            </div>
-
-
-
-                            {/* Cancelled */}
-
-                            <div className="appointment-status cancelled">
-
-                                <div className="status-icon">
-                                    <i className="fas fa-times-circle"></i>
-                                </div>
-
-                                <div>
-
-                                    <span>
-                                        Cancelled
-                                    </span>
-
-                                    <strong>
-                                        0
-                                    </strong>
-
-                                </div>
-
-                            </div>
+                                    </div>
+                                )
+                            )}
 
                         </div>
 
-                    </div>
-
+                    </section>
 
 
                     {/* ==================================================
-                        QUICK MANAGEMENT
+                        SYSTEM SUMMARY
                     ================================================== */}
 
-                    <div className="section-card">
-
+                    <section className="section-card">
 
                         <div className="section-header">
 
                             <div>
 
+                                <span className="section-eyebrow">
+                                    SYSTEM
+                                </span>
+
                                 <h4>
-                                    Quick Management
+                                    Healthcare Summary
                                 </h4>
 
                                 <p>
-                                    Manage your healthcare system
+                                    Quick overview of today's
+                                    healthcare operations.
                                 </p>
 
                             </div>
@@ -704,247 +714,83 @@ export default function AdminDashboard() {
                         </div>
 
 
+                        <div className="summary-grid">
 
-                        <div className="management-grid">
-
-
-                            {/* User Management */}
-
-                            <Link
-                                to="/admin/users"
-                                className="management-card"
-                            >
-
-                                <div className="management-icon blue">
-
-                                    <i className="fas fa-users"></i>
-
-                                </div>
+                            <div className="summary-item">
+                                <i className="fas fa-calendar-day"></i>
 
                                 <div>
+                                    <span>
+                                        Today's Appointments
+                                    </span>
 
-                                    <h5>
-                                        User Management
-                                    </h5>
-
-                                    <p>
-                                        Manage patients, doctors
-                                        and staff.
-                                    </p>
-
+                                    <strong>
+                                        {Number(
+                                            dashboard.today_appointments || 0
+                                        ).toLocaleString()}
+                                    </strong>
                                 </div>
-
-                                <i className="fas fa-arrow-right management-arrow"></i>
-
-                            </Link>
+                            </div>
 
 
-
-                            {/* Doctor Management */}
-
-                            <Link
-                                to="/admin/doctors"
-                                className="management-card"
-                            >
-
-                                <div className="management-icon green">
-
-                                    <i className="fas fa-user-md"></i>
-
-                                </div>
+                            <div className="summary-item">
+                                <i className="fas fa-calendar-alt"></i>
 
                                 <div>
+                                    <span>
+                                        Upcoming Appointments
+                                    </span>
 
-                                    <h5>
-                                        Doctor Management
-                                    </h5>
-
-                                    <p>
-                                        Manage doctor accounts
-                                        and information.
-                                    </p>
-
+                                    <strong>
+                                        {Number(
+                                            dashboard.upcoming_appointments || 0
+                                        ).toLocaleString()}
+                                    </strong>
                                 </div>
-
-                                <i className="fas fa-arrow-right management-arrow"></i>
-
-                            </Link>
+                            </div>
 
 
-
-                            {/* Appointments */}
-
-                            <Link
-                                to="/admin/appointments"
-                                className="management-card"
-                            >
-
-                                <div className="management-icon purple">
-
-                                    <i className="fas fa-calendar-alt"></i>
-
-                                </div>
+                            <div className="summary-item">
+                                <i className="fas fa-user-clock"></i>
 
                                 <div>
+                                    <span>
+                                        Doctor Requests
+                                    </span>
 
-                                    <h5>
-                                        Appointments
-                                    </h5>
-
-                                    <p>
-                                        Monitor and manage
-                                        appointments.
-                                    </p>
-
+                                    <strong>
+                                        {Number(
+                                            dashboard.pending_doctor_requests || 0
+                                        ).toLocaleString()}
+                                    </strong>
                                 </div>
-
-                                <i className="fas fa-arrow-right management-arrow"></i>
-
-                            </Link>
+                            </div>
 
 
-
-                            {/* Payments */}
-
-                            <Link
-                                to="/admin/payments"
-                                className="management-card"
-                            >
-
-                                <div className="management-icon orange">
-
-                                    <i className="fas fa-credit-card"></i>
-
-                                </div>
+                            <div className="summary-item">
+                                <i className="fas fa-money-bill-wave"></i>
 
                                 <div>
+                                    <span>
+                                        Pending Payments
+                                    </span>
 
-                                    <h5>
-                                        Payments
-                                    </h5>
-
-                                    <p>
-                                        Monitor payments and
-                                        revenue.
-                                    </p>
-
+                                    <strong>
+                                        {Number(
+                                            dashboard.pending_payments || 0
+                                        ).toLocaleString()}
+                                    </strong>
                                 </div>
-
-                                <i className="fas fa-arrow-right management-arrow"></i>
-
-                            </Link>
-
-                        </div>
-
-                    </div>
-
-
-
-                    {/* ==================================================
-                        SYSTEM MANAGEMENT
-                    ================================================== */}
-
-                    <div className="section-card">
-
-
-                        <div className="section-header">
-
-                            <div>
-
-                                <h4>
-                                    System Management
-                                </h4>
-
-                                <p>
-                                    Access important system features
-                                </p>
-
                             </div>
 
                         </div>
 
-
-
-                        <div className="system-actions">
-
-
-                            {/* Diagnostics */}
-
-                            <Link
-                                to="/tests"
-                                className="system-action"
-                            >
-
-                                <i className="fas fa-vials"></i>
-
-                                <span>
-                                    Diagnostic Tests
-                                </span>
-
-                            </Link>
-
-
-
-                            {/* Payments */}
-
-                            <Link
-                                to="/admin/payments"
-                                className="system-action"
-                            >
-
-                                <i className="fas fa-wallet"></i>
-
-                                <span>
-                                    Payment Management
-                                </span>
-
-                            </Link>
-
-
-
-                            {/* Notifications */}
-
-                            <Link
-                                to="/notifications"
-                                className="system-action"
-                            >
-
-                                <i className="fas fa-bell"></i>
-
-                                <span>
-                                    Notifications
-                                </span>
-
-                            </Link>
-
-
-
-                            {/* Settings */}
-
-                            <Link
-                                to="/settings"
-                                className="system-action"
-                            >
-
-                                <i className="fas fa-cog"></i>
-
-                                <span>
-                                    Settings
-                                </span>
-
-                            </Link>
-
-                        </div>
-
-                    </div>
-
+                    </section>
 
                 </div>
 
             </main>
 
         </div>
-
     );
-
 }

@@ -18,7 +18,10 @@ from payments.models import Payment
 from diagnostics.models import DiagnosticTest, TestBooking
 from notifications.models import Notification
 
-from .serializers import DashboardSerializer
+from .serializers import (
+    DashboardSerializer,
+    AdminDashboardSerializer,
+)
 
 
 class DashboardAPIView(APIView):
@@ -95,22 +98,59 @@ class DashboardAPIView(APIView):
     # ADMIN DASHBOARD
     # ==========================================================
 
+        # ==========================================================
+    # ADMIN DASHBOARD
+    # ==========================================================
+
     def admin_dashboard(self, request):
         """
         Admin-only dashboard.
 
-        Admin can see system-wide statistics:
-        - Users
-        - Patients
-        - Doctors
-        - Departments
-        - Appointments
-        - Payments
-        - Reports
-        - Diagnostics
-        - Family members
+        Shows system-wide statistics:
+
+        - Total Patients
+        - Total Doctors
+        - Pending Doctor Requests
+        - Approved Doctors
+        - Total Appointments
+        - Today's Appointments
+        - Upcoming Appointments
+        - Total Revenue
+        - Pending Payments
+        - Diagnostic Bookings
+        - Medical Reports
         - Notifications
         """
+
+        # ======================================================
+        # CURRENT DATE
+        # ======================================================
+
+        today = timezone.localdate()
+
+        # ======================================================
+        # PATIENTS
+        # ======================================================
+
+        total_patients = PatientProfile.objects.count()
+
+        # ======================================================
+        # DOCTORS
+        # ======================================================
+
+        total_doctors = Doctor.objects.count()
+
+        # ======================================================
+        # DOCTOR APPROVAL
+        # ======================================================
+
+        pending_doctor_requests = Doctor.objects.filter(
+            approval_status__iexact="pending"
+        ).count()
+
+        approved_doctors = Doctor.objects.filter(
+            approval_status__iexact="approved"
+        ).count()
 
         # ======================================================
         # APPOINTMENTS
@@ -120,214 +160,216 @@ class DashboardAPIView(APIView):
 
         total_appointments = appointments.count()
 
+        # Today's appointments
+
+        today_appointments = appointments.filter(
+            appointment_date=today
+        ).count()
+
+        # Upcoming appointments
+
+        upcoming_appointments = (
+            appointments
+            .filter(
+                appointment_date__gt=today
+            )
+            .exclude(
+                status__iexact="Cancelled"
+            )
+            .count()
+        )
+
+        # ======================================================
+        # APPOINTMENT STATUS BREAKDOWN
+        # ======================================================
+
         pending_appointments = appointments.filter(
-            status="Pending"
+            status__iexact="Pending"
         ).count()
 
         confirmed_appointments = appointments.filter(
-            status="Confirmed"
+            status__iexact="Confirmed"
         ).count()
 
         completed_appointments = appointments.filter(
-            status="Completed"
+            status__iexact="Completed"
         ).count()
 
         cancelled_appointments = appointments.filter(
-            status="Cancelled"
+            status__iexact="Cancelled"
         ).count()
 
         # ======================================================
         # PAYMENTS
         # ======================================================
 
-        total_payments = (
-            Payment.objects.aggregate(
+        payments = Payment.objects.all()
+
+        # Total revenue = successfully paid amount
+
+        total_revenue = (
+            payments
+            .filter(
+                payment_status__iexact="Paid"
+            )
+            .aggregate(
                 total=Sum("amount")
             )["total"]
             or Decimal("0.00")
         )
 
-        paid_payments = (
-            Payment.objects.filter(
-                payment_status="Paid"
-            ).aggregate(
-                total=Sum("amount")
-            )["total"]
-            or Decimal("0.00")
-        )
+        # Pending payment count
 
-        pending_payments = (
-            Payment.objects.filter(
-                payment_status="Pending"
-            ).aggregate(
-                total=Sum("amount")
-            )["total"]
-            or Decimal("0.00")
+        pending_payments = payments.filter(
+            payment_status__iexact="Pending"
+        ).count()
+
+        # ======================================================
+        # DIAGNOSTIC BOOKINGS
+        # ======================================================
+
+        total_diagnostic_bookings = (
+            TestBooking.objects.count()
         )
 
         # ======================================================
-        # USERS
+        # MEDICAL REPORTS
         # ======================================================
 
-        from accounts.models import CustomUser
-
-        total_users = CustomUser.objects.count()
-
-        active_users = CustomUser.objects.filter(
-            is_active=True
-        ).count()
-
-        inactive_users = CustomUser.objects.filter(
-            is_active=False
-        ).count()
-
-        verified_users = CustomUser.objects.filter(
-            is_verified=True
-        ).count()
-
-        # ======================================================
-        # ROLE STATISTICS
-        # ======================================================
-
-        total_admins = CustomUser.objects.filter(
-            role="admin"
-        ).count()
-
-        total_patients = CustomUser.objects.filter(
-            role="patient"
-        ).count()
-
-        total_doctors_users = CustomUser.objects.filter(
-            role="doctor"
-        ).count()
-
-        total_receptionists = CustomUser.objects.filter(
-            role="receptionist"
-        ).count()
-
-        # ======================================================
-        # PATIENT / DOCTOR
-        # ======================================================
-
-        total_patients_profiles = PatientProfile.objects.count()
-
-        total_doctors = Doctor.objects.count()
-
-        total_departments = Department.objects.count()
-
-        total_family_members = FamilyMember.objects.count()
-
-        # ======================================================
-        # MEDICAL DATA
-        # ======================================================
-
-        total_reports = MedicalReport.objects.count()
-
-        total_diagnostic_tests = DiagnosticTest.objects.count()
-
-        total_diagnostic_bookings = TestBooking.objects.count()
+        total_medical_reports = (
+            MedicalReport.objects.count()
+        )
 
         # ======================================================
         # NOTIFICATIONS
         # ======================================================
 
-        total_notifications = Notification.objects.count()
+        total_notifications = (
+            Notification.objects.count()
+        )
 
-        unread_notifications = Notification.objects.filter(
-            is_read=False
-        ).count()
-
-        # ======================================================
-        # TODAY'S APPOINTMENTS
-        # ======================================================
-
-        today = timezone.now().date()
-
-        today_appointments = appointments.filter(
-            appointment_date=today
-        ).count()
+        unread_notifications = (
+            Notification.objects
+            .filter(is_read=False)
+            .count()
+        )
 
         # ======================================================
-        # UPCOMING APPOINTMENTS
-        # ======================================================
-
-        upcoming_appointments = appointments.filter(
-            appointment_date__gte=today,
-            status__in=[
-                "Pending",
-                "Confirmed",
-            ],
-        ).count()
-
-        # ======================================================
-        # DASHBOARD DATA
+        # ADMIN DASHBOARD DATA
         # ======================================================
 
         data = {
 
             # --------------------------------------------------
-            # User Statistics
+            # PATIENTS
             # --------------------------------------------------
 
-            "total_users": total_users,
-            "active_users": active_users,
-            "inactive_users": inactive_users,
-            "verified_users": verified_users,
-
-            "total_admins": total_admins,
             "total_patients": total_patients,
-            "total_doctors_users": total_doctors_users,
-            "total_receptionists": total_receptionists,
 
             # --------------------------------------------------
-            # Patient / Doctor
+            # DOCTORS
             # --------------------------------------------------
 
-            "total_patients_profiles": total_patients_profiles,
             "total_doctors": total_doctors,
-            "total_departments": total_departments,
-            "family_members": total_family_members,
+
+            "pending_doctor_requests": (
+                pending_doctor_requests
+            ),
+
+            "approved_doctors": (
+                approved_doctors
+            ),
 
             # --------------------------------------------------
-            # Appointment Statistics
+            # APPOINTMENTS
             # --------------------------------------------------
 
-            "total_appointments": total_appointments,
-            "pending_appointments": pending_appointments,
-            "confirmed_appointments": confirmed_appointments,
-            "completed_appointments": completed_appointments,
-            "cancelled_appointments": cancelled_appointments,
+            "total_appointments": (
+                total_appointments
+            ),
 
-            "today_appointments": today_appointments,
-            "upcoming_appointments": upcoming_appointments,
+            "today_appointments": (
+                today_appointments
+            ),
 
-            # --------------------------------------------------
-            # Payment Statistics
-            # --------------------------------------------------
-
-            "total_payments": total_payments,
-            "paid_payments": paid_payments,
-            "pending_payments": pending_payments,
+            "upcoming_appointments": (
+                upcoming_appointments
+            ),
 
             # --------------------------------------------------
-            # Medical Statistics
+            # PAYMENTS
             # --------------------------------------------------
 
-            "total_reports": total_reports,
-            "total_diagnostic_tests": total_diagnostic_tests,
+            "total_revenue": total_revenue,
+
+            "pending_payments": (
+                pending_payments
+            ),
+
+            # --------------------------------------------------
+            # DIAGNOSTICS
+            # --------------------------------------------------
+
             "total_diagnostic_bookings": (
                 total_diagnostic_bookings
             ),
 
             # --------------------------------------------------
-            # Notification Statistics
+            # MEDICAL REPORTS
             # --------------------------------------------------
 
-            "total_notifications": total_notifications,
-            "unread_notifications": unread_notifications,
+            "total_medical_reports": (
+                total_medical_reports
+            ),
+
+            # --------------------------------------------------
+            # NOTIFICATIONS
+            # --------------------------------------------------
+
+            "total_notifications": (
+                total_notifications
+            ),
+
+            "unread_notifications": (
+                unread_notifications
+            ),
+
+            # --------------------------------------------------
+            # APPOINTMENT BREAKDOWN
+            # --------------------------------------------------
+
+            "pending_appointments": (
+                pending_appointments
+            ),
+
+            "confirmed_appointments": (
+                confirmed_appointments
+            ),
+
+            "completed_appointments": (
+                completed_appointments
+            ),
+
+            "cancelled_appointments": (
+                cancelled_appointments
+            ),
         }
 
-        serializer = DashboardSerializer(data)
+        # ======================================================
+        # SERIALIZER
+        # ======================================================
+
+        serializer = AdminDashboardSerializer(
+            data=data
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        # ======================================================
+        # RESPONSE
+        # ======================================================
 
         return Response(
             {

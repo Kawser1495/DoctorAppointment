@@ -44,6 +44,16 @@ class Department(models.Model):
 
 class Doctor(models.Model):
 
+    # ======================================================
+    # Approval Status
+    # ======================================================
+
+    APPROVAL_STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    )
+
     user = models.OneToOneField(
         CustomUser,
         on_delete=models.CASCADE,
@@ -82,6 +92,31 @@ class Doctor(models.Model):
         blank=True,
         null=True,
     )
+
+    # ======================================================
+    # Doctor Approval System
+    # ======================================================
+
+    approval_status = models.CharField(
+        max_length=20,
+        choices=APPROVAL_STATUS_CHOICES,
+        default="pending",
+        db_index=True,
+    )
+
+    rejection_reason = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    approved_at = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
+
+    # ======================================================
+    # Availability
+    # ======================================================
 
     is_available = models.BooleanField(
         default=True,

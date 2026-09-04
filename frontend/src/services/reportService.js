@@ -39,7 +39,9 @@ export const getMedicalReport =
     ) => {
 
         return await api.get(
+
             `reports/${id}/`
+
         );
 
     };
@@ -53,6 +55,12 @@ export const createMedicalReport =
     async (
         formData
     ) => {
+
+        // IMPORTANT:
+        // Do not set Content-Type here.
+        //
+        // Axios/browser will automatically set
+        // multipart/form-data with boundary.
 
         return await api.post(
 

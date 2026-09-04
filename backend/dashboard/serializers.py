@@ -162,3 +162,125 @@ class DashboardSerializer(serializers.Serializer):
     total_diagnostic_tests = serializers.IntegerField(
         required=False
     )
+    
+    # ==================================================
+# Admin Dashboard Serializer
+# ==================================================
+
+class AdminDashboardSerializer(serializers.Serializer):
+
+    # ==================================================
+    # Patient & Doctor Statistics
+    # ==================================================
+
+    total_patients = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    total_doctors = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    pending_doctor_requests = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    approved_doctors = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+
+    # ==================================================
+    # Appointment Statistics
+    # ==================================================
+
+    total_appointments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    today_appointments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    upcoming_appointments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    pending_appointments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    confirmed_appointments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    completed_appointments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    cancelled_appointments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+
+    # ==================================================
+    # Payment Statistics
+    # ==================================================
+
+    total_revenue = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        required=False,
+        default=0
+    )
+
+    pending_payments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+
+    # ==================================================
+    # Diagnostic Statistics
+    # ==================================================
+
+    total_diagnostic_bookings = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+
+    # ==================================================
+    # Medical Report Statistics
+    # ==================================================
+
+    total_medical_reports = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+
+    # ==================================================
+    # Notification Statistics
+    # ==================================================
+
+    total_notifications = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    unread_notifications = serializers.IntegerField(
+        required=False,
+        default=0
+    )
