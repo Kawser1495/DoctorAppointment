@@ -1,149 +1,197 @@
 import api from "./api";
 
-// ===========================================
+
+// ==========================================================
 // Book Appointment
-// ===========================================
+// ==========================================================
 
-export const bookAppointment = async (data) => {
+export const bookAppointment = async (
+    data
+) => {
+
     return await api.post(
+
         "appointments/book/",
+
         data
+
     );
+
 };
 
 
-// ===========================================
-// Get My Appointments - Patient
-// ===========================================
+// ==========================================================
+// Get My Appointments
+// ==========================================================
 
-export const getMyAppointments = async () => {
-    return await api.get(
-        "appointments/patient/"
-    );
-};
+export const getMyAppointments =
+    async () => {
 
+        return await api.get(
 
-// ===========================================
-// Get Appointment Details - Patient
-// ===========================================
+            "appointments/patient/"
 
-export const getAppointmentDetails = async (id) => {
-    return await api.get(
-        `appointments/${id}/`
-    );
-};
+        );
+
+    };
 
 
-// ===========================================
+// ==========================================================
+// Get Appointment Details
+// ==========================================================
+
+export const getAppointmentDetails =
+    async (
+        id
+    ) => {
+
+        return await api.get(
+
+            `appointments/${id}/`
+
+        );
+
+    };
+
+
+// ==========================================================
 // Update Appointment
-// ===========================================
+// ==========================================================
 
-export const updateAppointment = async (id, data) => {
-    return await api.put(
-        `appointments/${id}/update/`,
+export const updateAppointment =
+    async (
+        id,
         data
-    );
-};
+    ) => {
 
+        return await api.put(
 
-// ===========================================
-// Cancel Appointment - Patient
-// ===========================================
+            `appointments/${id}/update/`,
 
-export const cancelAppointment = async (id) => {
-    return await api.patch(
-        `appointments/${id}/cancel/`
-    );
-};
+            data
+
+        );
+
+    };
 
 
 // ==========================================================
-// DOCTOR APPOINTMENTS
+// Cancel Appointment
 // ==========================================================
 
+export const cancelAppointment =
+    async (
+        id
+    ) => {
 
-// ===========================================
-// Get Doctor Appointments
-// ===========================================
+        return await api.patch(
 
-export const getDoctorAppointments = async () => {
-    return await api.get(
-        "appointments/doctor/"
-    );
-};
+            `appointments/${id}/cancel/`
 
+        );
 
-// ===========================================
-// Get Doctor Appointment Details
-// ===========================================
-
-export const getDoctorAppointmentDetails = async (id) => {
-    return await api.get(
-        `appointments/doctor/${id}/`
-    );
-};
+    };
 
 
-// ===========================================
-// Doctor Confirm Appointment
-// ===========================================
+// ==========================================================
+// Doctor Appointments
+// ==========================================================
 
-export const confirmDoctorAppointment = async (id) => {
-    return await api.patch(
-        `appointments/doctor/${id}/confirm/`
-    );
-};
+export const getDoctorAppointments =
+    async () => {
 
+        return await api.get(
 
-// ===========================================
-// Doctor Reject Appointment
-// ===========================================
+            "appointments/doctor/"
 
-export const rejectDoctorAppointment = async (id) => {
-    return await api.patch(
-        `appointments/doctor/${id}/reject/`
-    );
-};
+        );
+
+    };
 
 
-// ===========================================
-// Doctor Complete Appointment
-// ===========================================
+// ==========================================================
+// Doctor Appointment Details
+// ==========================================================
 
-export const completeDoctorAppointment = async (id) => {
-    return await api.patch(
-        `appointments/doctor/${id}/complete/`
-    );
-};
+export const getDoctorAppointmentDetails =
+    async (
+        id
+    ) => {
+
+        return await api.get(
+
+            `appointments/doctor/${id}/`
+
+        );
+
+    };
 
 
-// ===========================================
+// ==========================================================
+// Confirm Appointment
+// ==========================================================
+
+export const confirmDoctorAppointment =
+    async (
+        id
+    ) => {
+
+        return await api.patch(
+
+            `appointments/doctor/${id}/confirm/`
+
+        );
+
+    };
+
+
+// ==========================================================
+// Reject Appointment
+// ==========================================================
+
+export const rejectDoctorAppointment =
+    async (
+        id
+    ) => {
+
+        return await api.patch(
+
+            `appointments/doctor/${id}/reject/`
+
+        );
+
+    };
+
+
+// ==========================================================
+// Complete Appointment
+// ==========================================================
+
+export const completeDoctorAppointment =
+    async (
+        id
+    ) => {
+
+        return await api.patch(
+
+            `appointments/doctor/${id}/complete/`
+
+        );
+
+    };
+
+
+// ==========================================================
 // Admin Appointments
-// ===========================================
+// ==========================================================
 
-export const getAdminAppointments = async () => {
-    return await api.get(
-        "appointments/admin/"
-    );
-};
+export const getAdminAppointments =
+    async () => {
 
+        return await api.get(
 
-// ===========================================
-// OLD GENERIC STATUS UPDATE
-// ===========================================
-//
-// তোমার বর্তমান Django backend-এ
-// appointments/<id>/status/ endpoint নেই।
-//
-// তাই আপাতত এই function ব্যবহার না করাই ভালো.
-//
-// ===========================================
+            "appointments/admin/"
 
-// export const updateAppointmentStatus = async (id, status) => {
-//     return await api.patch(
-//         `appointments/${id}/status/`,
-//         {
-//             status,
-//         }
-//     );
-// };
+        );
+
+    };

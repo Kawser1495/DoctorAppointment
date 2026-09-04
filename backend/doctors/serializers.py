@@ -29,15 +29,13 @@ class DepartmentSerializer(
             "doctor_count",
         ]
 
-    def get_doctor_count(
-        self,
-        obj
-    ):
+    def get_doctor_count(self, obj):
 
         return obj.doctors.filter(
             is_available=True,
             user__is_active=True,
             user__role="doctor",
+            user__doctor_status="approved",
         ).count()
 
 
@@ -49,11 +47,8 @@ class DoctorSerializer(
     serializers.ModelSerializer
 ):
 
-    doctor_name = (
-        serializers.SerializerMethodField()
-    )
-    
-    
+    doctor_name = serializers.SerializerMethodField()
+
     first_name = serializers.CharField(
         source="user.first_name",
         read_only=True,
@@ -79,6 +74,21 @@ class DoctorSerializer(
         read_only=True,
     )
 
+    # ======================================================
+    # Approval Information
+    # ======================================================
+
+    doctor_status = serializers.CharField(
+        source="user.doctor_status",
+        read_only=True,
+    )
+
+    doctor_rejection_reason = serializers.CharField(
+        source="user.doctor_rejection_reason",
+        read_only=True,
+        allow_null=True,
+    )
+
     department_name = serializers.CharField(
         source="department.name",
         read_only=True,
@@ -91,9 +101,7 @@ class DoctorSerializer(
         read_only=True,
     )
 
-    schedule_count = (
-        serializers.SerializerMethodField()
-    )
+    schedule_count = serializers.SerializerMethodField()
 
     class Meta:
 
@@ -110,6 +118,10 @@ class DoctorSerializer(
             "username",
             "email",
             "phone",
+
+            # Approval
+            "doctor_status",
+            "doctor_rejection_reason",
 
             # Department
             "department",
@@ -128,28 +140,43 @@ class DoctorSerializer(
             # Availability
             "is_available",
 
-            # Schedule Info
+            # Schedule
             "schedule_count",
 
             # Timestamp
             "created_at",
             "updated_at",
+
         ]
 
         read_only_fields = [
+
             "id",
+
+            "doctor_name",
+            "first_name",
+            "last_name",
+            "username",
+            "email",
+            "phone",
+
+            "doctor_status",
+            "doctor_rejection_reason",
+
+            "department_name",
+            "profile_image",
+            "schedule_count",
+
             "created_at",
             "updated_at",
+
         ]
 
     # ======================================================
     # Doctor Full Name
     # ======================================================
 
-    def get_doctor_name(
-        self,
-        obj
-    ):
+    def get_doctor_name(self, obj):
 
         full_name = (
             obj.user
@@ -159,11 +186,7 @@ class DoctorSerializer(
 
         if full_name:
 
-            # Prevent Dr. Dr. Name
-
-            if full_name.lower().startswith(
-                "dr."
-            ):
+            if full_name.lower().startswith("dr."):
 
                 return full_name
 
@@ -171,9 +194,7 @@ class DoctorSerializer(
 
         username = obj.user.username
 
-        if username.lower().startswith(
-            "dr."
-        ):
+        if username.lower().startswith("dr."):
 
             return username
 
@@ -183,10 +204,7 @@ class DoctorSerializer(
     # Schedule Count
     # ======================================================
 
-    def get_schedule_count(
-        self,
-        obj
-    ):
+    def get_schedule_count(self, obj):
 
         return obj.schedules.filter(
             is_active=True
@@ -205,16 +223,11 @@ class TimeSlotSerializer(
         read_only=True
     )
 
-    remaining_seats = (
-        serializers.IntegerField(
-            read_only=True
-        )
+    remaining_seats = serializers.IntegerField(
+        read_only=True
     )
 
-    doctor_name = serializers.CharField(
-        source="schedule.doctor",
-        read_only=True,
-    )
+    doctor_name = serializers.SerializerMethodField()
 
     day = serializers.CharField(
         source="schedule.day",
@@ -226,16 +239,55 @@ class TimeSlotSerializer(
         model = TimeSlot
 
         fields = [
+
             "id",
+
             "doctor_name",
             "day",
+
             "slot_time",
             "booked_count",
             "max_patient",
+
             "remaining_seats",
             "is_full",
+
             "is_active",
+
         ]
+
+        read_only_fields = [
+
+            "id",
+            "doctor_name",
+            "day",
+            "booked_count",
+            "remaining_seats",
+            "is_full",
+
+        ]
+
+    # ======================================================
+    # Doctor Name
+    # ======================================================
+
+    def get_doctor_name(self, obj):
+
+        full_name = (
+            obj.schedule.doctor.user
+            .get_full_name()
+            .strip()
+        )
+
+        if full_name:
+
+            if full_name.lower().startswith("dr."):
+
+                return full_name
+
+            return f"Dr. {full_name}"
+
+        return obj.schedule.doctor.user.username
 
 
 # ==========================================================
@@ -246,10 +298,7 @@ class DoctorScheduleSerializer(
     serializers.ModelSerializer
 ):
 
-    doctor_name = serializers.CharField(
-        source="doctor",
-        read_only=True,
-    )
+    doctor_name = serializers.SerializerMethodField()
 
     slots = TimeSlotSerializer(
         many=True,
@@ -261,17 +310,54 @@ class DoctorScheduleSerializer(
         model = DoctorSchedule
 
         fields = [
+
             "id",
+
             "doctor",
             "doctor_name",
+
             "day",
             "start_time",
             "end_time",
+
             "slot_duration_minutes",
             "max_patient_per_slot",
+
             "is_active",
+
             "slots",
+
         ]
+
+        read_only_fields = [
+
+            "id",
+            "doctor_name",
+            "slots",
+
+        ]
+
+    # ======================================================
+    # Doctor Name
+    # ======================================================
+
+    def get_doctor_name(self, obj):
+
+        full_name = (
+            obj.doctor.user
+            .get_full_name()
+            .strip()
+        )
+
+        if full_name:
+
+            if full_name.lower().startswith("dr."):
+
+                return full_name
+
+            return f"Dr. {full_name}"
+
+        return obj.doctor.user.username
 
 
 # ==========================================================
@@ -310,10 +396,14 @@ class DoctorProfileUpdateSerializer(
         model = Doctor
 
         fields = [
+
+            # User
             "first_name",
             "last_name",
             "email",
             "phone",
+
+            # Doctor
             "department",
             "specialization",
             "qualification",
@@ -322,12 +412,14 @@ class DoctorProfileUpdateSerializer(
             "biography",
             "profile_image",
             "is_available",
+
         ]
 
-    def validate_experience(
-        self,
-        value
-    ):
+    # ======================================================
+    # Experience Validation
+    # ======================================================
+
+    def validate_experience(self, value):
 
         if value < 0:
 
@@ -337,10 +429,11 @@ class DoctorProfileUpdateSerializer(
 
         return value
 
-    def validate_consultation_fee(
-        self,
-        value
-    ):
+    # ======================================================
+    # Consultation Fee Validation
+    # ======================================================
+
+    def validate_consultation_fee(self, value):
 
         if value < 0:
 
@@ -350,11 +443,11 @@ class DoctorProfileUpdateSerializer(
 
         return value
 
-    def update(
-        self,
-        instance,
-        validated_data
-    ):
+    # ======================================================
+    # Update Doctor Profile
+    # ======================================================
+
+    def update(self, instance, validated_data):
 
         user = instance.user
 
@@ -364,12 +457,22 @@ class DoctorProfileUpdateSerializer(
         )
 
         for attr, value in user_data.items():
-            setattr(user, attr, value)
+
+            setattr(
+                user,
+                attr,
+                value
+            )
 
         user.save()
 
         for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+
+            setattr(
+                instance,
+                attr,
+                value
+            )
 
         instance.save()
 

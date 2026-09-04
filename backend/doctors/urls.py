@@ -23,6 +23,14 @@ from .views import (
 )
 
 
+
+from .views import (
+    AdminPendingDoctorListView,
+    AdminApproveDoctorView,
+    AdminRejectDoctorView,
+)
+
+
 app_name = "doctors"
 
 
@@ -185,5 +193,25 @@ urlpatterns = [
         DoctorScheduleManageView.as_view(),
         name="doctor-schedule-manage-detail",
     ),
+    
+    
+    path(
+        "admin/pending/",
+        AdminPendingDoctorListView.as_view(),
+        name="admin-pending-doctors",
+    ),
+
+    path(
+        "admin/<int:doctor_id>/approve/",
+        AdminApproveDoctorView.as_view(),
+        name="admin-approve-doctor",
+    ),
+
+    path(
+        "admin/<int:doctor_id>/reject/",
+        AdminRejectDoctorView.as_view(),
+        name="admin-reject-doctor",
+    ),
+
 
 ]

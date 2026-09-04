@@ -1,58 +1,104 @@
 import api from "../api/axios";
 
-// ==========================================================
-// Get My Medical Reports
-//
-// GET:
-// /api/reports/patient/
-// ==========================================================
-
-export const getMedicalReports = async () => {
-    return await api.get(
-        "reports/patient/"
-    );
-};
-
 
 // ==========================================================
-// Alias
-// Get My Medical Reports
+// Patient Medical Reports
 // ==========================================================
 
-export const getMyReports = getMedicalReports;
+export const getMedicalReports =
+    async () => {
+
+        return await api.get(
+            "reports/patient/"
+        );
+
+    };
 
 
 // ==========================================================
-// Get Medical Report Details
-//
-// GET:
-// /api/reports/<id>/
+// Doctor Medical Reports
 // ==========================================================
 
-export const getMedicalReport = async (id) => {
-    return await api.get(
-        `reports/${id}/`
-    );
-};
+export const getDoctorReports =
+    async () => {
 
+        return await api.get(
+            "reports/doctor/"
+        );
 
-// ==========================================================
-// Alias
-// Get Medical Report Details
-// ==========================================================
-
-export const getReportDetails = getMedicalReport;
+    };
 
 
 // ==========================================================
-// Get Doctor Medical Reports
-//
-// GET:
-// /api/reports/doctor/
+// Get Single Report
 // ==========================================================
 
-export const getDoctorReports = async () => {
-    return await api.get(
-        "reports/doctor/"
-    );
-};
+export const getMedicalReport =
+    async (
+        id
+    ) => {
+
+        return await api.get(
+            `reports/${id}/`
+        );
+
+    };
+
+
+// ==========================================================
+// Create Medical Report
+// ==========================================================
+
+export const createMedicalReport =
+    async (
+        formData
+    ) => {
+
+        return await api.post(
+
+            "reports/doctor/create/",
+
+            formData
+
+        );
+
+    };
+
+
+// ==========================================================
+// Update Medical Report
+// ==========================================================
+
+export const updateMedicalReport =
+    async (
+        id,
+        formData
+    ) => {
+
+        return await api.patch(
+
+            `reports/doctor/${id}/`,
+
+            formData
+
+        );
+
+    };
+
+
+// ==========================================================
+// Delete Medical Report
+// ==========================================================
+
+export const deleteMedicalReport =
+    async (
+        id
+    ) => {
+
+        return await api.delete(
+
+            `reports/doctor/${id}/`
+
+        );
+
+    };

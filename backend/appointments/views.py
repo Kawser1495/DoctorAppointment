@@ -19,12 +19,7 @@ from .serializers import AppointmentSerializer
 
 def get_patient_profile(user):
     """
-    Return PatientProfile for logged-in user.
-
-    Raises ValidationError if:
-    - user is not authenticated
-    - user is not a patient
-    - patient profile does not exist
+    Return PatientProfile for the logged-in patient.
     """
 
     if not user or not user.is_authenticated:
@@ -44,7 +39,7 @@ def get_patient_profile(user):
         raise ValidationError({
             "patient": (
                 "Patient profile not found. "
-                "Please complete your patient profile first."
+                "Please complete your registration first."
             )
         })
 
@@ -54,9 +49,7 @@ def get_doctor_name(doctor):
     Return doctor display name.
     """
 
-    full_name = (
-        doctor.user.get_full_name().strip()
-    )
+    full_name = doctor.user.get_full_name().strip()
 
     if full_name:
         return f"Dr. {full_name}"
@@ -71,7 +64,7 @@ def create_appointment_notification(
     message,
 ):
     """
-    Centralized appointment notification creator.
+    Create appointment notification.
     """
 
     Notification.objects.create(
@@ -79,6 +72,7 @@ def create_appointment_notification(
         notification_type="Appointment",
         title=title,
         message=message,
+        is_read=False,
     )
 
 
@@ -110,55 +104,23 @@ class BookAppointmentView(
         )
 
         # ==================================================
-        # Patient Profile Completion Check
-        # ==================================================
-
-        incomplete_fields = []
-
-        if not patient.phone_number:
-            incomplete_fields.append("phone_number")
-
-        if not patient.gender:
-            incomplete_fields.append("gender")
-
-        if not patient.date_of_birth:
-            incomplete_fields.append("date_of_birth")
-
-        if not patient.blood_group:
-            incomplete_fields.append("blood_group")
-
-        if not patient.address:
-            incomplete_fields.append("address")
-
-        if not patient.emergency_contact:
-            incomplete_fields.append(
-                "emergency_contact"
-            )
-
-        if incomplete_fields:
-
-            raise ValidationError({
-                "profile": (
-                    "Please complete your patient profile "
-                    "before booking an appointment."
-                ),
-
-                "missing_fields": incomplete_fields,
-            })
-
-        # ==================================================
         # Atomic Transaction
         # ==================================================
 
         with transaction.atomic():
 
-            # ------------------------------------------------
-            # Lock TimeSlot
-            # ------------------------------------------------
+            # ==================================================
+            # Get and lock selected TimeSlot
+            # ==================================================
 
-            slot_id = serializer.validated_data[
+            selected_slot = serializer.validated_data.get(
                 "slot"
-            ].id
+            )
+
+            if not selected_slot:
+                raise ValidationError({
+                    "slot": "A valid time slot is required."
+                })
 
             slot = (
                 TimeSlot.objects
@@ -168,13 +130,13 @@ class BookAppointmentView(
                     "schedule__doctor",
                 )
                 .get(
-                    id=slot_id
+                    id=selected_slot.id
                 )
             )
 
-            # ------------------------------------------------
+            # ==================================================
             # Slot Active Check
-            # ------------------------------------------------
+            # ==================================================
 
             if not slot.is_active:
 
@@ -183,9 +145,9 @@ class BookAppointmentView(
                     "This time slot is currently unavailable."
                 })
 
-            # ------------------------------------------------
+            # ==================================================
             # Schedule Active Check
-            # ------------------------------------------------
+            # ==================================================
 
             if not slot.schedule.is_active:
 
@@ -194,13 +156,33 @@ class BookAppointmentView(
                     "Doctor schedule is currently inactive."
                 })
 
-            # ------------------------------------------------
-            # Capacity Check
-            #
-            # IMPORTANT:
-            # This project currently uses max_patient.
-            # Keep this consistent with doctors.models.TimeSlot.
-            # ------------------------------------------------
+            # ==================================================
+            # Doctor Validation
+            # ==================================================
+
+            selected_doctor = serializer.validated_data.get(
+                "doctor"
+            )
+
+            if selected_doctor:
+
+                if (
+                    slot.schedule.doctor_id
+                    !=
+                    selected_doctor.id
+                ):
+
+                    raise ValidationError({
+                        "slot":
+                        (
+                            "This time slot does not belong "
+                            "to the selected doctor."
+                        )
+                    })
+
+            # ==================================================
+            # Slot Capacity Check
+            # ==================================================
 
             if (
                 slot.max_patient
@@ -210,41 +192,41 @@ class BookAppointmentView(
 
                 raise ValidationError({
                     "slot":
-                    "This time slot has just become full."
+                    "This time slot is already full."
                 })
 
-            # ------------------------------------------------
+            # ==================================================
             # Create Appointment
-            # ------------------------------------------------
+            # ==================================================
 
             appointment = serializer.save(
                 patient=patient,
                 status="Pending",
             )
 
-            # ------------------------------------------------
-            # Increase Booked Count
-            # ------------------------------------------------
+            # ==================================================
+            # Increase Slot Booked Count
+            # ==================================================
 
             slot.booked_count += 1
 
             slot.save(
                 update_fields=[
-                    "booked_count"
+                    "booked_count",
                 ]
             )
 
-            # ------------------------------------------------
+            # ==================================================
             # Doctor Name
-            # ------------------------------------------------
+            # ==================================================
 
             doctor_name = get_doctor_name(
                 appointment.doctor
             )
 
-            # ------------------------------------------------
-            # Target Name
-            # ------------------------------------------------
+            # ==================================================
+            # Appointment Target Name
+            # ==================================================
 
             if appointment.family_member:
 
@@ -260,9 +242,9 @@ class BookAppointmentView(
                     patient.user.username
                 )
 
-            # ------------------------------------------------
-            # Notification
-            # ------------------------------------------------
+            # ==================================================
+            # Create Notification
+            # ==================================================
 
             create_appointment_notification(
 
@@ -271,16 +253,17 @@ class BookAppointmentView(
                 title="Appointment Booked Successfully",
 
                 message=(
-                    f"Appointment {appointment.booking_number} "
-                    f"for {target_name} with {doctor_name} "
-                    f"has been booked successfully. "
+                    f"Appointment "
+                    f"{appointment.booking_number} "
+                    f"for {target_name} with "
+                    f"{doctor_name} has been booked successfully. "
                     f"Your appointment is currently pending."
                 ),
             )
 
 
 # ==========================================================
-# Get My Appointments
+# Patient Appointment List
 #
 # GET:
 # /api/appointments/patient/
@@ -316,13 +299,10 @@ class PatientAppointmentListView(
             .select_related(
                 "patient",
                 "patient__user",
-
                 "family_member",
-
                 "doctor",
                 "doctor__user",
                 "doctor__department",
-
                 "slot",
                 "slot__schedule",
             )
@@ -334,7 +314,7 @@ class PatientAppointmentListView(
 
 
 # ==========================================================
-# Appointment Details
+# Patient Appointment Details
 #
 # GET:
 # /api/appointments/<id>/
@@ -372,13 +352,10 @@ class AppointmentDetailView(
             .select_related(
                 "patient",
                 "patient__user",
-
                 "family_member",
-
                 "doctor",
                 "doctor__user",
                 "doctor__department",
-
                 "slot",
                 "slot__schedule",
             )
@@ -438,10 +415,6 @@ class CancelAppointmentView(
 
         appointment = self.get_object()
 
-        # ==================================================
-        # Only Pending / Confirmed Can Be Cancelled
-        # ==================================================
-
         if appointment.status not in [
             "Pending",
             "Confirmed",
@@ -457,28 +430,39 @@ class CancelAppointmentView(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # ==================================================
-        # Atomic Transaction
-        # ==================================================
-
         with transaction.atomic():
 
-            # ------------------------------------------------
-            # Lock Slot
-            # ------------------------------------------------
-
-            slot = (
-                TimeSlot.objects
+            # Lock appointment row again
+            appointment = (
+                Appointment.objects
                 .select_for_update()
+                .select_related(
+                    "doctor",
+                    "doctor__user",
+                    "patient",
+                    "patient__user",
+                    "slot",
+                )
                 .get(
-                    id=appointment.slot_id
+                    id=appointment.id
                 )
             )
 
-            # ------------------------------------------------
-            # Cancel Appointment
-            # ------------------------------------------------
+            # Lock slot
+            slot = None
 
+            if appointment.slot_id:
+
+                slot = (
+                    TimeSlot.objects
+                    .select_for_update()
+                    .filter(
+                        id=appointment.slot_id
+                    )
+                    .first()
+                )
+
+            # Cancel appointment
             appointment.status = "Cancelled"
 
             appointment.save(
@@ -488,31 +472,20 @@ class CancelAppointmentView(
                 ]
             )
 
-            # ------------------------------------------------
-            # Reduce Booked Count
-            # ------------------------------------------------
-
-            if slot.booked_count > 0:
+            # Release slot capacity
+            if slot and slot.booked_count > 0:
 
                 slot.booked_count -= 1
 
                 slot.save(
                     update_fields=[
-                        "booked_count"
+                        "booked_count",
                     ]
                 )
-
-            # ------------------------------------------------
-            # Doctor Name
-            # ------------------------------------------------
 
             doctor_name = get_doctor_name(
                 appointment.doctor
             )
-
-            # ------------------------------------------------
-            # Notification
-            # ------------------------------------------------
 
             create_appointment_notification(
 
@@ -567,33 +540,26 @@ class DoctorAppointmentListView(
         user = self.request.user
 
         if getattr(user, "role", None) != "doctor":
-
             return Appointment.objects.none()
 
         if not hasattr(
             user,
             "doctor_profile"
         ):
-
             return Appointment.objects.none()
-
-        doctor = user.doctor_profile
 
         return (
             Appointment.objects
             .filter(
-                doctor=doctor
+                doctor=user.doctor_profile
             )
             .select_related(
                 "patient",
                 "patient__user",
-
                 "family_member",
-
                 "doctor",
                 "doctor__user",
                 "doctor__department",
-
                 "slot",
                 "slot__schedule",
             )
@@ -605,7 +571,7 @@ class DoctorAppointmentListView(
 
 
 # ==========================================================
-# Doctor Appointment Detail
+# Doctor Appointment Details
 #
 # GET:
 # /api/appointments/doctor/<id>/
@@ -628,33 +594,26 @@ class DoctorAppointmentDetailView(
         user = self.request.user
 
         if getattr(user, "role", None) != "doctor":
-
             return Appointment.objects.none()
 
         if not hasattr(
             user,
             "doctor_profile"
         ):
-
             return Appointment.objects.none()
-
-        doctor = user.doctor_profile
 
         return (
             Appointment.objects
             .filter(
-                doctor=doctor
+                doctor=user.doctor_profile
             )
             .select_related(
                 "patient",
                 "patient__user",
-
                 "family_member",
-
                 "doctor",
                 "doctor__user",
                 "doctor__department",
-
                 "slot",
                 "slot__schedule",
             )
@@ -685,14 +644,12 @@ class DoctorConfirmAppointmentView(
         user = self.request.user
 
         if getattr(user, "role", None) != "doctor":
-
             return Appointment.objects.none()
 
         if not hasattr(
             user,
             "doctor_profile"
         ):
-
             return Appointment.objects.none()
 
         return (
@@ -719,25 +676,15 @@ class DoctorConfirmAppointmentView(
 
         appointment = self.get_object()
 
-        # ==================================================
-        # Status Check
-        # ==================================================
-
         if appointment.status != "Pending":
 
             return Response(
                 {
-                    "detail": (
-                        "Only pending appointments "
-                        "can be confirmed."
-                    )
+                    "detail":
+                    "Only pending appointments can be confirmed."
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # ==================================================
-        # Confirm
-        # ==================================================
 
         appointment.status = "Confirmed"
 
@@ -747,10 +694,6 @@ class DoctorConfirmAppointmentView(
                 "updated_at",
             ]
         )
-
-        # ==================================================
-        # Notification
-        # ==================================================
 
         doctor_name = get_doctor_name(
             appointment.doctor
@@ -811,14 +754,12 @@ class DoctorRejectAppointmentView(
         user = self.request.user
 
         if getattr(user, "role", None) != "doctor":
-
             return Appointment.objects.none()
 
         if not hasattr(
             user,
             "doctor_profile"
         ):
-
             return Appointment.objects.none()
 
         return (
@@ -845,49 +786,45 @@ class DoctorRejectAppointmentView(
 
         appointment = self.get_object()
 
-        # ==================================================
-        # Only Pending Can Be Rejected
-        # ==================================================
-
         if appointment.status != "Pending":
 
             return Response(
                 {
-                    "detail": (
-                        "Only pending appointments "
-                        "can be rejected."
-                    )
+                    "detail":
+                    "Only pending appointments can be rejected."
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         with transaction.atomic():
 
+            appointment = (
+                Appointment.objects
+                .select_for_update()
+                .select_related(
+                    "doctor",
+                    "doctor__user",
+                    "patient",
+                    "patient__user",
+                    "slot",
+                )
+                .get(
+                    id=appointment.id
+                )
+            )
+
             slot = None
 
-            # ------------------------------------------------
-            # Lock Slot Safely
-            # ------------------------------------------------
+            if appointment.slot_id:
 
-            if appointment.slot_id is not None:
-
-                try:
-
-                    slot = (
-                        TimeSlot.objects
-                        .select_for_update()
-                        .get(
-                            id=appointment.slot_id
-                        )
+                slot = (
+                    TimeSlot.objects
+                    .select_for_update()
+                    .filter(
+                        id=appointment.slot_id
                     )
-
-                except TimeSlot.DoesNotExist:
-
-                    slot = None
-
-            # ------------------------------------------------
-            # Reject Appointment
-            # ------------------------------------------------
+                    .first()
+                )
 
             appointment.status = "Rejected"
 
@@ -898,11 +835,8 @@ class DoctorRejectAppointmentView(
                 ]
             )
 
-            # ------------------------------------------------
-            # Release Slot
-            # ------------------------------------------------
-
-            if slot is not None and slot.booked_count > 0:
+            # Release booked slot
+            if slot and slot.booked_count > 0:
 
                 slot.booked_count = max(
                     slot.booked_count - 1,
@@ -912,21 +846,12 @@ class DoctorRejectAppointmentView(
                 slot.save(
                     update_fields=[
                         "booked_count",
-                        "updated_at",
                     ]
                 )
-
-            # ------------------------------------------------
-            # Doctor Name
-            # ------------------------------------------------
 
             doctor_name = get_doctor_name(
                 appointment.doctor
             )
-
-            # ------------------------------------------------
-            # Notification
-            # ------------------------------------------------
 
             create_appointment_notification(
 
@@ -983,14 +908,12 @@ class DoctorCompleteAppointmentView(
         user = self.request.user
 
         if getattr(user, "role", None) != "doctor":
-
             return Appointment.objects.none()
 
         if not hasattr(
             user,
             "doctor_profile"
         ):
-
             return Appointment.objects.none()
 
         return (
@@ -1017,25 +940,15 @@ class DoctorCompleteAppointmentView(
 
         appointment = self.get_object()
 
-        # ==================================================
-        # Only Confirmed Can Be Completed
-        # ==================================================
-
         if appointment.status != "Confirmed":
 
             return Response(
                 {
-                    "detail": (
-                        "Only confirmed appointments "
-                        "can be completed."
-                    )
+                    "detail":
+                    "Only confirmed appointments can be completed."
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # ==================================================
-        # Complete Appointment
-        # ==================================================
 
         appointment.status = "Completed"
 
@@ -1045,10 +958,6 @@ class DoctorCompleteAppointmentView(
                 "updated_at",
             ]
         )
-
-        # ==================================================
-        # Notification
-        # ==================================================
 
         doctor_name = get_doctor_name(
             appointment.doctor

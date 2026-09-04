@@ -21,7 +21,9 @@ from doctors.models import (
 
 def generate_booking_number():
 
-    today = timezone.now().strftime("%Y%m%d")
+    today = timezone.localdate().strftime(
+        "%Y%m%d"
+    )
 
     unique = uuid.uuid4().hex[:6].upper()
 
@@ -54,6 +56,7 @@ class Appointment(models.Model):
 
     ]
 
+
     # ======================================================
     # Booking Number
     # ======================================================
@@ -70,6 +73,7 @@ class Appointment(models.Model):
 
     )
 
+
     # ======================================================
     # Patient
     # ======================================================
@@ -83,6 +87,7 @@ class Appointment(models.Model):
         related_name="appointments",
 
     )
+
 
     # ======================================================
     # Family Member
@@ -102,6 +107,7 @@ class Appointment(models.Model):
 
     )
 
+
     # ======================================================
     # Doctor
     # ======================================================
@@ -115,6 +121,7 @@ class Appointment(models.Model):
         related_name="appointments",
 
     )
+
 
     # ======================================================
     # Time Slot
@@ -130,11 +137,13 @@ class Appointment(models.Model):
 
     )
 
+
     # ======================================================
     # Appointment Date
     # ======================================================
 
     appointment_date = models.DateField()
+
 
     # ======================================================
     # Reason
@@ -145,6 +154,7 @@ class Appointment(models.Model):
         help_text="Reason for the appointment",
 
     )
+
 
     # ======================================================
     # Symptoms
@@ -160,6 +170,7 @@ class Appointment(models.Model):
 
     )
 
+
     # ======================================================
     # Status
     # ======================================================
@@ -173,6 +184,7 @@ class Appointment(models.Model):
         default="Pending",
 
     )
+
 
     # ======================================================
     # Timestamps
@@ -189,6 +201,7 @@ class Appointment(models.Model):
         auto_now=True,
 
     )
+
 
     # ======================================================
     # Meta
@@ -208,10 +221,11 @@ class Appointment(models.Model):
 
         verbose_name_plural = "Appointments"
 
+
         constraints = [
 
             # ------------------------------------------------
-            # Prevent exact duplicate appointment
+            # Prevent duplicate appointment
             # ------------------------------------------------
 
             models.UniqueConstraint(
@@ -233,6 +247,7 @@ class Appointment(models.Model):
             ),
 
         ]
+
 
         indexes = [
 
@@ -294,6 +309,7 @@ class Appointment(models.Model):
 
         ]
 
+
     # ======================================================
     # String Representation
     # ======================================================
@@ -302,7 +318,9 @@ class Appointment(models.Model):
 
         if self.family_member:
 
-            patient_name = self.family_member.name
+            patient_name = (
+                self.family_member.name
+            )
 
         else:
 
@@ -316,6 +334,7 @@ class Appointment(models.Model):
 
             )
 
+
         doctor_name = (
 
             self.doctor.user.get_full_name()
@@ -325,6 +344,7 @@ class Appointment(models.Model):
             self.doctor.user.username
 
         )
+
 
         return (
 
@@ -336,81 +356,108 @@ class Appointment(models.Model):
 
         )
 
+
     # ======================================================
-    # Validation
+    # Model Validation
     # ======================================================
 
     def clean(self):
 
         super().clean()
 
-        # ==================================================
-        # Patient validation
-        # ==================================================
-
-        if self.patient_id:
-
-            try:
-
-                patient = self.patient
-
-                if not patient.user:
-
-                    raise ValidationError({
-
-                        "patient":
-                        "Selected patient has no associated user."
-
-                    })
-
-                if patient.user.role != "patient":
-
-                    raise ValidationError({
-
-                        "patient":
-                        "Only patient users can have appointments."
-
-                    })
-
-            except PatientProfile.DoesNotExist:
-
-                raise ValidationError({
-
-                    "patient":
-                    "Patient profile does not exist."
-
-                })
 
         # ==================================================
-        # Family Member validation
+        # Patient Validation
+        # ==================================================
+
+        if not self.patient_id:
+
+            raise ValidationError({
+
+                "patient":
+                "Patient is required."
+
+            })
+
+
+        try:
+
+            patient = self.patient
+
+        except PatientProfile.DoesNotExist:
+
+            raise ValidationError({
+
+                "patient":
+                "Patient profile does not exist."
+
+            })
+
+
+        if not patient.user_id:
+
+            raise ValidationError({
+
+                "patient":
+                "Selected patient has no associated user."
+
+            })
+
+
+        if patient.user.role != "patient":
+
+            raise ValidationError({
+
+                "patient":
+                "Only patient users can have appointments."
+
+            })
+
+
+        # ==================================================
+        # Family Member Validation
         # ==================================================
 
         if self.family_member_id:
 
-            if not self.patient_id:
+            try:
+
+                family_member = (
+                    self.family_member
+                )
+
+            except FamilyMember.DoesNotExist:
 
                 raise ValidationError({
 
                     "family_member":
-                    "Patient must be selected before selecting a family member."
+                    "Family member does not exist."
 
                 })
 
-            # ----------------------------------------------
-            # Family member MUST belong to this patient
-            # ----------------------------------------------
 
-            if self.family_member.patient_id != self.patient_id:
+            if (
+
+                family_member.patient_id
+                !=
+                self.patient_id
+
+            ):
 
                 raise ValidationError({
 
                     "family_member":
-                    "This family member does not belong to the selected patient."
+
+                    (
+                        "This family member does not "
+                        "belong to the selected patient."
+                    )
 
                 })
+
 
         # ==================================================
-        # Doctor validation
+        # Doctor Validation
         # ==================================================
 
         if not self.doctor_id:
@@ -422,8 +469,9 @@ class Appointment(models.Model):
 
             })
 
+
         # ==================================================
-        # Slot validation
+        # Slot Validation
         # ==================================================
 
         if not self.slot_id:
@@ -435,37 +483,6 @@ class Appointment(models.Model):
 
             })
 
-        # ==================================================
-        # Slot must belong to selected doctor
-        # ==================================================
-
-        if (
-
-            self.slot_id
-
-            and
-
-            self.doctor_id
-
-        ):
-
-            if (
-
-                self.slot.schedule.doctor_id
-
-                !=
-
-                self.doctor_id
-
-            ):
-
-                raise ValidationError({
-
-                    "slot":
-                    "Selected time slot does not belong "
-                    "to the selected doctor."
-
-                })
 
         # ==================================================
         # Appointment Date Validation
@@ -480,13 +497,31 @@ class Appointment(models.Model):
 
             })
 
+
         # ==================================================
-        # Prevent past appointment date
+        # Prevent Past Appointment Date
         # ==================================================
 
         today = timezone.localdate()
 
-        if self.appointment_date < today:
+
+        # ==================================================
+        # Prevent creating NEW appointment in the past
+        #
+        # Existing appointments can still be updated because
+        # doctors may need to confirm, reject, complete,
+        # or update records after the appointment date.
+        # ==================================================
+
+        if (
+
+            not self.pk
+
+            and
+
+            self.appointment_date < today
+
+        ):
 
             raise ValidationError({
 
@@ -495,53 +530,68 @@ class Appointment(models.Model):
 
             })
 
+
         # ==================================================
-        # Appointment date must match schedule day
+        # Get Slot
+        # ==================================================
+
+        try:
+
+            slot = self.slot
+
+        except TimeSlot.DoesNotExist:
+
+            raise ValidationError({
+
+                "slot":
+                "Selected time slot does not exist."
+
+            })
+
+
+        # ==================================================
+        # Slot Must Belong To Doctor
         # ==================================================
 
         if (
 
-            self.slot_id
-
-            and
-
-            self.appointment_date
+            slot.schedule.doctor_id
+            !=
+            self.doctor_id
 
         ):
 
-            appointment_day = (
+            raise ValidationError({
 
-                self.appointment_date.strftime("%A")
+                "slot":
 
-            )
+                (
+                    "Selected time slot does not belong "
+                    "to the selected doctor."
+                )
 
-            schedule_day = self.slot.schedule.day
+            })
 
-            if appointment_day != schedule_day:
 
-                raise ValidationError({
+        # ==================================================
+        # Schedule Active Check
+        # ==================================================
 
-                    "appointment_date":
+        if not slot.schedule.is_active:
 
-                    f"This appointment date is "
-                    f"{appointment_day}, but the selected "
-                    f"slot belongs to {schedule_day} schedule."
+            raise ValidationError({
 
-                })
+                "slot":
+                "Doctor schedule is currently inactive."
+
+            })
+
 
         # ==================================================
         # Slot Active Check
         # ==================================================
 
-        if (
-
-            self.slot_id
-
-            and
-
-            not self.slot.is_active
-
-        ):
+        if not slot.is_active:
 
             raise ValidationError({
 
@@ -550,92 +600,82 @@ class Appointment(models.Model):
 
             })
 
+
         # ==================================================
-        # Slot Full Check
-        # ==================================================
-        #
-        # When updating an existing appointment, the current
-        # appointment should not make its own slot appear full.
-        #
+        # Appointment Date Must Match Schedule Day
         # ==================================================
 
-        if self.slot_id:
+        appointment_day = (
 
-            existing_appointments = (
-
-                Appointment.objects
-
-                .filter(
-
-                    slot=self.slot,
-
-                    appointment_date=self.appointment_date,
-
-                )
-
-                .exclude(
-
-                    status__in=[
-
-                        "Cancelled",
-
-                        "Rejected",
-
-                    ]
-
-                )
-
+            self.appointment_date.strftime(
+                "%A"
             )
 
-            if self.pk:
+        )
 
-                existing_appointments = (
 
-                    existing_appointments.exclude(
+        schedule_day = (
+            slot.schedule.day
+        )
 
-                        pk=self.pk
 
-                    )
+        if appointment_day != schedule_day:
 
+            raise ValidationError({
+
+                "appointment_date":
+
+                (
+                    f"This appointment date is "
+                    f"{appointment_day}, but the selected "
+                    f"slot belongs to the "
+                    f"{schedule_day} schedule."
                 )
 
-            if (
+            })
 
-                self.slot.capacity
 
-                and
+        # ==================================================
+        # IMPORTANT
+        #
+        # Capacity validation is handled inside
+        # BookAppointmentView using:
+        #
+        # transaction.atomic()
+        # select_for_update()
+        # slot.booked_count
+        # slot.max_patient
+        #
+        # Do NOT use slot.capacity.
+        # ==================================================
 
-                existing_appointments.count()
-
-                >=
-
-                self.slot.capacity
-
-            ):
-
-                raise ValidationError({
-
-                    "slot":
-                    "This time slot is already full."
-
-                })
 
         # ==================================================
         # Reason Validation
         # ==================================================
 
-        if self.reason is not None:
+        if self.reason is None:
 
-            self.reason = self.reason.strip()
+            raise ValidationError({
 
-            if not self.reason:
+                "reason":
+                "Appointment reason is required."
 
-                raise ValidationError({
+            })
 
-                    "reason":
-                    "Appointment reason cannot be empty."
 
-                })
+        self.reason = self.reason.strip()
+
+
+        if not self.reason:
+
+            raise ValidationError({
+
+                "reason":
+                "Appointment reason cannot be empty."
+
+            })
+
 
         # ==================================================
         # Symptoms Cleanup
@@ -643,17 +683,19 @@ class Appointment(models.Model):
 
         if self.symptoms:
 
-            self.symptoms = self.symptoms.strip()
+            self.symptoms = (
+                self.symptoms.strip()
+            )
+
 
     # ======================================================
-    # Save with Validation
+    # Save
     # ======================================================
 
     def save(self, *args, **kwargs):
-
-        self.full_clean()
 
         super().save(
             *args,
             **kwargs
         )
+        

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 import { registerUser } from "../../services/authService";
@@ -7,6 +7,13 @@ import { registerUser } from "../../services/authService";
 export default function Register() {
 
     const navigate = useNavigate();
+
+
+    // ==========================================================
+    // Role State
+    // ==========================================================
+
+    const [role, setRole] = useState("patient");
 
 
     // ==========================================================
@@ -20,10 +27,28 @@ export default function Register() {
         phone: "",
         password: "",
 
+        department: "",
+        specialization: "",
+        qualification: "",
+        experience: "",
+        consultation_fee: "",
+        biography: "",
+
     });
 
 
-    const [confirmPassword, setConfirmPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] =
+        useState("");
+
+
+    // ==========================================================
+    // Department State
+    // ==========================================================
+
+    const [departments, setDepartments] = useState([]);
+
+    const [departmentLoading, setDepartmentLoading] =
+        useState(false);
 
 
     // ==========================================================
@@ -35,6 +60,52 @@ export default function Register() {
     const [error, setError] = useState("");
 
     const [success, setSuccess] = useState("");
+
+
+    // ==========================================================
+    // Load Departments
+    // ==========================================================
+
+    useEffect(() => {
+
+        const loadDepartments = async () => {
+
+            setDepartmentLoading(true);
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:8000/api/doctors/departments/"
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Failed to load departments."
+                    );
+                }
+
+                setDepartments(data);
+
+            } catch (error) {
+
+                console.error(
+                    "Department loading error:",
+                    error
+                );
+
+            } finally {
+
+                setDepartmentLoading(false);
+
+            }
+
+        };
+
+        loadDepartments();
+
+    }, []);
 
 
     // ==========================================================
@@ -60,7 +131,7 @@ export default function Register() {
 
 
     // ==========================================================
-    // Confirm Password
+    // Confirm Password Change
     // ==========================================================
 
     const handleConfirmPasswordChange = (event) => {
@@ -70,6 +141,23 @@ export default function Register() {
         );
 
         setError("");
+
+        setSuccess("");
+
+    };
+
+
+    // ==========================================================
+    // Role Change
+    // ==========================================================
+
+    const handleRoleChange = (selectedRole) => {
+
+        setRole(selectedRole);
+
+        setError("");
+
+        setSuccess("");
 
     };
 
@@ -122,17 +210,145 @@ export default function Register() {
         }
 
 
+        // ------------------------------------------------------
+        // Doctor Required Fields
+        // ------------------------------------------------------
+
+        if (role === "doctor") {
+
+            if (!formData.department) {
+
+                setError(
+                    "Please select a department."
+                );
+
+                return;
+
+            }
+
+            if (!formData.specialization.trim()) {
+
+                setError(
+                    "Please enter your specialization."
+                );
+
+                return;
+
+            }
+
+            if (!formData.qualification.trim()) {
+
+                setError(
+                    "Please enter your qualification."
+                );
+
+                return;
+
+            }
+
+            if (!formData.experience) {
+
+                setError(
+                    "Please enter your experience."
+                );
+
+                return;
+
+            }
+
+            if (!formData.consultation_fee) {
+
+                setError(
+                    "Please enter your consultation fee."
+                );
+
+                return;
+
+            }
+
+        }
+
+
+        // ------------------------------------------------------
+        // Registration Payload
+        // ------------------------------------------------------
+
+        const payload = {
+
+            username: formData.username,
+
+            email: formData.email,
+
+            phone: formData.phone,
+
+            password: formData.password,
+
+            confirm_password: confirmPassword,
+
+            role: role,
+
+        };
+
+
+        // ------------------------------------------------------
+        // Doctor Payload
+        // ------------------------------------------------------
+
+        if (role === "doctor") {
+
+            payload.department =
+                formData.department;
+
+            payload.specialization =
+                formData.specialization;
+
+            payload.qualification =
+                formData.qualification;
+
+            payload.experience =
+                formData.experience;
+
+            payload.consultation_fee =
+                formData.consultation_fee;
+
+            payload.biography =
+                formData.biography;
+
+        }
+
+
         setLoading(true);
 
 
         try {
 
-            await registerUser(formData);
+            await registerUser(payload);
 
 
-            setSuccess(
-                "Registration successful. You can now login."
-            );
+            // --------------------------------------------------
+            // Doctor Success
+            // --------------------------------------------------
+
+            if (role === "doctor") {
+
+                setSuccess(
+                    "Doctor application submitted successfully. " +
+                    "Please wait for admin approval."
+                );
+
+            }
+
+            // --------------------------------------------------
+            // Patient Success
+            // --------------------------------------------------
+
+            else {
+
+                setSuccess(
+                    "Patient account created successfully."
+                );
+
+            }
 
 
             // --------------------------------------------------
@@ -143,7 +359,7 @@ export default function Register() {
 
                 navigate("/login");
 
-            }, 1000);
+            }, 2000);
 
 
         } catch (error) {
@@ -230,7 +446,7 @@ export default function Register() {
 
                             <p className="mb-0">
 
-                                Create Your Patient Account
+                                Create Your Account
 
                             </p>
 
@@ -283,6 +499,101 @@ export default function Register() {
                                 onSubmit={handleSubmit}
                                 autoComplete="on"
                             >
+
+
+                                {/* ==================================================
+                                    Role Selection
+                                ================================================== */}
+
+                                <div className="mb-4">
+
+                                    <label className="form-label fw-bold">
+
+                                        Select Account Type
+
+                                    </label>
+
+
+                                    <div className="row g-3">
+
+                                        {/* ------------------------------------------
+                                            Patient
+                                        ------------------------------------------ */}
+
+                                        <div className="col-md-6">
+
+                                            <button
+                                                type="button"
+                                                className={
+                                                    role === "patient"
+                                                        ? "btn btn-primary w-100 p-3 h-100"
+                                                        : "btn btn-outline-primary w-100 p-3 h-100"
+                                                }
+                                                onClick={() =>
+                                                    handleRoleChange(
+                                                        "patient"
+                                                    )
+                                                }
+                                            >
+
+                                                <h5 className="mb-2">
+
+                                                    Patient
+
+                                                </h5>
+
+                                                <small>
+
+                                                    Book appointments and
+                                                    manage health records.
+
+                                                </small>
+
+                                            </button>
+
+                                        </div>
+
+
+                                        {/* ------------------------------------------
+                                            Doctor
+                                        ------------------------------------------ */}
+
+                                        <div className="col-md-6">
+
+                                            <button
+                                                type="button"
+                                                className={
+                                                    role === "doctor"
+                                                        ? "btn btn-primary w-100 p-3 h-100"
+                                                        : "btn btn-outline-primary w-100 p-3 h-100"
+                                                }
+                                                onClick={() =>
+                                                    handleRoleChange(
+                                                        "doctor"
+                                                    )
+                                                }
+                                            >
+
+                                                <h5 className="mb-2">
+
+                                                    Doctor
+
+                                                </h5>
+
+                                                <small>
+
+                                                    Apply to join and manage
+                                                    patient appointments.
+
+                                                </small>
+
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
 
 
                                 {/* ==================================================
@@ -376,6 +687,232 @@ export default function Register() {
 
 
                                 {/* ==================================================
+                                    Doctor Fields
+                                ================================================== */}
+
+                                {role === "doctor" && (
+
+                                    <div className="border rounded p-3 mb-4">
+
+                                        <h5 className="mb-3">
+
+                                            Doctor Information
+
+                                        </h5>
+
+
+                                        {/* ------------------------------------------
+                                            Department
+                                        ------------------------------------------ */}
+
+                                        <div className="mb-3">
+
+                                            <label className="form-label">
+
+                                                Department
+
+                                            </label>
+
+                                            <select
+                                                className="form-select"
+                                                name="department"
+                                                value={
+                                                    formData.department
+                                                }
+                                                onChange={
+                                                    handleChange
+                                                }
+                                                required
+                                                disabled={
+                                                    departmentLoading
+                                                }
+                                            >
+
+                                                <option value="">
+
+                                                    {departmentLoading
+                                                        ? "Loading departments..."
+                                                        : "Select Department"}
+
+                                                </option>
+
+                                                {departments.map(
+                                                    (department) => (
+
+                                                        <option
+                                                            key={
+                                                                department.id
+                                                            }
+                                                            value={
+                                                                department.id
+                                                            }
+                                                        >
+
+                                                            {
+                                                                department.name
+                                                            }
+
+                                                        </option>
+
+                                                    )
+                                                )}
+
+                                            </select>
+
+                                        </div>
+
+
+                                        {/* ------------------------------------------
+                                            Specialization
+                                        ------------------------------------------ */}
+
+                                        <div className="mb-3">
+
+                                            <label className="form-label">
+
+                                                Specialization
+
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                name="specialization"
+                                                value={
+                                                    formData.specialization
+                                                }
+                                                onChange={
+                                                    handleChange
+                                                }
+                                                placeholder="Example: Cardiologist"
+                                                required
+                                            />
+
+                                        </div>
+
+
+                                        {/* ------------------------------------------
+                                            Qualification
+                                        ------------------------------------------ */}
+
+                                        <div className="mb-3">
+
+                                            <label className="form-label">
+
+                                                Qualification
+
+                                            </label>
+
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                name="qualification"
+                                                value={
+                                                    formData.qualification
+                                                }
+                                                onChange={
+                                                    handleChange
+                                                }
+                                                placeholder="Example: MBBS, FCPS"
+                                                required
+                                            />
+
+                                        </div>
+
+
+                                        {/* ------------------------------------------
+                                            Experience
+                                        ------------------------------------------ */}
+
+                                        <div className="mb-3">
+
+                                            <label className="form-label">
+
+                                                Experience
+
+                                            </label>
+
+                                            <input
+                                                type="number"
+                                                className="form-control"
+                                                name="experience"
+                                                value={
+                                                    formData.experience
+                                                }
+                                                onChange={
+                                                    handleChange
+                                                }
+                                                placeholder="Experience in years"
+                                                min="0"
+                                                required
+                                            />
+
+                                        </div>
+
+
+                                        {/* ------------------------------------------
+                                            Consultation Fee
+                                        ------------------------------------------ */}
+
+                                        <div className="mb-3">
+
+                                            <label className="form-label">
+
+                                                Consultation Fee
+
+                                            </label>
+
+                                            <input
+                                                type="number"
+                                                className="form-control"
+                                                name="consultation_fee"
+                                                value={
+                                                    formData.consultation_fee
+                                                }
+                                                onChange={
+                                                    handleChange
+                                                }
+                                                placeholder="Enter consultation fee"
+                                                min="0"
+                                                required
+                                            />
+
+                                        </div>
+
+
+                                        {/* ------------------------------------------
+                                            Biography
+                                        ------------------------------------------ */}
+
+                                        <div className="mb-3">
+
+                                            <label className="form-label">
+
+                                                Biography
+
+                                            </label>
+
+                                            <textarea
+                                                className="form-control"
+                                                name="biography"
+                                                value={
+                                                    formData.biography
+                                                }
+                                                onChange={
+                                                    handleChange
+                                                }
+                                                placeholder="Write a short biography"
+                                                rows="4"
+                                            />
+
+                                        </div>
+
+                                    </div>
+
+                                )}
+
+
+                                {/* ==================================================
                                     Password
                                 ================================================== */}
 
@@ -421,6 +958,7 @@ export default function Register() {
                                     <input
                                         type="password"
                                         className="form-control"
+                                        name="confirm_password"
                                         value={
                                             confirmPassword
                                         }
@@ -447,7 +985,9 @@ export default function Register() {
 
                                     {loading
                                         ? "Creating Account..."
-                                        : "Create Patient Account"}
+                                        : role === "doctor"
+                                            ? "Submit Doctor Application"
+                                            : "Create Patient Account"}
 
                                 </button>
 

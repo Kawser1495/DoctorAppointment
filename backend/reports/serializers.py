@@ -1,47 +1,90 @@
 from rest_framework import serializers
 
-from .models import MedicalReport
+from .models import (
+    MedicalReport,
+)
 
 
-class MedicalReportSerializer(serializers.ModelSerializer):
+class MedicalReportSerializer(
+    serializers.ModelSerializer
+):
 
     # ======================================================
     # Display Information
     # ======================================================
 
-    patient_name = serializers.SerializerMethodField()
-
-    doctor_name = serializers.SerializerMethodField()
-
-    for_name = serializers.SerializerMethodField()
-
-    appointment_booking = serializers.CharField(
-        source="appointment.booking_number",
-        read_only=True,
-        allow_null=True,
+    patient_name = (
+        serializers.SerializerMethodField()
     )
 
-    diagnostic_booking_number = serializers.CharField(
-        source="test_booking.booking_number",
-        read_only=True,
-        allow_null=True,
+
+    doctor_name = (
+        serializers.SerializerMethodField()
     )
 
-    diagnostic_test_name = serializers.CharField(
-        source="test_booking.diagnostic_test.name",
-        read_only=True,
-        allow_null=True,
+
+    for_name = (
+        serializers.SerializerMethodField()
     )
+
+
+    appointment_booking = (
+        serializers.CharField(
+
+            source=
+            "appointment.booking_number",
+
+            read_only=True,
+
+            allow_null=True,
+
+        )
+    )
+
+
+    diagnostic_booking_number = (
+        serializers.CharField(
+
+            source=
+            "test_booking.booking_number",
+
+            read_only=True,
+
+            allow_null=True,
+
+        )
+    )
+
+
+    diagnostic_test_name = (
+        serializers.CharField(
+
+            source=
+            "test_booking.diagnostic_test.name",
+
+            read_only=True,
+
+            allow_null=True,
+
+        )
+    )
+
 
     # ======================================================
     # File URL
     # ======================================================
 
-    report_file_url = serializers.SerializerMethodField()
+    report_file_url = (
+        serializers.SerializerMethodField()
+    )
+
 
     class Meta:
 
-        model = MedicalReport
+        model = (
+            MedicalReport
+        )
+
 
         fields = [
 
@@ -79,7 +122,9 @@ class MedicalReportSerializer(serializers.ModelSerializer):
 
             # Date
             "uploaded_at",
+
         ]
+
 
         read_only_fields = [
 
@@ -100,80 +145,278 @@ class MedicalReportSerializer(serializers.ModelSerializer):
             "report_file_url",
 
             "uploaded_at",
+
         ]
+
 
     # ======================================================
     # Patient Name
     # ======================================================
 
-    def get_patient_name(self, obj):
+    def get_patient_name(
+        self,
+        obj
+    ):
 
         if not obj.patient:
+
             return None
 
-        user = obj.patient.user
 
-        full_name = user.get_full_name().strip()
+        user = (
+            obj.patient.user
+        )
 
-        if full_name:
-            return full_name
 
-        return user.username
+        full_name = (
+            user.get_full_name()
+            .strip()
+        )
+
+
+        return (
+
+            full_name
+
+            or
+
+            user.username
+
+        )
+
 
     # ======================================================
-    # For
-    #
-    # Self Appointment:
-    #     Kawser Talukder
-    #
-    # Family Appointment:
-    #     Mother
+    # Appointment For Name
     # ======================================================
 
-    def get_for_name(self, obj):
+    def get_for_name(
+        self,
+        obj
+    ):
 
-        appointment = obj.appointment
+        appointment = (
+            obj.appointment
+        )
+
 
         if (
-            appointment
-            and appointment.family_member
-        ):
-            return appointment.family_member.name
 
-        return self.get_patient_name(obj)
+            appointment
+
+            and
+
+            appointment.family_member
+
+        ):
+
+            return (
+                appointment
+                .family_member
+                .name
+            )
+
+
+        return (
+            self.get_patient_name(
+                obj
+            )
+        )
+
 
     # ======================================================
     # Doctor Name
     # ======================================================
 
-    def get_doctor_name(self, obj):
+    def get_doctor_name(
+        self,
+        obj
+    ):
 
         if not obj.doctor:
-            return None
 
-        user = obj.doctor.user
+            return (
+                "Doctor"
+            )
 
-        full_name = user.get_full_name().strip()
+
+        user = (
+            obj.doctor.user
+        )
+
+
+        full_name = (
+            user.get_full_name()
+            .strip()
+        )
+
 
         if full_name:
-            return f"Dr. {full_name}"
 
-        return f"Dr. {user.username}"
+            return (
+                f"Dr. {full_name}"
+            )
+
+
+        return (
+            f"Dr. {user.username}"
+        )
+
 
     # ======================================================
     # Report File URL
     # ======================================================
 
-    def get_report_file_url(self, obj):
+    def get_report_file_url(
+        self,
+        obj
+    ):
 
         if not obj.report_file:
+
             return None
 
-        request = self.context.get("request")
+
+        request = (
+            self.context.get(
+                "request"
+            )
+        )
+
 
         if request:
-            return request.build_absolute_uri(
-                obj.report_file.url
+
+            return (
+                request.build_absolute_uri(
+
+                    obj.report_file.url
+
+                )
             )
 
-        return obj.report_file.url
+
+        return (
+            obj.report_file.url
+        )
+
+
+    # ======================================================
+    # Validation
+    # ======================================================
+
+    def validate(
+        self,
+        attrs
+    ):
+
+        report_type = (
+
+            attrs.get(
+
+                "report_type",
+
+                getattr(
+
+                    self.instance,
+
+                    "report_type",
+
+                    None
+
+                )
+
+            )
+
+        )
+
+
+        appointment = (
+
+            attrs.get(
+
+                "appointment",
+
+                getattr(
+
+                    self.instance,
+
+                    "appointment",
+
+                    None
+
+                )
+
+            )
+
+        )
+
+
+        test_booking = (
+
+            attrs.get(
+
+                "test_booking",
+
+                getattr(
+
+                    self.instance,
+
+                    "test_booking",
+
+                    None
+
+                )
+
+            )
+
+        )
+
+
+        # --------------------------------------------------
+        # Medical Report
+        # --------------------------------------------------
+
+        if (
+
+            report_type
+            ==
+            "Medical"
+
+        ):
+
+            if not appointment:
+
+                raise serializers.ValidationError({
+
+                    "appointment":
+
+                    "Medical report requires an appointment."
+
+                })
+
+
+        # --------------------------------------------------
+        # Diagnostic Report
+        # --------------------------------------------------
+
+        elif (
+
+            report_type
+            ==
+            "Diagnostic"
+
+        ):
+
+            if not test_booking:
+
+                raise serializers.ValidationError({
+
+                    "test_booking":
+
+                    "Diagnostic report requires a test booking."
+
+                })
+
+
+        return (
+            attrs
+        )
