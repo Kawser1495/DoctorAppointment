@@ -113,3 +113,12 @@ export const cancelTestBooking = async (
 
     return response.data;
 };
+
+export const getAdminCategories = async () => (await api.get("tests/admin/categories/")).data;
+export const saveAdminCategory = async (data, id = null) => (await (id ? api.patch(`tests/admin/categories/${id}/`, data) : api.post("tests/admin/categories/", data))).data;
+export const deleteAdminCategory = async (id) => api.delete(`tests/admin/categories/${id}/`);
+export const getAdminDiagnosticTests = async () => (await api.get("tests/admin/tests/")).data;
+export const saveAdminDiagnosticTest = async (data, id = null) => (await (id ? api.patch(`tests/admin/tests/${id}/`, data) : api.post("tests/admin/tests/", data))).data;
+export const deleteAdminDiagnosticTest = async (id) => api.delete(`tests/admin/tests/${id}/`);
+export const getAdminTestBookings = async () => (await api.get("tests/admin/bookings/")).data;
+export const updateAdminTestBookingStatus = async (id, status) => (await api.patch(`tests/admin/bookings/${id}/status/`, { status })).data;

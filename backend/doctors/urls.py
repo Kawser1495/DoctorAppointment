@@ -6,6 +6,8 @@ from .views import (
     # ======================================================
 
     DepartmentListView,
+    AdminDepartmentListCreateView,
+    AdminDepartmentDetailView,
     DoctorListView,
     DoctorDetailView,
     DoctorSearchView,
@@ -30,6 +32,9 @@ from .views import (
     AdminDoctorAvailabilityView,
     AdminApproveDoctorView,
     AdminRejectDoctorView,
+    AdminScheduleListView,
+    AdminScheduleDetailView,
+    AdminTimeSlotAvailabilityView,
 )
 
 
@@ -53,6 +58,18 @@ urlpatterns = [
         "departments/",
         DepartmentListView.as_view(),
         name="department-list",
+    ),
+
+    path(
+        "admin/departments/",
+        AdminDepartmentListCreateView.as_view(),
+        name="admin-department-list-create",
+    ),
+
+    path(
+        "admin/departments/<int:pk>/",
+        AdminDepartmentDetailView.as_view(),
+        name="admin-department-detail",
     ),
 
 
@@ -194,6 +211,24 @@ urlpatterns = [
         "schedules/<int:pk>/",
         DoctorScheduleManageView.as_view(),
         name="doctor-schedule-manage-detail",
+    ),
+
+    path(
+        "admin/schedules/",
+        AdminScheduleListView.as_view(),
+        name="admin-schedule-list",
+    ),
+
+    path(
+        "admin/schedules/<int:pk>/",
+        AdminScheduleDetailView.as_view(),
+        name="admin-schedule-detail",
+    ),
+
+    path(
+        "admin/time-slots/<int:pk>/availability/",
+        AdminTimeSlotAvailabilityView.as_view(),
+        name="admin-slot-availability",
     ),
     
     

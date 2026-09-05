@@ -8,6 +8,7 @@ import {
     getAdminPayments,
 
     updatePaymentStatus,
+    refundPayment,
 
 } from "../../services/paymentService";
 
@@ -29,6 +30,9 @@ function AdminPayments() {
         useState("");
 
     const [updatingId, setUpdatingId] =
+        useState(null);
+
+    const [refundingId, setRefundingId] =
         useState(null);
 
 
@@ -226,6 +230,36 @@ function AdminPayments() {
 
         };
 
+    const handleRefund = async (paymentId) => {
+        if (!window.confirm("Refund this payment?")) {
+            return;
+        }
+
+        try {
+            setRefundingId(paymentId);
+            await refundPayment(paymentId);
+
+            setPayments((previousPayments) =>
+                previousPayments.map((payment) =>
+                    payment.id === paymentId
+                        ? {
+                            ...payment,
+                            payment_status: "Refunded",
+                            is_refundable: false,
+                        }
+                        : payment
+                )
+            );
+        } catch (error) {
+            alert(
+                error.response?.data?.message ||
+                "Failed to refund payment."
+            );
+        } finally {
+            setRefundingId(null);
+        }
+    };
+
 
     // ======================================================
     // Status Badge
@@ -263,6 +297,14 @@ function AdminPayments() {
             }
 
         };
+
+    const totalRevenue = payments
+        .filter((payment) => payment.payment_status === "Paid")
+        .reduce((total, payment) => total + Number(payment.amount || 0), 0);
+
+    const pendingAmount = payments
+        .filter((payment) => payment.payment_status === "Pending")
+        .reduce((total, payment) => total + Number(payment.amount || 0), 0);
 
 
     // ======================================================
@@ -345,6 +387,39 @@ function AdminPayments() {
 
             </div>
 
+            <div className="row g-3 mb-4">
+                <div className="col-md-4">
+                    <div className="card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                            <small className="text-muted">Collected revenue</small>
+                            <h3 className="fw-bold text-success mb-0">
+                                BDT {totalRevenue.toLocaleString()}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-md-4">
+                    <div className="card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                            <small className="text-muted">Pending amount</small>
+                            <h3 className="fw-bold text-warning mb-0">
+                                BDT {pendingAmount.toLocaleString()}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-md-4">
+                    <div className="card border-0 shadow-sm h-100">
+                        <div className="card-body">
+                            <small className="text-muted">Payment records</small>
+                            <h3 className="fw-bold mb-0">
+                                {payments.length.toLocaleString()}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             {/* ==============================================
                 No Payments
@@ -410,6 +485,12 @@ function AdminPayments() {
 
                                         <th>
 
+                                            Mode
+
+                                        </th>
+
+                                        <th>
+
                                             Method
 
                                         </th>
@@ -429,6 +510,12 @@ function AdminPayments() {
                                         <th>
 
                                             Update Status
+
+                                        </th>
+
+                                        <th>
+
+                                            Refund
 
                                         </th>
 
@@ -505,6 +592,14 @@ function AdminPayments() {
                                                             }
 
                                                         </strong>
+
+                                                    </td>
+
+                                                    <td>
+
+                                                        <span className="badge bg-info text-dark">
+                                                            {payment.payment_mode || "Full"}
+                                                        </span>
 
                                                     </td>
 
@@ -604,14 +699,28 @@ function AdminPayments() {
                                                             </option>
 
 
-                                                            <option value="Refunded">
-
-                                                                Refunded
-
-                                                            </option>
-
                                                         </select>
 
+                                                    </td>
+
+                                                    <td>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm btn-outline-danger"
+                                                            disabled={
+                                                                !payment.is_refundable ||
+                                                                refundingId === payment.id
+                                                            }
+                                                            onClick={() =>
+                                                                handleRefund(payment.id)
+                                                            }
+                                                        >
+                                                            {refundingId === payment.id
+                                                                ? "Refunding..."
+                                                                : payment.is_refundable
+                                                                    ? "Refund"
+                                                                    : "Unavailable"}
+                                                        </button>
                                                     </td>
 
                                                 </tr>

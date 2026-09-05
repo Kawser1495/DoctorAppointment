@@ -19,6 +19,11 @@ class Department(models.Model):
         blank=True,
     )
 
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True,
     )

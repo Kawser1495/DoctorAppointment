@@ -18,6 +18,7 @@ import {
     FaMoneyBillWave,
     FaRedo,
     FaShieldAlt,
+    FaSitemap,
     FaSignOutAlt,
     FaTimesCircle,
     FaUserClock,
@@ -50,6 +51,7 @@ const dashboardIcons = {
     "fas fa-money-bill-wave": FaMoneyBillWave,
     "fas fa-redo": FaRedo,
     "fas fa-shield-alt": FaShieldAlt,
+    "fas fa-sitemap": FaSitemap,
     "fas fa-sign-out-alt": FaSignOutAlt,
     "fas fa-times-circle": FaTimesCircle,
     "fas fa-user-check": FaUserCheck,
@@ -447,11 +449,27 @@ export default function AdminDashboard() {
                     </Link>
 
                     <Link
+                        to="/admin/departments"
+                        className="admin-nav-link"
+                    >
+                        <DashboardIcon name="fas fa-sitemap" />
+                        <span>Departments</span>
+                    </Link>
+
+                    <Link
                         to="/admin/appointments"
                         className="admin-nav-link"
                     >
                         <DashboardIcon name="fas fa-calendar-check" />
                         <span>Appointments</span>
+                    </Link>
+
+                    <Link
+                        to="/admin/schedules"
+                        className="admin-nav-link"
+                    >
+                        <DashboardIcon name="fas fa-clock" />
+                        <span>Schedules</span>
                     </Link>
 
                     <Link
@@ -463,7 +481,7 @@ export default function AdminDashboard() {
                     </Link>
 
                     <Link
-                        to="/tests"
+                        to="/admin/diagnostics"
                         className="admin-nav-link"
                     >
                         <DashboardIcon name="fas fa-vials" />

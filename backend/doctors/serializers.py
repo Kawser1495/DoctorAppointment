@@ -26,6 +26,7 @@ class DepartmentSerializer(
             "id",
             "name",
             "description",
+            "is_active",
             "doctor_count",
         ]
 

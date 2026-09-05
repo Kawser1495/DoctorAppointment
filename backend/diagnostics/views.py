@@ -22,6 +22,7 @@ from .serializers import (
 )
 
 from notifications.models import Notification
+from accounts.permissions import IsAdmin
 
 
 # ==========================================================
@@ -52,6 +53,28 @@ class TestCategoryListView(
     ]
 
 
+class AdminCategoryListCreateView(generics.ListCreateAPIView):
+    queryset = TestCategory.objects.all().order_by("name")
+    serializer_class = TestCategorySerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+
+
+class AdminCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = TestCategory.objects.all()
+    serializer_class = TestCategorySerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def destroy(self, request, *args, **kwargs):
+        category = self.get_object()
+        if category.tests.exists():
+            return Response(
+                {"detail": "Category has tests. Deactivate it instead."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+
 # ==========================================================
 # Diagnostic Test List
 #
@@ -73,6 +96,19 @@ class DiagnosticTestListView(
     permission_classes = [
         AllowAny
     ]
+
+
+class AdminDiagnosticTestListCreateView(generics.ListCreateAPIView):
+    queryset = DiagnosticTest.objects.select_related("category").order_by("name")
+    serializer_class = DiagnosticTestSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+
+
+class AdminDiagnosticTestDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = DiagnosticTest.objects.select_related("category")
+    serializer_class = DiagnosticTestSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     filter_backends = [
         DjangoFilterBackend,
@@ -154,6 +190,7 @@ class TestBookingCreateView(
     permission_classes = [
         IsAuthenticated
     ]
+
 
     # ======================================================
     # Save Booking
@@ -672,3 +709,40 @@ class TestBookingCancelView(
             status=status.HTTP_200_OK,
 
         )
+
+
+class AdminTestBookingListView(generics.ListAPIView):
+
+    queryset = TestBooking.objects.select_related(
+        "patient__user",
+        "family_member",
+        "diagnostic_test__category",
+    ).order_by(
+        "-booking_date",
+        "-booking_time",
+    )
+    serializer_class = TestBookingSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+
+
+class AdminTestBookingStatusView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def patch(self, request, pk):
+
+        booking = get_object_or_404(TestBooking, pk=pk)
+        next_status = request.data.get("status")
+        valid_statuses = dict(TestBooking.STATUS_CHOICES)
+
+        if next_status not in valid_statuses:
+            return Response(
+                {"detail": "Invalid diagnostic booking status."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        booking.status = next_status
+        booking.save(update_fields=["status", "updated_at"])
+
+        return Response({"id": booking.id, "status": booking.status})

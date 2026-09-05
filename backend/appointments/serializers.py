@@ -605,3 +605,17 @@ class AppointmentSerializer(
         # ======================================================
 
         return attrs
+
+
+class AdminAppointmentSerializer(AppointmentSerializer):
+
+    payment_status = serializers.SerializerMethodField()
+
+    class Meta(AppointmentSerializer.Meta):
+        fields = AppointmentSerializer.Meta.fields + [
+            "payment_status",
+        ]
+
+    def get_payment_status(self, obj):
+        payment = obj.payments.order_by("-payment_date").first()
+        return payment.payment_status if payment else "Unpaid"

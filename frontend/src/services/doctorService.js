@@ -262,3 +262,8 @@ export const setDoctorAvailability = async (doctorId, isAvailable) => {
         { is_available: isAvailable }
     );
 };
+
+export const getAdminSchedules = async () => api.get("doctors/admin/schedules/");
+export const updateAdminSchedule = async (id, data) => api.patch(`doctors/admin/schedules/${id}/`, data);
+export const deleteAdminSchedule = async (id) => api.delete(`doctors/admin/schedules/${id}/`);
+export const setAdminSlotAvailability = async (id, isActive) => api.patch(`doctors/admin/time-slots/${id}/availability/`, { is_active: isActive });

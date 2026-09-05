@@ -1,16 +1,19 @@
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from notifications.models import Notification
+from accounts.permissions import IsAdmin
 from doctors.models import TimeSlot
 from patients.models import PatientProfile
 
 from .models import Appointment
-from .serializers import AppointmentSerializer
+from .serializers import AppointmentSerializer, AdminAppointmentSerializer
 
 
 # ==========================================================
@@ -74,6 +77,48 @@ def create_appointment_notification(
         message=message,
         is_read=False,
     )
+
+
+class AdminAppointmentListView(generics.ListAPIView):
+
+    serializer_class = AdminAppointmentSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+
+    def get_queryset(self):
+        return Appointment.objects.select_related(
+            "patient__user",
+            "family_member",
+            "doctor__user",
+            "doctor__department",
+            "slot",
+        ).prefetch_related("payments").order_by(
+            "-appointment_date", "-created_at",
+        )
+
+
+class AdminAppointmentStatusView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def patch(self, request, pk):
+        appointment = get_object_or_404(Appointment, pk=pk)
+        next_status = request.data.get("status")
+        valid_statuses = dict(Appointment.STATUS_CHOICES)
+
+        if next_status not in valid_statuses:
+            return Response(
+                {"detail": "Invalid appointment status."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        appointment.status = next_status
+        appointment.save(update_fields=["status", "updated_at"])
+
+        return Response(
+            {"id": appointment.id, "status": appointment.status},
+            status=status.HTTP_200_OK,
+        )
 
 
 # ==========================================================

@@ -50,12 +50,6 @@ from .serializers import (
 
 class DepartmentListView(generics.ListAPIView):
 
-    queryset = (
-        Department.objects
-        .all()
-        .order_by("name")
-    )
-
     serializer_class = DepartmentSerializer
 
     permission_classes = [
@@ -63,6 +57,42 @@ class DepartmentListView(generics.ListAPIView):
     ]
 
     pagination_class = None
+
+    def get_queryset(self):
+        return Department.objects.filter(
+            is_active=True,
+        ).order_by("name")
+
+
+class AdminDepartmentListCreateView(generics.ListCreateAPIView):
+
+    queryset = Department.objects.all().order_by("name")
+    serializer_class = DepartmentSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+
+
+class AdminDepartmentDetailView(generics.RetrieveUpdateDestroyAPIView):
+
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def destroy(self, request, *args, **kwargs):
+        department = self.get_object()
+
+        if department.doctors.exists():
+            return Response(
+                {
+                    "detail": (
+                        "This department cannot be deleted while doctors "
+                        "are assigned to it. Deactivate it instead."
+                    )
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        return super().destroy(request, *args, **kwargs)
 
 
 # ==========================================================
@@ -362,6 +392,50 @@ class DoctorScheduleManageView(
         serializer.save(
             doctor=doctor
         )
+
+
+class AdminScheduleListView(generics.ListAPIView):
+
+    serializer_class = DoctorScheduleSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+
+    def get_queryset(self):
+        return DoctorSchedule.objects.select_related(
+            "doctor", "doctor__user", "doctor__department",
+        ).prefetch_related("slots").order_by(
+            "doctor__user__first_name", "day", "start_time",
+        )
+
+
+class AdminScheduleDetailView(generics.RetrieveUpdateDestroyAPIView):
+
+    serializer_class = DoctorScheduleSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        return DoctorSchedule.objects.select_related(
+            "doctor", "doctor__user", "doctor__department",
+        ).prefetch_related("slots")
+
+
+class AdminTimeSlotAvailabilityView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def patch(self, request, pk):
+        slot = get_object_or_404(TimeSlot, pk=pk)
+        is_active = request.data.get("is_active")
+
+        if not isinstance(is_active, bool):
+            return Response(
+                {"detail": "is_active must be a boolean."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        slot.is_active = is_active
+        slot.save(update_fields=["is_active", "updated_at"])
+        return Response({"id": slot.id, "is_active": slot.is_active})
 
 
 # ==========================================================

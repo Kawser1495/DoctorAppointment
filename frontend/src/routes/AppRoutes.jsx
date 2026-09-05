@@ -56,6 +56,18 @@ import AdminDoctors
 import AdminPatients
     from "../pages/Admin/AdminPatients";
 
+import AdminDepartments
+    from "../pages/Admin/AdminDepartments";
+
+import AdminAppointments
+    from "../pages/Admin/AdminAppointments";
+
+import AdminSchedules
+    from "../pages/Admin/AdminSchedules";
+
+import AdminDiagnostics
+    from "../pages/Admin/AdminDiagnostics";
+
 
 // ==========================================================
 // Doctor
@@ -343,6 +355,42 @@ export default function AppRoutes() {
                     element={
                         <RoleRoute allowedRoles={["admin"]}>
                             <AdminPatients />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/departments"
+                    element={
+                        <RoleRoute allowedRoles={["admin"]}>
+                            <AdminDepartments />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/appointments"
+                    element={
+                        <RoleRoute allowedRoles={["admin"]}>
+                            <AdminAppointments />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/schedules"
+                    element={
+                        <RoleRoute allowedRoles={["admin"]}>
+                            <AdminSchedules />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/diagnostics"
+                    element={
+                        <RoleRoute allowedRoles={["admin"]}>
+                            <AdminDiagnostics />
                         </RoleRoute>
                     }
                 />

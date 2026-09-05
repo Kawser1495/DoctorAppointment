@@ -195,3 +195,7 @@ export const getAdminAppointments =
         );
 
     };
+
+export const updateAdminAppointmentStatus = async (id, status) => {
+    return await api.patch(`appointments/admin/${id}/status/`, { status });
+};

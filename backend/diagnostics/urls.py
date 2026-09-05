@@ -8,6 +8,12 @@ from .views import (
     MyTestBookingListView,
     TestBookingDetailView,
     TestBookingCancelView,
+    AdminCategoryListCreateView,
+    AdminCategoryDetailView,
+    AdminDiagnosticTestListCreateView,
+    AdminDiagnosticTestDetailView,
+    AdminTestBookingListView,
+    AdminTestBookingStatusView,
 )
 
 
@@ -23,6 +29,8 @@ urlpatterns = [
         TestCategoryListView.as_view(),
         name="category-list",
     ),
+        path("admin/categories/", AdminCategoryListCreateView.as_view(), name="admin-category-list"),
+        path("admin/categories/<int:pk>/", AdminCategoryDetailView.as_view(), name="admin-category-detail"),
 
 
     # Diagnostic Tests
@@ -32,6 +40,8 @@ urlpatterns = [
         DiagnosticTestListView.as_view(),
         name="test-list",
     ),
+        path("admin/tests/", AdminDiagnosticTestListCreateView.as_view(), name="admin-test-list"),
+        path("admin/tests/<int:pk>/", AdminDiagnosticTestDetailView.as_view(), name="admin-test-detail"),
 
     path(
         "tests/<int:pk>/",
@@ -71,5 +81,7 @@ urlpatterns = [
         TestBookingCancelView.as_view(),
         name="booking-cancel",
     ),
+        path("admin/bookings/", AdminTestBookingListView.as_view(), name="admin-booking-list"),
+        path("admin/bookings/<int:pk>/status/", AdminTestBookingStatusView.as_view(), name="admin-booking-status"),
 
 ]

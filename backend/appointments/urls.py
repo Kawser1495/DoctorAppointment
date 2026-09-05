@@ -11,6 +11,8 @@ from .views import (
     DoctorConfirmAppointmentView,
     DoctorRejectAppointmentView,
     DoctorCompleteAppointmentView,
+    AdminAppointmentListView,
+    AdminAppointmentStatusView,
 )
 
 
@@ -28,6 +30,18 @@ urlpatterns = [
         "book/",
         BookAppointmentView.as_view(),
         name="book-appointment",
+    ),
+
+    path(
+        "admin/",
+        AdminAppointmentListView.as_view(),
+        name="admin-appointments",
+    ),
+
+    path(
+        "admin/<int:pk>/status/",
+        AdminAppointmentStatusView.as_view(),
+        name="admin-appointment-status",
     ),
 
 
