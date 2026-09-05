@@ -11,6 +11,12 @@ class Notification(models.Model):
 
     NOTIFICATION_TYPES = (
 
+        ("Doctor Registration", "Doctor Registration"),
+
+        ("Doctor Approved", "Doctor Approved"),
+
+        ("Doctor Rejected", "Doctor Rejected"),
+
         ("Appointment", "Appointment"),
 
         ("Payment", "Payment"),

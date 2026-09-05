@@ -22,6 +22,7 @@ from rest_framework.response import Response
 
 from accounts.models import CustomUser
 from accounts.permissions import IsAdmin, IsDoctor
+from notifications.models import Notification
 
 from appointments.models import Appointment
 
@@ -1068,6 +1069,13 @@ class AdminApproveDoctorView(APIView):
             ]
         )
 
+        Notification.objects.create(
+            user=doctor.user,
+            notification_type="Doctor Approved",
+            title="Doctor Application Approved",
+            message="Your doctor application has been approved.",
+        )
+
         return Response(
             {
                 "message":
@@ -1164,6 +1172,13 @@ class AdminRejectDoctorView(APIView):
             ]
         )
 
+        Notification.objects.create(
+            user=doctor.user,
+            notification_type="Doctor Rejected",
+            title="Doctor Application Rejected",
+            message=rejection_reason,
+        )
+
         return Response(
             {
                 "message":
@@ -1222,3 +1237,4 @@ class AdminDoctorAvailabilityView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+

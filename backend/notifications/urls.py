@@ -6,6 +6,9 @@ from .views import (
     NotificationMarkReadView,
     NotificationMarkAllReadView,
     NotificationDeleteView,
+    AdminNotificationListView,
+    AdminNotificationReadView,
+    AdminNotificationDeleteView,
 )
 
 
@@ -13,6 +16,24 @@ app_name = "notifications"
 
 
 urlpatterns = [
+
+    path(
+        "admin/",
+        AdminNotificationListView.as_view(),
+        name="admin-notification-list",
+    ),
+
+    path(
+        "admin/<int:pk>/read/",
+        AdminNotificationReadView.as_view(),
+        name="admin-notification-read",
+    ),
+
+    path(
+        "admin/<int:pk>/delete/",
+        AdminNotificationDeleteView.as_view(),
+        name="admin-notification-delete",
+    ),
 
     # ======================================================
     # My Notifications

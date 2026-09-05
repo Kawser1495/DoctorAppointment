@@ -15,6 +15,7 @@ from doctors.models import (
     Department,
     DoctorSchedule,
 )
+from notifications.models import Notification
 
 
 # ==========================================================
@@ -743,6 +744,20 @@ class RegisterSerializer(serializers.ModelSerializer):
             # Initial doctor status
             doctor_status="pending",
         )
+
+        for admin in CustomUser.objects.filter(
+            role="admin",
+            is_active=True,
+        ):
+            Notification.objects.create(
+                user=admin,
+                notification_type="Doctor Registration",
+                title="New Doctor Registration",
+                message=(
+                    f"Dr. {user.get_full_name().strip() or user.username} "
+                    "is awaiting approval."
+                ),
+            )
 
         # ==================================================
         # CREATE DOCTOR PROFILE

@@ -71,6 +71,9 @@ import AdminDiagnostics
 import AdminReports
     from "../pages/Admin/AdminReports";
 
+import AdminNotifications
+    from "../pages/Admin/AdminNotifications";
+
 
 // ==========================================================
 // Doctor
@@ -403,6 +406,15 @@ export default function AppRoutes() {
                     element={
                         <RoleRoute allowedRoles={["admin"]}>
                             <AdminReports />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/notifications"
+                    element={
+                        <RoleRoute allowedRoles={["admin"]}>
+                            <AdminNotifications />
                         </RoleRoute>
                     }
                 />

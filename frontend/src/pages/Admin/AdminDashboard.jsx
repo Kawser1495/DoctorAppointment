@@ -502,7 +502,7 @@ export default function AdminDashboard() {
                     </p>
 
                     <Link
-                        to="/notifications"
+                        to="/admin/notifications"
                         className="admin-nav-link"
                     >
                         <DashboardIcon name="fas fa-bell" />

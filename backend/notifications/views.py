@@ -4,9 +4,12 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Notification
 from .serializers import NotificationSerializer
+from .serializers import AdminNotificationSerializer
+from accounts.permissions import IsAdmin
 
 
 # ==========================================================
@@ -217,3 +220,38 @@ class NotificationDeleteView(
             },
             status=status.HTTP_200_OK,
         )
+
+
+class AdminNotificationListView(generics.ListAPIView):
+
+    serializer_class = AdminNotificationSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["notification_type", "is_read"]
+
+    def get_queryset(self):
+        return Notification.objects.select_related("user").order_by(
+            "-created_at"
+        )
+
+
+class AdminNotificationReadView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def patch(self, request, pk):
+        notification = get_object_or_404(Notification, pk=pk)
+        notification.is_read = True
+        notification.save(update_fields=["is_read", "updated_at"])
+        return Response(AdminNotificationSerializer(notification).data)
+
+
+class AdminNotificationDeleteView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def delete(self, request, pk):
+        notification = get_object_or_404(Notification, pk=pk)
+        notification.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
