@@ -50,6 +50,12 @@ import AdminSupport
 import AdminDoctorRequests
     from "../pages/Admin/AdminDoctorRequests";
 
+import AdminDoctors
+    from "../pages/Admin/AdminDoctors";
+
+import AdminPatients
+    from "../pages/Admin/AdminPatients";
+
 
 // ==========================================================
 // Doctor
@@ -320,6 +326,24 @@ export default function AppRoutes() {
 
                         </RoleRoute>
 
+                    }
+                />
+
+                <Route
+                    path="/admin/doctors"
+                    element={
+                        <RoleRoute allowedRoles={["admin"]}>
+                            <AdminDoctors />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/patients"
+                    element={
+                        <RoleRoute allowedRoles={["admin"]}>
+                            <AdminPatients />
+                        </RoleRoute>
                     }
                 />
 

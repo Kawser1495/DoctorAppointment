@@ -251,3 +251,14 @@ export const rejectDoctor = async (
     );
 
 };
+
+export const getAdminDoctors = async () => {
+    return await api.get("doctors/admin/all/");
+};
+
+export const setDoctorAvailability = async (doctorId, isAvailable) => {
+    return await api.patch(
+        `doctors/admin/${doctorId}/availability/`,
+        { is_available: isAvailable }
+    );
+};

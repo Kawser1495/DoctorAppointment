@@ -4,6 +4,9 @@ from rest_framework import serializers
 
 from .models import PatientProfile, FamilyMember
 
+from appointments.models import Appointment
+from payments.models import Payment
+
 
 # ==========================================================
 # Patient Profile Serializer
@@ -227,3 +230,68 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
             )
 
         return value
+
+
+class AdminPatientSerializer(serializers.ModelSerializer):
+
+    full_name = serializers.SerializerMethodField()
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    phone = serializers.CharField(source="user.phone", read_only=True)
+    is_active = serializers.BooleanField(source="user.is_active", read_only=True)
+    family_members = serializers.SerializerMethodField()
+    appointment_history = serializers.SerializerMethodField()
+    payment_history = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PatientProfile
+        fields = [
+            "id", "full_name", "username", "email", "phone", "is_active",
+            "gender", "date_of_birth", "blood_group", "address",
+            "emergency_contact", "family_members", "appointment_history",
+            "payment_history", "created_at", "updated_at",
+        ]
+
+    def get_full_name(self, obj):
+        return obj.user.get_full_name().strip() or obj.user.username
+
+    def get_family_members(self, obj):
+        return FamilyMemberSerializer(
+            obj.family_members.all().order_by("name"),
+            many=True,
+        ).data
+
+    def get_appointment_history(self, obj):
+        appointments = Appointment.objects.filter(
+            patient=obj,
+        ).select_related("doctor", "doctor__user").order_by(
+            "-appointment_date", "-created_at",
+        )[:20]
+
+        return [
+            {
+                "id": appointment.id,
+                "booking_number": appointment.booking_number,
+                "doctor_name": str(appointment.doctor),
+                "appointment_date": appointment.appointment_date,
+                "status": appointment.status,
+                "reason": appointment.reason,
+            }
+            for appointment in appointments
+        ]
+
+    def get_payment_history(self, obj):
+        payments = Payment.objects.filter(
+            patient=obj,
+        ).order_by("-payment_date")[:20]
+
+        return [
+            {
+                "id": payment.id,
+                "amount": payment.amount,
+                "payment_status": payment.payment_status,
+                "payment_date": payment.payment_date,
+                "transaction_id": payment.transaction_id,
+            }
+            for payment in payments
+        ]

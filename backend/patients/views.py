@@ -5,9 +5,12 @@ from rest_framework.exceptions import NotFound, ValidationError
 from .models import PatientProfile, FamilyMember
 
 from .serializers import (
+    AdminPatientSerializer,
     PatientProfileSerializer,
     FamilyMemberSerializer,
 )
+
+from accounts.permissions import IsAdmin
 
 
 # ==========================================================
@@ -235,4 +238,27 @@ class FamilyMemberDetailView(
 
         return FamilyMember.objects.filter(
             patient=patient
+        )
+
+
+class AdminPatientListView(generics.ListAPIView):
+
+    serializer_class = AdminPatientSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+
+    def get_queryset(self):
+        return PatientProfile.objects.select_related("user").prefetch_related(
+            "family_members"
+        ).order_by("user__first_name", "user__username")
+
+
+class AdminPatientDetailView(generics.RetrieveAPIView):
+
+    serializer_class = AdminPatientSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        return PatientProfile.objects.select_related("user").prefetch_related(
+            "family_members"
         )

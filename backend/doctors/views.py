@@ -1106,3 +1106,45 @@ class AdminRejectDoctorView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+# ==========================================================
+# Admin Doctor Availability
+#
+# PATCH:
+# /api/doctors/admin/<doctor_id>/availability/
+# ==========================================================
+
+class AdminDoctorAvailabilityView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin,
+    ]
+
+    def patch(self, request, doctor_id):
+
+        doctor = get_object_or_404(
+            Doctor,
+            id=doctor_id,
+            user__role="doctor",
+        )
+
+        is_available = request.data.get("is_available")
+
+        if not isinstance(is_available, bool):
+            return Response(
+                {"detail": "is_available must be a boolean."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        doctor.is_available = is_available
+        doctor.save(update_fields=["is_available", "updated_at"])
+
+        return Response(
+            {
+                "doctor_id": doctor.id,
+                "is_available": doctor.is_available,
+            },
+            status=status.HTTP_200_OK,
+        )

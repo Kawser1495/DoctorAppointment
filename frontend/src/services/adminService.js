@@ -55,3 +55,11 @@ export const searchAdminUsers = async ({
     );
 
 };
+
+export const getAdminPatients = async () => {
+    return await api.get("patients/admin/");
+};
+
+export const getAdminPatientDetails = async (patientId) => {
+    return await api.get(`patients/admin/${patientId}/`);
+};

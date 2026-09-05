@@ -26,6 +26,8 @@ from .views import (
 
 from .views import (
     AdminPendingDoctorListView,
+    AdminDoctorListView,
+    AdminDoctorAvailabilityView,
     AdminApproveDoctorView,
     AdminRejectDoctorView,
 )
@@ -199,6 +201,18 @@ urlpatterns = [
         "admin/pending/",
         AdminPendingDoctorListView.as_view(),
         name="admin-pending-doctors",
+    ),
+
+    path(
+        "admin/all/",
+        AdminDoctorListView.as_view(),
+        name="admin-doctor-list",
+    ),
+
+    path(
+        "admin/<int:doctor_id>/availability/",
+        AdminDoctorAvailabilityView.as_view(),
+        name="admin-doctor-availability",
     ),
 
     path(

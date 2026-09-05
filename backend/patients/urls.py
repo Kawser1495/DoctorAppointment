@@ -5,6 +5,8 @@ from .views import (
     PatientProfileCreateView,
     FamilyMemberListCreateView,
     FamilyMemberDetailView,
+    AdminPatientListView,
+    AdminPatientDetailView,
 )
 
 
@@ -43,5 +45,17 @@ urlpatterns = [
         "family/<int:pk>/",
         FamilyMemberDetailView.as_view(),
         name="family-detail",
+    ),
+
+    path(
+        "admin/",
+        AdminPatientListView.as_view(),
+        name="admin-patient-list",
+    ),
+
+    path(
+        "admin/<int:pk>/",
+        AdminPatientDetailView.as_view(),
+        name="admin-patient-detail",
     ),
 ]
