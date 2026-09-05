@@ -518,6 +518,14 @@ export default function AdminDashboard() {
                     </Link>
 
                     <Link
+                        to="/admin/analytics"
+                        className="admin-nav-link"
+                    >
+                        <DashboardIcon name="fas fa-chart-pie" />
+                        <span>Analytics</span>
+                    </Link>
+
+                    <Link
                         to="/settings"
                         className="admin-nav-link"
                     >

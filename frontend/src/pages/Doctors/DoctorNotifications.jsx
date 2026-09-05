@@ -4,14 +4,13 @@ import api from "../../services/api";
 import "./DoctorNotifications.css";
 
 export default function DoctorNotifications() {
-    const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const loadNotifications = async () => {
         try {
             setLoading(true);
             const response = await api.get("/notifications/");
-            setNotifications(Array.isArray(response?.data) ? response.data : []);
+            return response?.data;
         } catch (err) {
             console.error("Load notifications error:", err);
         } finally {

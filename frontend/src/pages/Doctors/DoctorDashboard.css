@@ -223,6 +223,27 @@
     background: rgba(239, 68, 68, 0.06);
 }
 
+.doctor-dashboard__slot--pending {
+    border-color: rgba(245, 158, 11, 0.2);
+    background: rgba(245, 158, 11, 0.06);
+}
+
+.doctor-dashboard__slot--confirmed {
+    border-color: rgba(20, 184, 166, 0.2);
+    background: rgba(20, 184, 166, 0.06);
+}
+
+.doctor-dashboard__slot--completed {
+    border-color: rgba(34, 197, 94, 0.2);
+    background: rgba(34, 197, 94, 0.06);
+}
+
+.doctor-dashboard__slot--rejected,
+.doctor-dashboard__slot--cancelled {
+    border-color: rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.06);
+}
+
 .doctor-dashboard__slotTime {
     font-weight: 700;
     color: #0f172a;

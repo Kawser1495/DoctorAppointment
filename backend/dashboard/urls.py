@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import DashboardAPIView
+from .views import DashboardAPIView, AdminAnalyticsAPIView
 
 
 app_name = "dashboard"
@@ -28,6 +28,12 @@ urlpatterns = [
         "",
         DashboardAPIView.as_view(),
         name="dashboard",
+    ),
+
+    path(
+        "admin/analytics/",
+        AdminAnalyticsAPIView.as_view(),
+        name="admin-analytics",
     ),
 
 ]

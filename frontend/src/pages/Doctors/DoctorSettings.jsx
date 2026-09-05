@@ -5,7 +5,7 @@ import api from "../../services/api";
 import "./DoctorSettings.css";
 
 export default function DoctorSettings() {
-    const { user } = useContext(AuthContext);
+    useContext(AuthContext);
     const [activeTab, setActiveTab] = useState("password");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
@@ -65,7 +65,7 @@ export default function DoctorSettings() {
             setLoading(true);
             await api.patch("/accounts/notification-settings/", notificationSettings);
             setMessage({ type: "success", text: "Notification settings updated!" });
-        } catch (err) {
+        } catch {
             setMessage({
                 type: "error",
                 text: "Failed to update notification settings",
@@ -80,7 +80,7 @@ export default function DoctorSettings() {
             setLoading(true);
             await api.patch("/accounts/account-settings/", accountSettings);
             setMessage({ type: "success", text: "Account settings updated!" });
-        } catch (err) {
+        } catch {
             setMessage({
                 type: "error",
                 text: "Failed to update account settings",

@@ -328,6 +328,13 @@ class FamilyMember(models.Model):
         choices=GENDER_CHOICES,
     )
 
+    blood_group = models.CharField(
+        max_length=5,
+        choices=PatientProfile.BLOOD_GROUP_CHOICES,
+        blank=True,
+        null=True,
+    )
+
     # ------------------------------------------------------
     # Phone
     #

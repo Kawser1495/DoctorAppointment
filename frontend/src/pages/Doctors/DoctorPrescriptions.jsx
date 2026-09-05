@@ -64,7 +64,7 @@ export default function DoctorPrescriptions() {
             setShowForm(false);
             loadPrescriptions();
             alert("Prescription created successfully!");
-        } catch (err) {
+        } catch {
             setError("Unable to create prescription.");
         }
     };

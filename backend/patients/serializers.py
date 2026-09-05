@@ -173,6 +173,7 @@ class FamilyMemberSerializer(serializers.ModelSerializer):
             "relation",
             "age",
             "gender",
+            "blood_group",
             "phone_number",
             "created_at",
         ]

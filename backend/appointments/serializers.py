@@ -287,7 +287,7 @@ class AppointmentSerializer(
             "gender": family_member.gender,
             "relation": family_member.relation,
             "phone_number": family_member.phone_number,
-            "blood_group": obj.patient.blood_group if obj.patient else None,
+            "blood_group": family_member.blood_group,
         }
 
     # ==========================================================

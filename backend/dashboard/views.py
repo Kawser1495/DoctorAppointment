@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from django.utils import timezone
 
 from rest_framework import status
@@ -21,6 +21,93 @@ from .serializers import (
     DashboardSerializer,
     AdminDashboardSerializer,
 )
+
+
+class AdminAnalyticsAPIView(APIView):
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        appointments = Appointment.objects.all()
+        payments = Payment.objects.all()
+        bookings = TestBooking.objects.all()
+
+        appointment_status = list(
+            appointments.values("status")
+            .annotate(total=Count("id"))
+            .order_by("status")
+        )
+
+        doctor_status = list(
+            Doctor.objects.values("approval_status")
+            .annotate(total=Count("id"))
+            .order_by("approval_status")
+        )
+
+        top_doctors = list(
+            Doctor.objects.filter(approval_status="approved")
+            .select_related("user", "department")
+            .annotate(appointment_count=Count("appointments"))
+            .order_by("-appointment_count", "user__first_name")[:8]
+        )
+
+        return Response({
+            "appointment_analytics": {
+                "total": appointments.count(),
+                "by_status": appointment_status,
+            },
+            "doctor_statistics": {
+                "total": Doctor.objects.count(),
+                "by_status": doctor_status,
+                "top_doctors": [
+                    {
+                        "name": str(doctor),
+                        "department": doctor.department.name,
+                        "appointments": doctor.appointment_count,
+                    }
+                    for doctor in top_doctors
+                ],
+            },
+            "patient_statistics": {
+                "total": PatientProfile.objects.count(),
+                "active_accounts": PatientProfile.objects.filter(
+                    user__is_active=True,
+                ).count(),
+                "by_gender": list(
+                    PatientProfile.objects.values("gender")
+                    .annotate(total=Count("id"))
+                    .order_by("gender")
+                ),
+            },
+            "revenue_analytics": {
+                "collected": payments.filter(
+                    payment_status="Paid",
+                ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00"),
+                "pending": payments.filter(
+                    payment_status="Pending",
+                ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00"),
+                "refunded": payments.filter(
+                    payment_status="Refunded",
+                ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00"),
+                "by_mode": list(
+                    payments.values("payment_mode")
+                    .annotate(total=Sum("amount"))
+                    .order_by("payment_mode")
+                ),
+            },
+            "diagnostic_statistics": {
+                "total_bookings": bookings.count(),
+                "by_status": list(
+                    bookings.values("status")
+                    .annotate(total=Count("id"))
+                    .order_by("status")
+                ),
+                "available_tests": DiagnosticTest.objects.filter(
+                    is_available=True,
+                    category__is_active=True,
+                ).count(),
+            },
+        }, status=status.HTTP_200_OK)
 
 
 class DashboardAPIView(APIView):

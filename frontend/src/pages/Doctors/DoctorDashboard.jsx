@@ -620,13 +620,19 @@ export default function DoctorDashboard() {
     ];
 
 
-    const clinicTimeline = [
-        { time: "08:30 AM", booked: 1, capacity: 5, status: "available" },
-        { time: "09:00 AM", booked: 3, capacity: 5, status: "busy" },
-        { time: "09:30 AM", booked: 5, capacity: 5, status: "full" },
-        { time: "10:00 AM", booked: 2, capacity: 5, status: "available" },
-        { time: "10:30 AM", booked: 4, capacity: 5, status: "busy" },
-    ];
+    const clinicTimeline = useMemo(() => (
+        appointments
+            .filter((appointment) => appointment.appointment_date === getLocalToday())
+            .sort((first, second) => String(first.slot_time || "").localeCompare(String(second.slot_time || "")))
+            .slice(0, 5)
+            .map((appointment) => ({
+                time: appointment.slot_time
+                    ? String(appointment.slot_time).slice(0, 5)
+                    : "--",
+                patient: appointment.patient_name || "Patient",
+                status: String(appointment.status || "pending").toLowerCase(),
+            }))
+    ), [appointments]);
 
 
     // ==========================================================
@@ -647,7 +653,7 @@ export default function DoctorDashboard() {
 
             case "pending":
 
-                return "d-none";
+                return "bg-warning text-dark";
 
 
             case "confirmed":
@@ -959,6 +965,7 @@ export default function DoctorDashboard() {
                                             onChange={(event) => setStatusFilter(event.target.value)}
                                         >
                                             <option value="All">All Status</option>
+                                            <option value="Pending">Pending</option>
                                             <option value="Confirmed">Confirmed</option>
                                             <option value="Completed">Completed</option>
                                             <option value="Rejected">Rejected</option>
@@ -1061,9 +1068,9 @@ export default function DoctorDashboard() {
                             <div className="card-body pt-0">
                                 <div className="doctor-dashboard__timeline">
                                     {clinicTimeline.map((slot) => (
-                                        <div key={slot.time} className={`doctor-dashboard__slot doctor-dashboard__slot--${slot.status}`}>
+                                        <div key={`${slot.time}-${slot.patient}`} className={`doctor-dashboard__slot doctor-dashboard__slot--${slot.status}`}>
                                             <div className="doctor-dashboard__slotTime">{slot.time}</div>
-                                            <div className="doctor-dashboard__slotMeta">Booked: {slot.booked} / {slot.capacity}</div>
+                                            <div className="doctor-dashboard__slotMeta">{slot.patient} · {slot.status}</div>
                                         </div>
                                     ))}
                                 </div>

@@ -20,3 +20,8 @@ export const getDashboardData = async () => {
         throw error;
     }
 };
+
+export const getAdminAnalytics = async () => {
+    const response = await api.get("/dashboard/admin/analytics/");
+    return response.data;
+};

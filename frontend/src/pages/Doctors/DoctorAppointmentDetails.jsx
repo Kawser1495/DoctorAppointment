@@ -854,6 +854,30 @@ export default function DoctorAppointmentDetails() {
 
                                     </div>
 
+                                    <div className="col-12">
+
+                                        <label className="text-muted small text-uppercase d-block mb-1">
+                                            Address
+                                        </label>
+
+                                        <strong>
+                                            {appointment.patient_profile?.address || "N/A"}
+                                        </strong>
+
+                                    </div>
+
+                                    <div className="col-md-6">
+
+                                        <label className="text-muted small text-uppercase d-block mb-1">
+                                            Emergency Contact
+                                        </label>
+
+                                        <strong>
+                                            {appointment.patient_profile?.emergency_contact || "N/A"}
+                                        </strong>
+
+                                    </div>
+
 
                                     <div className="col-md-6">
 
@@ -1178,6 +1202,42 @@ export default function DoctorAppointmentDetails() {
                                             "N/A"
                                         }
 
+                                    </strong>
+
+                                </div>
+
+                                <div className="col-md-4">
+
+                                    <label className="text-muted small text-uppercase d-block mb-1">
+                                        Relation
+                                    </label>
+
+                                    <strong>
+                                        {appointment.family_member_details.relation || "N/A"}
+                                    </strong>
+
+                                </div>
+
+                                <div className="col-md-4">
+
+                                    <label className="text-muted small text-uppercase d-block mb-1">
+                                        Blood Group
+                                    </label>
+
+                                    <strong>
+                                        {appointment.family_member_details.blood_group || "N/A"}
+                                    </strong>
+
+                                </div>
+
+                                <div className="col-md-4">
+
+                                    <label className="text-muted small text-uppercase d-block mb-1">
+                                        Phone Number
+                                    </label>
+
+                                    <strong>
+                                        {appointment.family_member_details.phone_number || "N/A"}
                                     </strong>
 
                                 </div>
