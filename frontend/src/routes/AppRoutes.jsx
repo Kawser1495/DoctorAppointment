@@ -68,6 +68,9 @@ import AdminSchedules
 import AdminDiagnostics
     from "../pages/Admin/AdminDiagnostics";
 
+import AdminReports
+    from "../pages/Admin/AdminReports";
+
 
 // ==========================================================
 // Doctor
@@ -391,6 +394,15 @@ export default function AppRoutes() {
                     element={
                         <RoleRoute allowedRoles={["admin"]}>
                             <AdminDiagnostics />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/reports"
+                    element={
+                        <RoleRoute allowedRoles={["admin"]}>
+                            <AdminReports />
                         </RoleRoute>
                     }
                 />

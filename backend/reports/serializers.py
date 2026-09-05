@@ -93,6 +93,7 @@ class MedicalReportSerializer(
             # Report
             "report_type",
             "report_title",
+            "report_status",
 
             # Patient
             "patient",

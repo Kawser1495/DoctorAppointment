@@ -3,6 +3,8 @@ from rest_framework import generics
 from rest_framework.permissions import (
     IsAuthenticated,
 )
+from rest_framework.response import Response
+from rest_framework import status
 
 from rest_framework.exceptions import (
     ValidationError,
@@ -16,6 +18,8 @@ from .models import (
 from .serializers import (
     MedicalReportSerializer,
 )
+
+from accounts.permissions import IsAdmin
 
 
 # ==========================================================
@@ -478,4 +482,44 @@ class DoctorMedicalReportDetailView(
             test_booking=
             report.test_booking,
 
+        )
+
+
+class AdminMedicalReportListView(generics.ListAPIView):
+
+    serializer_class = MedicalReportSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+
+    def get_queryset(self):
+        return get_report_queryset()
+
+
+class AdminMedicalReportStatusView(generics.UpdateAPIView):
+
+    serializer_class = MedicalReportSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        return get_report_queryset()
+
+    def patch(self, request, *args, **kwargs):
+        report = self.get_object()
+        next_status = request.data.get("report_status")
+        valid_statuses = dict(MedicalReport.REPORT_STATUS_CHOICES)
+
+        if next_status not in valid_statuses:
+            return Response(
+                {"detail": "Invalid report status."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        report.report_status = next_status
+        report.save(update_fields=["report_status"])
+        return Response(
+            MedicalReportSerializer(
+                report,
+                context={"request": request},
+            ).data,
+            status=status.HTTP_200_OK,
         )

@@ -8,6 +8,12 @@ from diagnostics.models import TestBooking
 
 class MedicalReport(models.Model):
 
+    REPORT_STATUS_CHOICES = (
+        ("Draft", "Draft"),
+        ("Published", "Published"),
+        ("Archived", "Archived"),
+    )
+
     REPORT_TYPE_CHOICES = (
         ("Medical", "Medical"),
         ("Diagnostic", "Diagnostic"),
@@ -77,6 +83,13 @@ class MedicalReport(models.Model):
 
     report_title = models.CharField(
         max_length=150,
+    )
+
+    report_status = models.CharField(
+        max_length=20,
+        choices=REPORT_STATUS_CHOICES,
+        default="Published",
+        db_index=True,
     )
 
     # ======================================================

@@ -489,7 +489,7 @@ export default function AdminDashboard() {
                     </Link>
 
                     <Link
-                        to="/reports"
+                        to="/admin/reports"
                         className="admin-nav-link"
                     >
                         <DashboardIcon name="fas fa-file-medical" />

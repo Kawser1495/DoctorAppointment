@@ -110,3 +110,13 @@ export const deleteMedicalReport =
         );
 
     };
+
+export const getAdminReports = async () => {
+    return await api.get("reports/admin/");
+};
+
+export const updateAdminReportStatus = async (id, reportStatus) => {
+    return await api.patch(`reports/admin/${id}/status/`, {
+        report_status: reportStatus,
+    });
+};

@@ -13,6 +13,10 @@ from .views import (
 
     DoctorMedicalReportDetailView,
 
+    AdminMedicalReportListView,
+
+    AdminMedicalReportStatusView,
+
 )
 
 
@@ -48,6 +52,28 @@ urlpatterns = [
         DoctorMedicalReportListView.as_view(),
 
         name="doctor-reports",
+
+    ),
+
+
+    path(
+
+        "admin/",
+
+        AdminMedicalReportListView.as_view(),
+
+        name="admin-reports",
+
+    ),
+
+
+    path(
+
+        "admin/<int:pk>/status/",
+
+        AdminMedicalReportStatusView.as_view(),
+
+        name="admin-report-status",
 
     ),
 
