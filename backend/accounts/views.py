@@ -9,12 +9,10 @@ from rest_framework.response import Response
 
 from rest_framework.views import APIView
 
-
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
-
 
 from .models import CustomUser
 
@@ -31,11 +29,14 @@ from .serializers import (
 #
 # POST:
 # /api/accounts/register/
+#
+# Creates:
+# - CustomUser
+# - PatientProfile or Doctor
+# - DoctorSchedule for doctors
 # ==========================================================
 
-class RegisterView(
-    generics.CreateAPIView
-):
+class RegisterView(generics.CreateAPIView):
 
     queryset = CustomUser.objects.all()
 
@@ -44,6 +45,39 @@ class RegisterView(
     permission_classes = [
         AllowAny
     ]
+
+    def create(self, request, *args, **kwargs):
+
+        serializer = self.get_serializer(
+            data=request.data
+        )
+
+        # Invalid data হলে DRF automatically
+        # field-wise error response পাঠাবে।
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        user = serializer.save()
+
+        return Response(
+            {
+                "success": True,
+                "message": (
+                    "Registration successful. "
+                    "You can now log in."
+                ),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "email": user.email,
+                    "role": user.role,
+                },
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 # ==========================================================
@@ -57,12 +91,9 @@ class RegisterView(
 # - refresh
 # - user information
 # - role
-#
 # ==========================================================
 
-class LoginView(
-    TokenObtainPairView
-):
+class LoginView(TokenObtainPairView):
 
     serializer_class = (
         CustomTokenObtainPairSerializer
@@ -80,9 +111,7 @@ class LoginView(
 # /api/accounts/refresh/
 # ==========================================================
 
-class RefreshTokenView(
-    TokenRefreshView
-):
+class RefreshTokenView(TokenRefreshView):
 
     permission_classes = [
         AllowAny
@@ -111,11 +140,6 @@ class UserSettingsView(
         IsAuthenticated
     ]
 
-
-    # ======================================================
-    # Current Logged-in User
-    # ======================================================
-
     def get_object(self):
 
         return self.request.user
@@ -126,88 +150,45 @@ class UserSettingsView(
 #
 # POST:
 # /api/accounts/change-password/
-#
-# Required:
-#
-# {
-#     "current_password": "...",
-#     "new_password": "...",
-#     "confirm_password": "..."
-# }
 # ==========================================================
 
-class ChangePasswordView(
-    APIView
-):
+class ChangePasswordView(APIView):
 
     permission_classes = [
         IsAuthenticated
     ]
 
-
-    def post(
-        self,
-        request
-    ):
-
-        # ==================================================
-        # Validate Request
-        # ==================================================
+    def post(self, request):
 
         serializer = ChangePasswordSerializer(
-
             data=request.data,
-
             context={
                 "request": request
             },
-
         )
-
 
         serializer.is_valid(
             raise_exception=True
         )
 
-
-        # ==================================================
-        # Change Password
-        # ==================================================
-
         request.user.set_password(
-
             serializer.validated_data[
                 "new_password"
             ]
-
         )
 
-
         request.user.save(
-
             update_fields=[
                 "password",
                 "updated_at",
             ]
-
         )
 
-
-        # ==================================================
-        # Response
-        # ==================================================
-
         return Response(
-
             {
-
                 "success": True,
-
                 "message":
-                "Password changed successfully."
-
+                "Password changed successfully.",
             },
-
-            status=status.HTTP_200_OK
-
+            status=status.HTTP_200_OK,
         )

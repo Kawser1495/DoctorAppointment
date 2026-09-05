@@ -784,7 +784,7 @@ export default function Login() {
                                     to="/register"
                                     className="btn btn-success"
                                 >
-                                    Create Patient Account
+                                    Register Now
                                 </Link>
 
                             </div>

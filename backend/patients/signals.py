@@ -20,23 +20,20 @@ def create_patient_profile(
     created,
     **kwargs,
 ):
+    """
+    Automatically create a PatientProfile when a new
+    patient user is created.
 
-    # ------------------------------------------------------
-    # Only Patient users should have PatientProfile
-    # ------------------------------------------------------
+    Phone number is stored in CustomUser.phone.
+    PatientProfile does not have a phone_number field.
+    """
+
+    if not created:
+        return
 
     if instance.role != "patient":
         return
 
-    # ------------------------------------------------------
-    # Create profile only when user is newly created
-    # ------------------------------------------------------
-
-    if created:
-
-        PatientProfile.objects.get_or_create(
-            user=instance,
-            defaults={
-                "phone_number": instance.phone or None,
-            },
-        )
+    PatientProfile.objects.get_or_create(
+        user=instance,
+    )

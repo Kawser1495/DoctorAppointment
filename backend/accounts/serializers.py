@@ -1,15 +1,14 @@
 import re
-import uuid
 
 from django.db import transaction
 
 from rest_framework import serializers
 
-from .models import CustomUser
-
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
 )
+
+from .models import CustomUser
 
 from doctors.models import (
     Doctor,
@@ -19,568 +18,39 @@ from doctors.models import (
 
 
 # ==========================================================
-# Register Serializer
-#
-# POST:
-# /api/accounts/register/
-#
-# Creates:
-# - CustomUser
-#
-# PatientProfile is automatically created by:
-# patients/signals.py
+# Common Name Validation
 # ==========================================================
 
-class RegisterSerializer(
-    serializers.ModelSerializer
-):
+def validate_person_name(value, field_name):
+    value = value.strip()
 
-    # ======================================================
-    # Username / Name
-    #
-    # Examples:
-    # Dr. Sohan
-    # Md. Kawser Talukder
-    # Abdul Karim
-    # Sohan Ahmed
-    # ======================================================
-
-    username = serializers.CharField(
-        max_length=150,
-        required=True,
-        allow_blank=False,
-        trim_whitespace=True,
-    )
-
-    # ======================================================
-    # Password
-    # ======================================================
-
-    password = serializers.CharField(
-        write_only=True,
-        min_length=8,
-    )
-
-    class Meta:
-
-        model = CustomUser
-
-        fields = [
-            "username",
-            "email",
-            "phone",
-            "password",
-        ]
-
-        extra_kwargs = {
-
-            "email": {
-                "required": True,
-            },
-
-            "phone": {
-                "required": True,
-            },
-
-        }
-
-    # ======================================================
-    # Username Validation
-    # ======================================================
-
-    def validate_username(self, value):
-
-        value = value.strip()
-
-        if not value:
-
-            raise serializers.ValidationError(
-                "Name cannot be empty."
-            )
-
-        # --------------------------------------------------
-        # Multiple spaces → single space
-        # --------------------------------------------------
-
-        value = " ".join(
-            value.split()
+    if not value:
+        raise serializers.ValidationError(
+            f"{field_name} cannot be empty."
         )
 
-        # --------------------------------------------------
-        # Minimum length
-        # --------------------------------------------------
+    value = " ".join(value.split())
 
-        if len(value) < 2:
-
-            raise serializers.ValidationError(
-                "Name must contain at least 2 characters."
-            )
-
-        # --------------------------------------------------
-        # Allowed characters
-        #
-        # Letters
-        # Spaces
-        # Dot
-        # Hyphen
-        # Underscore
-        # Apostrophe
-        # --------------------------------------------------
-
-        import re
-
-        if not re.match(
-            r"^[A-Za-zÀ-ÖØ-öø-ÿ.\-_'\s]+$",
-            value
-        ):
-
-            raise serializers.ValidationError(
-                "Name can contain letters, spaces, "
-                "dot, hyphen, underscore and apostrophe only."
-            )
-
-        return value
-
-    # ======================================================
-    # Email Validation
-    # ======================================================
-
-    def validate_email(self, value):
-
-        value = value.strip().lower()
-
-        if not value:
-
-            raise serializers.ValidationError(
-                "Email cannot be empty."
-            )
-
-        return value
-
-    # ======================================================
-    # Phone Validation
-    # ======================================================
-
-    def validate_phone(self, value):
-
-        if value is None:
-
-            return value
-
-        value = value.strip()
-
-        if not value:
-
-            raise serializers.ValidationError(
-                "Phone number cannot be empty."
-            )
-
-        if not value.isdigit():
-
-            raise serializers.ValidationError(
-                "Phone number must contain only digits."
-            )
-
-        if len(value) < 10 or len(value) > 15:
-
-            raise serializers.ValidationError(
-                "Phone number must contain 10 to 15 digits."
-            )
-
-        return value
-
-    # ======================================================
-    # Create User
-    #
-    # PatientProfile is NOT created here.
-    #
-    # patients/signals.py automatically creates it
-    # after CustomUser is successfully created.
-    # ======================================================
-
-    def create(self, validated_data):
-
-        user = CustomUser.objects.create_user(
-            **validated_data,
-            role="patient",
+    if len(value) < 2:
+        raise serializers.ValidationError(
+            f"{field_name} must contain at least 2 characters."
         )
 
-        return user
-
-
-# ==========================================================
-# User Settings Serializer
-#
-# GET:
-# /api/accounts/settings/
-#
-# PATCH:
-# /api/accounts/settings/
-# ==========================================================
-
-class UserSettingsSerializer(
-    serializers.ModelSerializer
-):
-
-    full_name = serializers.SerializerMethodField()
-
-    class Meta:
-
-        model = CustomUser
-
-        fields = [
-
-            "id",
-
-            "username",
-
-            "email",
-
-            "phone",
-
-            "first_name",
-
-            "last_name",
-
-            "full_name",
-
-            "role",
-
-            "is_verified",
-
-            "created_at",
-
-            "updated_at",
-
-        ]
-
-        read_only_fields = [
-
-            "id",
-
-            "full_name",
-
-            "role",
-
-            "is_verified",
-
-            "created_at",
-
-            "updated_at",
-
-        ]
-
-    # ======================================================
-    # Full Name
-    # ======================================================
-
-    def get_full_name(self, obj):
-
-        full_name = obj.get_full_name()
-
-        if full_name:
-
-            return full_name
-
-        return obj.username
-
-    # ======================================================
-    # Username Validation
-    # ======================================================
-
-    def validate_username(self, value):
-
-        value = value.strip()
-
-        if not value:
-
-            raise serializers.ValidationError(
-                "Username cannot be empty."
-            )
-
-        return value
-
-    # ======================================================
-    # Email Validation
-    # ======================================================
-
-    def validate_email(self, value):
-
-        value = value.strip().lower()
-
-        if not value:
-
-            raise serializers.ValidationError(
-                "Email cannot be empty."
-            )
-
-        return value
-
-    # ======================================================
-    # Phone Validation
-    # ======================================================
-
-    def validate_phone(self, value):
-
-        if value is None:
-
-            return value
-
-        value = value.strip()
-
-        if not value:
-
-            return None
-
-        if not value.isdigit():
-
-            raise serializers.ValidationError(
-                "Phone number must contain only digits."
-            )
-
-        if len(value) < 10 or len(value) > 15:
-
-            raise serializers.ValidationError(
-                "Phone number must contain 10 to 15 digits."
-            )
-
-        return value
-
-
-# ==========================================================
-# Change Password Serializer
-#
-# POST:
-# /api/accounts/change-password/
-# ==========================================================
-
-class ChangePasswordSerializer(
-    serializers.Serializer
-):
-
-    current_password = serializers.CharField(
-        write_only=True,
-        trim_whitespace=False,
-    )
-
-    new_password = serializers.CharField(
-        write_only=True,
-        min_length=8,
-        trim_whitespace=False,
-    )
-
-    confirm_password = serializers.CharField(
-        write_only=True,
-        trim_whitespace=False,
-    )
-
-    # ======================================================
-    # Validate Password
-    # ======================================================
-
-    def validate(self, attrs):
-
-        user = self.context[
-            "request"
-        ].user
-
-        current_password = attrs.get(
-            "current_password"
+    if not re.match(
+        r"^[A-Za-zÀ-ÖØ-öø-ÿ.\-_'\s]+$",
+        value,
+    ):
+        raise serializers.ValidationError(
+            f"{field_name} contains invalid characters."
         )
 
-        new_password = attrs.get(
-            "new_password"
-        )
+    return value
 
-        confirm_password = attrs.get(
-            "confirm_password"
-        )
 
-        # --------------------------------------------------
-        # Check Current Password
-        # --------------------------------------------------
-
-        if not user.check_password(
-            current_password
-        ):
-
-            raise serializers.ValidationError(
-                {
-                    "current_password":
-                    "Current password is incorrect."
-                }
-            )
-
-        # --------------------------------------------------
-        # Check New Password Match
-        # --------------------------------------------------
-
-        if new_password != confirm_password:
-
-            raise serializers.ValidationError(
-                {
-                    "confirm_password":
-                    "New passwords do not match."
-                }
-            )
-
-        # --------------------------------------------------
-        # Same Password Check
-        # --------------------------------------------------
-
-        if current_password == new_password:
-
-            raise serializers.ValidationError(
-                {
-                    "new_password":
-                    "New password must be different "
-                    "from your current password."
-                }
-            )
-
-        return attrs
-
-
-# ==========================================================
-# Custom Login Token Serializer
-# ==========================================================
-
-class CustomTokenObtainPairSerializer(
-    TokenObtainPairSerializer
-):
-
-    @classmethod
-    def get_token(cls, user):
-
-        token = super().get_token(user)
-
-        # --------------------------------------------------
-        # Add User Information to JWT
-        # --------------------------------------------------
-
-        token["user_id"] = user.id
-
-        token["username"] = user.username
-
-        token["role"] = user.role
-
-        return token
-
-    # ======================================================
-    # Login Response
-    # ======================================================
-
-    def validate(self, attrs):
-
-        data = super().validate(attrs)
-
-        # --------------------------------------------------
-        # Return User Information
-        # --------------------------------------------------
-
-        data["user"] = {
-
-            "id":
-                self.user.id,
-
-            "username":
-                self.user.username,
-
-            "first_name":
-                self.user.first_name,
-
-            "last_name":
-                self.user.last_name,
-
-            "email":
-                self.user.email,
-
-            "role":
-                self.user.role,
-
-        }
-
-        return data
-
-
-# ==========================================================
-# Admin User Serializer
-#
-# Used by:
-# - Admin User Management
-# - Admin User List
-# - User Details
-# ==========================================================
-
-class AdminUserSerializer(
-    serializers.ModelSerializer
-):
-
-    full_name = serializers.SerializerMethodField()
-
-    class Meta:
-
-        model = CustomUser
-
-        fields = [
-
-            "id",
-
-            "username",
-
-            "first_name",
-
-            "last_name",
-
-            "full_name",
-
-            "email",
-
-            "phone",
-
-            "role",
-
-            "is_active",
-
-            "is_verified",
-
-            "date_joined",
-
-            "created_at",
-
-            "updated_at",
-
-        ]
-
-        read_only_fields = [
-
-            "id",
-
-            "full_name",
-
-            "date_joined",
-
-            "created_at",
-
-            "updated_at",
-
-        ]
-
-    # ======================================================
-    # Full Name
-    # ======================================================
-
-    def get_full_name(self, obj):
-
-        full_name = obj.get_full_name()
-
-        if full_name:
-
-            return full_name
-
-        return obj.username
 # ==========================================================
 # Doctor Schedule Registration Serializer
+#
+# Used during doctor registration.
 # ==========================================================
 
 class DoctorScheduleRegistrationSerializer(
@@ -588,7 +58,6 @@ class DoctorScheduleRegistrationSerializer(
 ):
 
     class Meta:
-
         model = DoctorSchedule
 
         fields = [
@@ -600,32 +69,28 @@ class DoctorScheduleRegistrationSerializer(
         ]
 
         extra_kwargs = {
-
             "slot_duration_minutes": {
                 "required": False,
                 "default": 20,
             },
-
             "max_patient_per_slot": {
                 "required": False,
                 "default": 1,
             },
-
         }
-
-    # ======================================================
-    # Validate Schedule Time
-    # ======================================================
 
     def validate(self, attrs):
 
         start_time = attrs.get("start_time")
         end_time = attrs.get("end_time")
 
+        # --------------------------------------------------
+        # Validate time range
+        # --------------------------------------------------
+
         if start_time and end_time:
 
             if start_time >= end_time:
-
                 raise serializers.ValidationError(
                     {
                         "end_time":
@@ -633,18 +98,16 @@ class DoctorScheduleRegistrationSerializer(
                     }
                 )
 
+        # --------------------------------------------------
+        # Validate slot duration
+        # --------------------------------------------------
+
         slot_duration = attrs.get(
             "slot_duration_minutes",
-            20
-        )
-
-        max_patient = attrs.get(
-            "max_patient_per_slot",
-            1
+            20,
         )
 
         if slot_duration <= 0:
-
             raise serializers.ValidationError(
                 {
                     "slot_duration_minutes":
@@ -652,8 +115,16 @@ class DoctorScheduleRegistrationSerializer(
                 }
             )
 
-        if max_patient <= 0:
+        # --------------------------------------------------
+        # Validate maximum patients
+        # --------------------------------------------------
 
+        max_patient = attrs.get(
+            "max_patient_per_slot",
+            1,
+        )
+
+        if max_patient <= 0:
             raise serializers.ValidationError(
                 {
                     "max_patient_per_slot":
@@ -678,9 +149,21 @@ class DoctorScheduleRegistrationSerializer(
 # PatientProfile is created automatically by signal.
 # ==========================================================
 
-class RegisterSerializer(
-    serializers.ModelSerializer
-):
+class RegisterSerializer(serializers.ModelSerializer):
+
+    # ======================================================
+    # Username
+    #
+    # User chooses username manually.
+    # Username is NOT auto-generated.
+    # ======================================================
+
+    username = serializers.CharField(
+        max_length=150,
+        required=True,
+        allow_blank=False,
+        trim_whitespace=True,
+    )
 
     # ======================================================
     # Basic User Information
@@ -738,9 +221,6 @@ class RegisterSerializer(
 
     # ======================================================
     # Patient Information
-    #
-    # These fields are not directly saved in CustomUser.
-    # They are sent to PatientProfile if those fields exist.
     # ======================================================
 
     gender = serializers.CharField(
@@ -804,18 +284,25 @@ class RegisterSerializer(
         allow_blank=True,
     )
 
+    # ======================================================
+    # Doctor Weekly Schedule
+    # ======================================================
+
     schedules = DoctorScheduleRegistrationSerializer(
         many=True,
         required=False,
     )
 
-    class Meta:
+    # ======================================================
+    # Meta
+    # ======================================================
 
+    class Meta:
         model = CustomUser
 
         fields = [
-
             # User information
+            "username",
             "first_name",
             "last_name",
             "email",
@@ -838,41 +325,72 @@ class RegisterSerializer(
             "consultation_fee",
             "biography",
             "schedules",
-
         ]
 
     # ======================================================
-    # Name Validation
+    # Username Validation
     # ======================================================
 
-    def validate_first_name(self, value):
+    def validate_username(self, value):
 
         value = value.strip()
 
         if not value:
-
             raise serializers.ValidationError(
-                "First name cannot be empty."
+                "Username cannot be empty."
             )
 
+        # Remove accidental multiple spaces
         value = " ".join(value.split())
 
-        if len(value) < 2:
-
+        # Minimum length
+        if len(value) < 3:
             raise serializers.ValidationError(
-                "First name must contain at least 2 characters."
+                "Username must contain at least 3 characters."
             )
 
+        # Maximum length
+        if len(value) > 150:
+            raise serializers.ValidationError(
+                "Username cannot exceed 150 characters."
+            )
+
+        # Allowed characters
         if not re.match(
-            r"^[A-Za-zÀ-ÖØ-öø-ÿ.\-_'\s]+$",
-            value
+            r"^[A-Za-z0-9._-]+$",
+            value,
         ):
+            raise serializers.ValidationError(
+                "Username can contain only letters, numbers, dot, underscore and hyphen."
+            )
+
+        # --------------------------------------------------
+        # Duplicate username check
+        #
+        # Case-insensitive:
+        # Kawser == kawser == KAWSER
+        # --------------------------------------------------
+
+        if CustomUser.objects.filter(
+            username__iexact=value
+        ).exists():
 
             raise serializers.ValidationError(
-                "First name contains invalid characters."
+                "This username already exists. Please choose another username."
             )
 
         return value
+
+    # ======================================================
+    # First Name Validation
+    # ======================================================
+
+    def validate_first_name(self, value):
+
+        return validate_person_name(
+            value,
+            "First name",
+        )
 
     # ======================================================
     # Last Name Validation
@@ -880,32 +398,10 @@ class RegisterSerializer(
 
     def validate_last_name(self, value):
 
-        value = value.strip()
-
-        if not value:
-
-            raise serializers.ValidationError(
-                "Last name cannot be empty."
-            )
-
-        value = " ".join(value.split())
-
-        if len(value) < 2:
-
-            raise serializers.ValidationError(
-                "Last name must contain at least 2 characters."
-            )
-
-        if not re.match(
-            r"^[A-Za-zÀ-ÖØ-öø-ÿ.\-_'\s]+$",
-            value
-        ):
-
-            raise serializers.ValidationError(
-                "Last name contains invalid characters."
-            )
-
-        return value
+        return validate_person_name(
+            value,
+            "Last name",
+        )
 
     # ======================================================
     # Email Validation
@@ -914,6 +410,11 @@ class RegisterSerializer(
     def validate_email(self, value):
 
         value = value.strip().lower()
+
+        if not value:
+            raise serializers.ValidationError(
+                "Email cannot be empty."
+            )
 
         if CustomUser.objects.filter(
             email__iexact=value
@@ -926,6 +427,30 @@ class RegisterSerializer(
         return value
 
     # ======================================================
+    # Gender Validation
+    # ======================================================
+
+    def validate_gender(self, value):
+
+        if value in [None, ""]:
+            return value
+
+        normalized_gender = value.strip().capitalize()
+
+        valid_genders = {
+            "Male",
+            "Female",
+            "Other",
+        }
+
+        if normalized_gender not in valid_genders:
+            raise serializers.ValidationError(
+                "Gender must be Male, Female or Other."
+            )
+
+        return normalized_gender
+
+    # ======================================================
     # Phone Validation
     # ======================================================
 
@@ -934,19 +459,16 @@ class RegisterSerializer(
         value = value.strip()
 
         if not value:
-
             raise serializers.ValidationError(
                 "Phone number cannot be empty."
             )
 
         if not value.isdigit():
-
             raise serializers.ValidationError(
                 "Phone number must contain only digits."
             )
 
         if len(value) < 10 or len(value) > 15:
-
             raise serializers.ValidationError(
                 "Phone number must contain 10 to 15 digits."
             )
@@ -962,7 +484,7 @@ class RegisterSerializer(
         return value
 
     # ======================================================
-    # Password Validation
+    # Password and Role Validation
     # ======================================================
 
     def validate(self, attrs):
@@ -972,7 +494,7 @@ class RegisterSerializer(
         role = attrs.get("role", "patient")
 
         # --------------------------------------------------
-        # Password Match
+        # Password confirmation
         # --------------------------------------------------
 
         if password != confirm_password:
@@ -984,9 +506,9 @@ class RegisterSerializer(
                 }
             )
 
-        # --------------------------------------------------
-        # Doctor Required Information
-        # --------------------------------------------------
+        # ==================================================
+        # Doctor Validation
+        # ==================================================
 
         if role == "doctor":
 
@@ -994,6 +516,10 @@ class RegisterSerializer(
             specialization = attrs.get("specialization")
             qualification = attrs.get("qualification")
             schedules = attrs.get("schedules", [])
+
+            # --------------------------------------------------
+            # Department
+            # --------------------------------------------------
 
             if not department:
 
@@ -1004,7 +530,14 @@ class RegisterSerializer(
                     }
                 )
 
-            if not specialization:
+            # --------------------------------------------------
+            # Specialization
+            # --------------------------------------------------
+
+            if (
+                not specialization
+                or not specialization.strip()
+            ):
 
                 raise serializers.ValidationError(
                     {
@@ -1013,7 +546,14 @@ class RegisterSerializer(
                     }
                 )
 
-            if not qualification:
+            # --------------------------------------------------
+            # Qualification
+            # --------------------------------------------------
+
+            if (
+                not qualification
+                or not qualification.strip()
+            ):
 
                 raise serializers.ValidationError(
                     {
@@ -1021,6 +561,10 @@ class RegisterSerializer(
                         "Qualification is required for doctors."
                     }
                 )
+
+            # --------------------------------------------------
+            # Schedule
+            # --------------------------------------------------
 
             if not schedules:
 
@@ -1034,283 +578,542 @@ class RegisterSerializer(
         return attrs
 
     # ======================================================
-    # Generate Unique Username
-    #
-    # Same name is allowed.
-    # Username is generated automatically.
-    # ======================================================
-
-    def generate_unique_username(self, role):
-
-        prefix = (
-            "doctor"
-            if role == "doctor"
-            else "patient"
-        )
-
-        while True:
-
-            username = (
-                f"{prefix}_"
-                f"{uuid.uuid4().hex[:10]}"
-            )
-
-            if not CustomUser.objects.filter(
-                username=username
-            ).exists():
-
-                return username
-
-    # ======================================================
     # Create User / Doctor / Schedule
     # ======================================================
 
     @transaction.atomic
     def create(self, validated_data):
 
-        # --------------------------------------------------
-        # Extract Nested / Extra Data
-        # --------------------------------------------------
+        # ==================================================
+        # Get Role
+        # ==================================================
 
         role = validated_data.pop(
             "role",
-            "patient"
+            "patient",
         )
 
-        confirm_password = validated_data.pop(
+        # ==================================================
+        # Remove Confirm Password
+        # ==================================================
+
+        validated_data.pop(
             "confirm_password",
-            None
+            None,
         )
+
+        # ==================================================
+        # Get Schedule Data
+        # ==================================================
 
         schedules_data = validated_data.pop(
             "schedules",
-            []
+            [],
         )
 
-        # --------------------------------------------------
+        # ==================================================
         # Patient Profile Data
-        # --------------------------------------------------
+        # ==================================================
 
         patient_profile_data = {
-
             "gender": validated_data.pop(
                 "gender",
-                None
+                None,
             ),
 
             "date_of_birth": validated_data.pop(
                 "date_of_birth",
-                None
+                None,
             ),
 
             "blood_group": validated_data.pop(
                 "blood_group",
-                None
+                None,
             ),
 
             "address": validated_data.pop(
                 "address",
-                None
+                None,
             ),
-
         }
 
-        # --------------------------------------------------
+        # ==================================================
         # Doctor Data
-        # --------------------------------------------------
+        # ==================================================
 
         doctor_data = {
-
             "department": validated_data.pop(
                 "department",
-                None
+                None,
             ),
 
             "specialization": validated_data.pop(
                 "specialization",
-                ""
+                "",
             ),
 
             "qualification": validated_data.pop(
                 "qualification",
-                ""
+                "",
             ),
 
             "experience": validated_data.pop(
                 "experience",
-                0
+                0,
             ),
 
             "consultation_fee": validated_data.pop(
                 "consultation_fee",
-                0
+                0,
             ),
 
             "biography": validated_data.pop(
                 "biography",
-                ""
+                "",
             ),
-
         }
 
-        # --------------------------------------------------
-        # Generate System Username
-        # --------------------------------------------------
-
-        username = self.generate_unique_username(
-            role
-        )
-
-        # --------------------------------------------------
-        # Create Patient
-        # --------------------------------------------------
+        # ==================================================
+        # CREATE PATIENT
+        # ==================================================
 
         if role == "patient":
 
             user = CustomUser.objects.create_user(
+                **validated_data,
 
-                username=username,
-
-                first_name=validated_data.pop(
-                    "first_name"
-                ),
-
-                last_name=validated_data.pop(
-                    "last_name"
-                ),
-
-                email=validated_data.pop(
-                    "email"
-                ),
-
-                phone=validated_data.pop(
-                    "phone"
-                ),
-
-                password=validated_data.pop(
-                    "password"
-                ),
-
+                # Role
                 role="patient",
 
+                # Patient account is active immediately
                 is_active=True,
 
+                # Patient is verified immediately
                 is_verified=True,
 
+                # Not applicable for patient
                 doctor_status="not_applicable",
-
             )
 
             # --------------------------------------------------
-            # PatientProfile Signal
-            # --------------------------------------------------
-            #
-            # patients/signals.py should automatically create
-            # the PatientProfile after user creation.
-            #
-            # If the profile relation and fields exist,
-            # update them safely.
+            # Patient profile created by signal
             # --------------------------------------------------
 
             patient_profile = getattr(
                 user,
                 "patient_profile",
-                None
+                None,
             )
 
             if patient_profile:
 
                 for field, value in patient_profile_data.items():
 
-                    if hasattr(
-                        patient_profile,
-                        field
-                    ) and value not in [None, ""]:
+                    if (
+                        hasattr(patient_profile, field)
+                        and value not in [None, ""]
+                    ):
 
                         setattr(
                             patient_profile,
                             field,
-                            value
+                            value,
                         )
 
                 patient_profile.save()
 
             return user
 
-        # --------------------------------------------------
-        # Create Doctor
-        # --------------------------------------------------
+        # ==================================================
+        # CREATE DOCTOR
+        # ==================================================
 
         user = CustomUser.objects.create_user(
+            **validated_data,
 
-            username=username,
-
-            first_name=validated_data.pop(
-                "first_name"
-            ),
-
-            last_name=validated_data.pop(
-                "last_name"
-            ),
-
-            email=validated_data.pop(
-                "email"
-            ),
-
-            phone=validated_data.pop(
-                "phone"
-            ),
-
-            password=validated_data.pop(
-                "password"
-            ),
-
+            # Role
             role="doctor",
 
-            # Pending doctor can log in and see
-            # "Waiting for admin approval".
+            # Doctor can register but requires approval
             is_active=True,
 
+            # Doctor is not verified before admin approval
             is_verified=False,
 
+            # Initial doctor status
             doctor_status="pending",
-
         )
 
-        # --------------------------------------------------
-        # Create Doctor Profile
-        # --------------------------------------------------
+        # ==================================================
+        # CREATE DOCTOR PROFILE
+        # ==================================================
 
         doctor = Doctor.objects.create(
-
             user=user,
+
+            approval_status="pending",
 
             department=doctor_data["department"],
 
-            specialization=doctor_data["specialization"],
+            specialization=doctor_data[
+                "specialization"
+            ],
 
-            qualification=doctor_data["qualification"],
+            qualification=doctor_data[
+                "qualification"
+            ],
 
-            experience=doctor_data["experience"],
+            experience=doctor_data[
+                "experience"
+            ],
 
-            consultation_fee=doctor_data["consultation_fee"],
+            consultation_fee=doctor_data[
+                "consultation_fee"
+            ],
 
-            biography=doctor_data["biography"],
-
+            biography=doctor_data[
+                "biography"
+            ],
         )
 
-        # --------------------------------------------------
-        # Create Weekly Schedules
-        # --------------------------------------------------
+        # ==================================================
+        # CREATE WEEKLY SCHEDULES
+        # ==================================================
 
         for schedule_data in schedules_data:
 
             DoctorSchedule.objects.create(
-
                 doctor=doctor,
-
-                **schedule_data
-
+                **schedule_data,
             )
 
         return user
+
+
+# ==========================================================
+# User Settings Serializer
+# ==========================================================
+
+class UserSettingsSerializer(
+    serializers.ModelSerializer
+):
+
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+
+        model = CustomUser
+
+        fields = [
+            "id",
+            "username",
+            "email",
+            "phone",
+            "first_name",
+            "last_name",
+            "full_name",
+            "role",
+            "is_verified",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "full_name",
+            "role",
+            "is_verified",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_full_name(self, obj):
+
+        full_name = obj.get_full_name()
+
+        if full_name:
+            return full_name
+
+        return obj.username
+
+    # ======================================================
+    # Username Update Validation
+    # ======================================================
+
+    def validate_username(self, value):
+
+        value = value.strip()
+
+        if not value:
+
+            raise serializers.ValidationError(
+                "Username cannot be empty."
+            )
+
+        if len(value) < 3:
+
+            raise serializers.ValidationError(
+                "Username must contain at least 3 characters."
+            )
+
+        if len(value) > 150:
+
+            raise serializers.ValidationError(
+                "Username cannot exceed 150 characters."
+            )
+
+        if not re.match(
+            r"^[A-Za-z0-9._-]+$",
+            value,
+        ):
+
+            raise serializers.ValidationError(
+                "Username can contain only letters, numbers, dot, underscore and hyphen."
+            )
+
+        # --------------------------------------------------
+        # Exclude current user
+        # --------------------------------------------------
+
+        user = self.instance
+
+        if CustomUser.objects.filter(
+            username__iexact=value
+        ).exclude(
+            pk=user.pk
+        ).exists():
+
+            raise serializers.ValidationError(
+                "This username already exists. Please choose another username."
+            )
+
+        return value
+
+    # ======================================================
+    # Email Update Validation
+    # ======================================================
+
+    def validate_email(self, value):
+
+        value = value.strip().lower()
+
+        if not value:
+
+            raise serializers.ValidationError(
+                "Email cannot be empty."
+            )
+
+        if CustomUser.objects.filter(
+            email__iexact=value
+        ).exclude(
+            pk=self.instance.pk
+        ).exists():
+
+            raise serializers.ValidationError(
+                "An account with this email already exists."
+            )
+
+        return value
+
+    # ======================================================
+    # Phone Update Validation
+    # ======================================================
+
+    def validate_phone(self, value):
+
+        if value is None:
+            return value
+
+        value = value.strip()
+
+        if not value:
+            return None
+
+        if not value.isdigit():
+
+            raise serializers.ValidationError(
+                "Phone number must contain only digits."
+            )
+
+        if len(value) < 10 or len(value) > 15:
+
+            raise serializers.ValidationError(
+                "Phone number must contain 10 to 15 digits."
+            )
+
+        if CustomUser.objects.filter(
+            phone=value
+        ).exclude(
+            pk=self.instance.pk
+        ).exists():
+
+            raise serializers.ValidationError(
+                "An account with this phone number already exists."
+            )
+
+        return value
+
+
+# ==========================================================
+# Change Password Serializer
+# ==========================================================
+
+class ChangePasswordSerializer(serializers.Serializer):
+
+    current_password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+    )
+
+    new_password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        trim_whitespace=False,
+    )
+
+    confirm_password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+    )
+
+    def validate(self, attrs):
+
+        user = self.context["request"].user
+
+        current_password = attrs.get(
+            "current_password"
+        )
+
+        new_password = attrs.get(
+            "new_password"
+        )
+
+        confirm_password = attrs.get(
+            "confirm_password"
+        )
+
+        # --------------------------------------------------
+        # Current password
+        # --------------------------------------------------
+
+        if not user.check_password(
+            current_password
+        ):
+
+            raise serializers.ValidationError(
+                {
+                    "current_password":
+                    "Current password is incorrect."
+                }
+            )
+
+        # --------------------------------------------------
+        # Password confirmation
+        # --------------------------------------------------
+
+        if new_password != confirm_password:
+
+            raise serializers.ValidationError(
+                {
+                    "confirm_password":
+                    "New passwords do not match."
+                }
+            )
+
+        # --------------------------------------------------
+        # New password must be different
+        # --------------------------------------------------
+
+        if current_password == new_password:
+
+            raise serializers.ValidationError(
+                {
+                    "new_password":
+                    "New password must be different from your current password."
+                }
+            )
+
+        return attrs
+
+
+# ==========================================================
+# Custom Login Token Serializer
+# ==========================================================
+
+class CustomTokenObtainPairSerializer(
+    TokenObtainPairSerializer
+):
+
+    @classmethod
+    def get_token(cls, user):
+
+        token = super().get_token(user)
+
+        token["user_id"] = user.id
+        token["username"] = user.username
+        token["role"] = user.role
+
+        return token
+
+    def validate(self, attrs):
+
+        data = super().validate(attrs)
+
+        data["user"] = {
+            "id": self.user.id,
+            "username": self.user.username,
+            "first_name": self.user.first_name,
+            "last_name": self.user.last_name,
+            "email": self.user.email,
+            "role": self.user.role,
+        }
+
+        return data
+
+
+# ==========================================================
+# Admin User Serializer
+# ==========================================================
+
+class AdminUserSerializer(
+    serializers.ModelSerializer
+):
+
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+
+        model = CustomUser
+
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "full_name",
+            "email",
+            "phone",
+            "role",
+            "is_active",
+            "is_verified",
+            "date_joined",
+            "created_at",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "full_name",
+            "date_joined",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_full_name(self, obj):
+
+        full_name = obj.get_full_name()
+
+        if full_name:
+            return full_name
+
+        return obj.username

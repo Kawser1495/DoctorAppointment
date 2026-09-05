@@ -4,7 +4,6 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -44,7 +43,9 @@ class DashboardAPIView(APIView):
         /api/dashboard/
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAdmin,
+    ]
 
     # ==========================================================
     # GET DASHBOARD
@@ -98,29 +99,29 @@ class DashboardAPIView(APIView):
     # ADMIN DASHBOARD
     # ==========================================================
 
-        # ==========================================================
-    # ADMIN DASHBOARD
-    # ==========================================================
-
     def admin_dashboard(self, request):
         """
-        Admin-only dashboard.
+        Admin dashboard.
 
-        Shows system-wide statistics:
-
-        - Total Patients
-        - Total Doctors
-        - Pending Doctor Requests
-        - Approved Doctors
-        - Total Appointments
-        - Today's Appointments
-        - Upcoming Appointments
-        - Total Revenue
-        - Pending Payments
-        - Diagnostic Bookings
-        - Medical Reports
-        - Notifications
+        Provides system-wide statistics for the
+        authenticated administrator.
         """
+
+        # ======================================================
+        # SECURITY CHECK
+        # ======================================================
+
+        user = request.user
+
+        if user.role != "admin" and not user.is_superuser:
+
+            return Response(
+                {
+                    "success": False,
+                    "message": "Admin access required.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         # ======================================================
         # CURRENT DATE
@@ -132,25 +133,33 @@ class DashboardAPIView(APIView):
         # PATIENTS
         # ======================================================
 
-        total_patients = PatientProfile.objects.count()
+        total_patients = (
+            PatientProfile.objects.count()
+        )
 
         # ======================================================
         # DOCTORS
         # ======================================================
 
-        total_doctors = Doctor.objects.count()
+        total_doctors = (
+            Doctor.objects.count()
+        )
 
-        # ======================================================
-        # DOCTOR APPROVAL
-        # ======================================================
+        pending_doctor_requests = (
+            Doctor.objects
+            .filter(
+                approval_status__iexact="pending"
+            )
+            .count()
+        )
 
-        pending_doctor_requests = Doctor.objects.filter(
-            approval_status__iexact="pending"
-        ).count()
-
-        approved_doctors = Doctor.objects.filter(
-            approval_status__iexact="approved"
-        ).count()
+        approved_doctors = (
+            Doctor.objects
+            .filter(
+                approval_status__iexact="approved"
+            )
+            .count()
+        )
 
         # ======================================================
         # APPOINTMENTS
@@ -158,15 +167,17 @@ class DashboardAPIView(APIView):
 
         appointments = Appointment.objects.all()
 
-        total_appointments = appointments.count()
+        total_appointments = (
+            appointments.count()
+        )
 
-        # Today's appointments
-
-        today_appointments = appointments.filter(
-            appointment_date=today
-        ).count()
-
-        # Upcoming appointments
+        today_appointments = (
+            appointments
+            .filter(
+                appointment_date=today
+            )
+            .count()
+        )
 
         upcoming_appointments = (
             appointments
@@ -180,32 +191,46 @@ class DashboardAPIView(APIView):
         )
 
         # ======================================================
-        # APPOINTMENT STATUS BREAKDOWN
+        # APPOINTMENT STATUS
         # ======================================================
 
-        pending_appointments = appointments.filter(
-            status__iexact="Pending"
-        ).count()
+        pending_appointments = (
+            appointments
+            .filter(
+                status__iexact="Pending"
+            )
+            .count()
+        )
 
-        confirmed_appointments = appointments.filter(
-            status__iexact="Confirmed"
-        ).count()
+        confirmed_appointments = (
+            appointments
+            .filter(
+                status__iexact="Confirmed"
+            )
+            .count()
+        )
 
-        completed_appointments = appointments.filter(
-            status__iexact="Completed"
-        ).count()
+        completed_appointments = (
+            appointments
+            .filter(
+                status__iexact="Completed"
+            )
+            .count()
+        )
 
-        cancelled_appointments = appointments.filter(
-            status__iexact="Cancelled"
-        ).count()
+        cancelled_appointments = (
+            appointments
+            .filter(
+                status__iexact="Cancelled"
+            )
+            .count()
+        )
 
         # ======================================================
         # PAYMENTS
         # ======================================================
 
         payments = Payment.objects.all()
-
-        # Total revenue = successfully paid amount
 
         total_revenue = (
             payments
@@ -218,11 +243,13 @@ class DashboardAPIView(APIView):
             or Decimal("0.00")
         )
 
-        # Pending payment count
-
-        pending_payments = payments.filter(
-            payment_status__iexact="Pending"
-        ).count()
+        pending_payments = (
+            payments
+            .filter(
+                payment_status__iexact="Pending"
+            )
+            .count()
+        )
 
         # ======================================================
         # DIAGNOSTIC BOOKINGS
@@ -250,7 +277,9 @@ class DashboardAPIView(APIView):
 
         unread_notifications = (
             Notification.objects
-            .filter(is_read=False)
+            .filter(
+                is_read=False
+            )
             .count()
         )
 
@@ -260,15 +289,7 @@ class DashboardAPIView(APIView):
 
         data = {
 
-            # --------------------------------------------------
-            # PATIENTS
-            # --------------------------------------------------
-
             "total_patients": total_patients,
-
-            # --------------------------------------------------
-            # DOCTORS
-            # --------------------------------------------------
 
             "total_doctors": total_doctors,
 
@@ -279,10 +300,6 @@ class DashboardAPIView(APIView):
             "approved_doctors": (
                 approved_doctors
             ),
-
-            # --------------------------------------------------
-            # APPOINTMENTS
-            # --------------------------------------------------
 
             "total_appointments": (
                 total_appointments
@@ -296,35 +313,21 @@ class DashboardAPIView(APIView):
                 upcoming_appointments
             ),
 
-            # --------------------------------------------------
-            # PAYMENTS
-            # --------------------------------------------------
-
-            "total_revenue": total_revenue,
+            "total_revenue": (
+                total_revenue
+            ),
 
             "pending_payments": (
                 pending_payments
             ),
 
-            # --------------------------------------------------
-            # DIAGNOSTICS
-            # --------------------------------------------------
-
             "total_diagnostic_bookings": (
                 total_diagnostic_bookings
             ),
 
-            # --------------------------------------------------
-            # MEDICAL REPORTS
-            # --------------------------------------------------
-
             "total_medical_reports": (
                 total_medical_reports
             ),
-
-            # --------------------------------------------------
-            # NOTIFICATIONS
-            # --------------------------------------------------
 
             "total_notifications": (
                 total_notifications
@@ -333,10 +336,6 @@ class DashboardAPIView(APIView):
             "unread_notifications": (
                 unread_notifications
             ),
-
-            # --------------------------------------------------
-            # APPOINTMENT BREAKDOWN
-            # --------------------------------------------------
 
             "pending_appointments": (
                 pending_appointments
@@ -356,7 +355,7 @@ class DashboardAPIView(APIView):
         }
 
         # ======================================================
-        # SERIALIZER
+        # SERIALIZE
         # ======================================================
 
         serializer = AdminDashboardSerializer(
@@ -379,8 +378,7 @@ class DashboardAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-
-    # ==========================================================
+        # ==========================================================
     # PATIENT DASHBOARD
     # ==========================================================
 

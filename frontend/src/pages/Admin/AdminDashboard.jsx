@@ -1,10 +1,69 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+    FaArrowRight,
+    FaBell,
+    FaCalendarAlt,
+    FaCalendarCheck,
+    FaCalendarDay,
+    FaChartPie,
+    FaCheckCircle,
+    FaCheckDouble,
+    FaClock,
+    FaCog,
+    FaCreditCard,
+    FaExclamationTriangle,
+    FaFileMedical,
+    FaHeartbeat,
+    FaMoneyBillWave,
+    FaRedo,
+    FaShieldAlt,
+    FaSignOutAlt,
+    FaTimesCircle,
+    FaUserClock,
+    FaUserInjured,
+    FaUserMd,
+    FaUserCheck,
+    FaVials,
+} from "react-icons/fa";
 
 import useAuth from "../../context/useAuth";
 import { getDashboardData } from "../../services/dashboardApi";
 
 import "./AdminDashboard.css";
+
+const dashboardIcons = {
+    "fas fa-arrow-right": FaArrowRight,
+    "fas fa-bell": FaBell,
+    "fas fa-calendar-alt": FaCalendarAlt,
+    "fas fa-calendar-check": FaCalendarCheck,
+    "fas fa-calendar-day": FaCalendarDay,
+    "fas fa-chart-pie": FaChartPie,
+    "fas fa-check-circle": FaCheckCircle,
+    "fas fa-check-double": FaCheckDouble,
+    "fas fa-clock": FaClock,
+    "fas fa-cog": FaCog,
+    "fas fa-credit-card": FaCreditCard,
+    "fas fa-exclamation-triangle": FaExclamationTriangle,
+    "fas fa-file-medical": FaFileMedical,
+    "fas fa-heartbeat": FaHeartbeat,
+    "fas fa-money-bill-wave": FaMoneyBillWave,
+    "fas fa-redo": FaRedo,
+    "fas fa-shield-alt": FaShieldAlt,
+    "fas fa-sign-out-alt": FaSignOutAlt,
+    "fas fa-times-circle": FaTimesCircle,
+    "fas fa-user-check": FaUserCheck,
+    "fas fa-user-clock": FaUserClock,
+    "fas fa-user-injured": FaUserInjured,
+    "fas fa-user-md": FaUserMd,
+    "fas fa-vials": FaVials,
+};
+
+function DashboardIcon({ name, ...props }) {
+    const Icon = dashboardIcons[name];
+
+    return Icon ? <Icon aria-hidden="true" {...props} /> : null;
+}
 
 
 export default function AdminDashboard() {
@@ -18,6 +77,16 @@ export default function AdminDashboard() {
         user?.first_name ||
         user?.username ||
         "Administrator";
+
+    const todayLabel = new Intl.DateTimeFormat(
+        "en-US",
+        {
+            weekday: "long",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        }
+    ).format(new Date());
 
 
     // ==========================================================
@@ -266,7 +335,7 @@ export default function AdminDashboard() {
                 <div className="error-card">
 
                     <div className="error-icon">
-                        <i className="fas fa-exclamation-triangle"></i>
+                        <DashboardIcon name="fas fa-exclamation-triangle" />
                     </div>
 
                     <h3>
@@ -284,7 +353,7 @@ export default function AdminDashboard() {
                             window.location.reload()
                         }
                     >
-                        <i className="fas fa-redo"></i>
+                        <DashboardIcon name="fas fa-redo" />
                         Try Again
                     </button>
 
@@ -310,7 +379,7 @@ export default function AdminDashboard() {
                 <div className="admin-logo">
 
                     <div className="admin-logo-icon">
-                        <i className="fas fa-heartbeat"></i>
+                        <DashboardIcon name="fas fa-heartbeat" />
                     </div>
 
                     <div>
@@ -336,7 +405,7 @@ export default function AdminDashboard() {
                         to="/admin/dashboard"
                         className="admin-nav-link active"
                     >
-                        <i className="fas fa-chart-pie"></i>
+                        <DashboardIcon name="fas fa-chart-pie" />
                         <span>Dashboard</span>
                     </Link>
 
@@ -349,7 +418,7 @@ export default function AdminDashboard() {
                         to="/admin/doctor-requests"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-user-clock"></i>
+                        <DashboardIcon name="fas fa-user-clock" />
                         <span>Doctor Requests</span>
 
                         {Number(
@@ -365,7 +434,7 @@ export default function AdminDashboard() {
                         to="/admin/doctors"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-user-md"></i>
+                        <DashboardIcon name="fas fa-user-md" />
                         <span>Doctors</span>
                     </Link>
 
@@ -373,7 +442,7 @@ export default function AdminDashboard() {
                         to="/admin/patients"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-user-injured"></i>
+                        <DashboardIcon name="fas fa-user-injured" />
                         <span>Patients</span>
                     </Link>
 
@@ -381,7 +450,7 @@ export default function AdminDashboard() {
                         to="/admin/appointments"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-calendar-check"></i>
+                        <DashboardIcon name="fas fa-calendar-check" />
                         <span>Appointments</span>
                     </Link>
 
@@ -389,7 +458,7 @@ export default function AdminDashboard() {
                         to="/admin/payments"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-credit-card"></i>
+                        <DashboardIcon name="fas fa-credit-card" />
                         <span>Payments</span>
                     </Link>
 
@@ -397,7 +466,7 @@ export default function AdminDashboard() {
                         to="/tests"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-vials"></i>
+                        <DashboardIcon name="fas fa-vials" />
                         <span>Diagnostics</span>
                     </Link>
 
@@ -405,7 +474,7 @@ export default function AdminDashboard() {
                         to="/reports"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-file-medical"></i>
+                        <DashboardIcon name="fas fa-file-medical" />
                         <span>Medical Reports</span>
                     </Link>
 
@@ -418,7 +487,7 @@ export default function AdminDashboard() {
                         to="/notifications"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-bell"></i>
+                        <DashboardIcon name="fas fa-bell" />
                         <span>Notifications</span>
 
                         {Number(
@@ -434,7 +503,7 @@ export default function AdminDashboard() {
                         to="/settings"
                         className="admin-nav-link"
                     >
-                        <i className="fas fa-cog"></i>
+                        <DashboardIcon name="fas fa-cog" />
                         <span>Settings</span>
                     </Link>
 
@@ -448,7 +517,7 @@ export default function AdminDashboard() {
                         className="sidebar-logout"
                         onClick={logout}
                     >
-                        <i className="fas fa-sign-out-alt"></i>
+                        <DashboardIcon name="fas fa-sign-out-alt" />
                         <span>Logout</span>
                     </button>
 
@@ -475,7 +544,7 @@ export default function AdminDashboard() {
                         </span>
 
                         <h2>
-                            Admin Dashboard
+                            Operations Overview
                         </h2>
                     </div>
 
@@ -487,7 +556,7 @@ export default function AdminDashboard() {
                             className="header-icon"
                             title="Notifications"
                         >
-                            <i className="fas fa-bell"></i>
+                            <DashboardIcon name="fas fa-bell" />
 
                             {Number(
                                 dashboard.unread_notifications || 0
@@ -535,19 +604,26 @@ export default function AdminDashboard() {
                         <div>
 
                             <span className="welcome-badge">
-                                <i className="fas fa-shield-alt"></i>
-                                Administrator Access
+                                <DashboardIcon name="fas fa-shield-alt" />
+                                Admin Operations
                             </span>
 
                             <h3>
-                                Welcome back, {firstName}! 👋
+                                Welcome back, {firstName}.
                             </h3>
 
                             <p>
-                                Monitor and manage your
-                                healthcare system from
-                                one central dashboard.
+                                Keep the clinic moving with a clear view of
+                                people, bookings, payments, and care delivery.
                             </p>
+
+                            <div className="welcome-meta">
+                                <span className="live-indicator">
+                                    <span></span>
+                                    System online
+                                </span>
+                                <span>{todayLabel}</span>
+                            </div>
 
                         </div>
 
@@ -556,8 +632,8 @@ export default function AdminDashboard() {
                             to="/admin/doctor-requests"
                             className="primary-action"
                         >
-                            <i className="fas fa-user-clock"></i>
-                            Review Doctor Requests
+                            <DashboardIcon name="fas fa-user-clock" />
+                            Review pending requests
                         </Link>
 
                     </section>
@@ -595,7 +671,7 @@ export default function AdminDashboard() {
 
                                         <span className="stat-link-text">
                                             View details
-                                            <i className="fas fa-arrow-right"></i>
+                                            <DashboardIcon name="fas fa-arrow-right" />
                                         </span>
 
                                     </div>
@@ -604,7 +680,7 @@ export default function AdminDashboard() {
                                     <div
                                         className={`stat-icon ${stat.className}`}
                                     >
-                                        <i className={stat.icon}></i>
+                                            <DashboardIcon name={stat.icon} />
                                     </div>
 
                                 </div>
@@ -646,7 +722,7 @@ export default function AdminDashboard() {
                                 className="view-all"
                             >
                                 View All
-                                <i className="fas fa-arrow-right"></i>
+                                <DashboardIcon name="fas fa-arrow-right" />
                             </Link>
 
                         </div>
@@ -662,7 +738,7 @@ export default function AdminDashboard() {
                                     >
 
                                         <div className="status-icon">
-                                            <i className={item.icon}></i>
+                                            <DashboardIcon name={item.icon} />
                                         </div>
 
                                         <div>
@@ -717,7 +793,7 @@ export default function AdminDashboard() {
                         <div className="summary-grid">
 
                             <div className="summary-item">
-                                <i className="fas fa-calendar-day"></i>
+                                <DashboardIcon name="fas fa-calendar-day" />
 
                                 <div>
                                     <span>
@@ -734,7 +810,7 @@ export default function AdminDashboard() {
 
 
                             <div className="summary-item">
-                                <i className="fas fa-calendar-alt"></i>
+                                <DashboardIcon name="fas fa-calendar-alt" />
 
                                 <div>
                                     <span>
@@ -751,7 +827,7 @@ export default function AdminDashboard() {
 
 
                             <div className="summary-item">
-                                <i className="fas fa-user-clock"></i>
+                                <DashboardIcon name="fas fa-user-clock" />
 
                                 <div>
                                     <span>
@@ -768,7 +844,7 @@ export default function AdminDashboard() {
 
 
                             <div className="summary-item">
-                                <i className="fas fa-money-bill-wave"></i>
+                                <DashboardIcon name="fas fa-money-bill-wave" />
 
                                 <div>
                                     <span>

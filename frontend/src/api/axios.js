@@ -1,214 +1,78 @@
 import axios from "axios";
 
-
 // ==========================================================
 // Axios Instance
 // ==========================================================
 
 const api = axios.create({
-
-    baseURL:
-
-        "http://127.0.0.1:8000/api/",
-
+    baseURL: "http://127.0.0.1:8000/api/",
 });
-
 
 // ==========================================================
 // Token Helpers
 // ==========================================================
 
 const getAccessToken = () => {
-
     return (
-
-        localStorage.getItem(
-            "access"
-        )
-
-        ||
-
-        sessionStorage.getItem(
-            "access"
-        )
-
+        localStorage.getItem("access") ||
+        sessionStorage.getItem("access")
     );
-
 };
-
 
 const getRefreshToken = () => {
-
     return (
-
-        localStorage.getItem(
-            "refresh"
-        )
-
-        ||
-
-        sessionStorage.getItem(
-            "refresh"
-        )
-
+        localStorage.getItem("refresh") ||
+        sessionStorage.getItem("refresh")
     );
-
 };
-
 
 const clearTokens = () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
 
-    localStorage.removeItem(
-        "access"
-    );
-
-    localStorage.removeItem(
-        "refresh"
-    );
-
-
-    sessionStorage.removeItem(
-        "access"
-    );
-
-    sessionStorage.removeItem(
-        "refresh"
-    );
-
+    sessionStorage.removeItem("access");
+    sessionStorage.removeItem("refresh");
 };
 
+const saveAccessToken = (newAccessToken) => {
+    // যে storage-এ refresh token আছে,
+    // access token-ও সেই storage-এ save হবে।
 
-const saveAccessToken = (
-    newAccessToken
-) => {
-
-    if (
-
-        localStorage.getItem(
-            "refresh"
-        )
-
-    ) {
-
-        localStorage.setItem(
-
-            "access",
-
-            newAccessToken
-
-        );
-
+    if (localStorage.getItem("refresh")) {
+        localStorage.setItem("access", newAccessToken);
+    } else {
+        sessionStorage.setItem("access", newAccessToken);
     }
-
-    else {
-
-        sessionStorage.setItem(
-
-            "access",
-
-            newAccessToken
-
-        );
-
-    }
-
 };
-
 
 // ==========================================================
 // Request Interceptor
-//
-// 1. Attach JWT Token
-// 2. Handle FormData/File Upload
+// Attach JWT Token
 // ==========================================================
 
 api.interceptors.request.use(
+    (config) => {
+        const accessToken = getAccessToken();
 
-    (
-        config
-    ) => {
+        if (accessToken) {
+            config.headers = config.headers || {};
 
-        const accessToken =
-            getAccessToken();
-
-
-        // --------------------------------------------------
-        // Attach JWT Token
-        // --------------------------------------------------
-
-        if (
-
-            accessToken
-
-        ) {
-
-            config.headers =
-                config.headers
-                ||
-                {};
-
-
-            config.headers.Authorization =
-
-                `Bearer ${accessToken}`;
-
+            config.headers.Authorization = `Bearer ${accessToken}`;
         }
 
+        // FormData হলে Content-Type manually set করা যাবে না।
+        // Browser নিজে multipart boundary তৈরি করবে।
 
-        // --------------------------------------------------
-        // IMPORTANT:
-        // FormData / File Upload
-        //
-        // Browser must automatically generate:
-        //
-        // multipart/form-data; boundary=...
-        //
-        // Do NOT force application/json
-        // Do NOT manually force multipart/form-data
-        // --------------------------------------------------
-
-        if (
-
-            config.data
-            instanceof
-            FormData
-
-        ) {
-
-            if (
-
-                config.headers
-
-            ) {
-
-                delete config.headers[
-                    "Content-Type"
-                ];
-
-            }
-
+        if (config.data instanceof FormData) {
+            delete config.headers?.["Content-Type"];
         }
 
-
-        return (
-            config
-        );
-
+        return config;
     },
-
-
-    (
-        error
-    ) => {
-
-        return Promise.reject(
-            error
-        );
-
+    (error) => {
+        return Promise.reject(error);
     }
-
 );
-
 
 // ==========================================================
 // Response Interceptor
@@ -216,246 +80,97 @@ api.interceptors.request.use(
 // ==========================================================
 
 api.interceptors.response.use(
-
-    (
-        response
-    ) => {
-
-        return (
-            response
-        );
-
+    (response) => {
+        return response;
     },
 
+    async (error) => {
+        const originalRequest = error.config;
 
-    async (
-        error
-    ) => {
-
-        const originalRequest =
-            error.config;
-
-
-        // --------------------------------------------------
-        // No response from server
-        // --------------------------------------------------
-
-        if (
-
-            !error.response
-
-        ) {
-
-            return Promise.reject(
-                error
-            );
-
+        // Server response না থাকলে
+        if (!error.response) {
+            return Promise.reject(error);
         }
 
-
-        // --------------------------------------------------
-        // Only handle 401 errors
-        // --------------------------------------------------
-
+        // শুধু 401 Unauthorized handle করবে
         if (
-
-            error.response.status
-            !==
-            401
-
-            ||
-
+            error.response.status !== 401 ||
             originalRequest?._retry
-
         ) {
-
-            return Promise.reject(
-                error
-            );
-
+            return Promise.reject(error);
         }
 
+        const requestUrl = originalRequest?.url || "";
 
-        // --------------------------------------------------
-        // Do not refresh login/register/refresh requests
-        // --------------------------------------------------
-
-        const requestUrl =
-
-            originalRequest?.url
-
-            ||
-
-            "";
-
+        // Login, register এবং refresh request-এর জন্য
+        // আবার token refresh করার চেষ্টা করবে না।
 
         if (
-
-            requestUrl.includes(
-                "accounts/login/"
-            )
-
-            ||
-
-            requestUrl.includes(
-                "accounts/register/"
-            )
-
-            ||
-
-            requestUrl.includes(
-                "accounts/refresh/"
-            )
-
+            requestUrl.includes("accounts/login/") ||
+            requestUrl.includes("accounts/register/") ||
+            requestUrl.includes("accounts/refresh/")
         ) {
-
-            return Promise.reject(
-                error
-            );
-
+            return Promise.reject(error);
         }
 
+        originalRequest._retry = true;
 
-        originalRequest._retry =
-            true;
+        const refreshToken = getRefreshToken();
 
-
-        const refreshToken =
-            getRefreshToken();
-
-
-        // --------------------------------------------------
-        // No Refresh Token
-        // --------------------------------------------------
-
-        if (
-
-            !refreshToken
-
-        ) {
-
+        // Refresh token না থাকলে logout-এর মতো token clear করবে
+        if (!refreshToken) {
             clearTokens();
 
-            return Promise.reject(
-                error
-            );
-
+            return Promise.reject(error);
         }
-
 
         try {
+            // api instance ব্যবহার না করে axios ব্যবহার করা হয়েছে,
+            // যাতে refresh request আবার interceptor loop-এ না যায়।
 
-            const refreshResponse =
-                await axios.post(
-
-                    "http://127.0.0.1:8000/api/accounts/refresh/",
-
-                    {
-
-                        refresh:
-                            refreshToken,
-
-                    }
-
-                );
-
-
-            const newAccessToken =
-
-                refreshResponse.data.access;
-
-
-            if (
-
-                !newAccessToken
-
-            ) {
-
-                throw new Error(
-
-                    "New access token was not returned."
-
-                );
-
-            }
-
-
-            // --------------------------------------------------
-            // Save New Access Token
-            // --------------------------------------------------
-
-            saveAccessToken(
-                newAccessToken
+            const refreshResponse = await axios.post(
+                "http://127.0.0.1:8000/api/accounts/refresh/",
+                {
+                    refresh: refreshToken,
+                }
             );
 
+            const newAccessToken = refreshResponse.data.access;
 
-            // --------------------------------------------------
-            // Retry Original Request
-            // --------------------------------------------------
+            if (!newAccessToken) {
+                throw new Error(
+                    "New access token was not returned."
+                );
+            }
 
+            // নতুন access token save
+            saveAccessToken(newAccessToken);
+
+            // Original request-এ নতুন token বসানো
             originalRequest.headers =
-
-                originalRequest.headers
-                ||
-                {};
-
+                originalRequest.headers || {};
 
             originalRequest.headers.Authorization =
-
                 `Bearer ${newAccessToken}`;
 
-
-            // --------------------------------------------------
-            // Important:
-            // Preserve FormData request
-            // --------------------------------------------------
-
-            if (
-
-                originalRequest.data
-                instanceof
-                FormData
-
-            ) {
-
-                delete originalRequest.headers[
-                    "Content-Type"
-                ];
-
+            // FormData হলে Content-Type remove করবে
+            if (originalRequest.data instanceof FormData) {
+                delete originalRequest.headers["Content-Type"];
             }
 
-
-            return api(
-                originalRequest
-            );
-
-        }
-
-        catch (
-            refreshError
-        ) {
-
+            // আগের request আবার পাঠানো
+            return api(originalRequest);
+        } catch (refreshError) {
             console.error(
-
                 "Token refresh failed:",
-
                 refreshError
-
             );
-
 
             clearTokens();
 
-
-            return Promise.reject(
-                refreshError
-            );
-
+            return Promise.reject(refreshError);
         }
-
     }
-
 );
-
 
 export default api;

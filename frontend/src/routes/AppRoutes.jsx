@@ -47,6 +47,9 @@ import AdminPayments
 import AdminSupport
     from "../pages/Admin/AdminSupport";
 
+import AdminDoctorRequests
+    from "../pages/Admin/AdminDoctorRequests";
+
 
 // ==========================================================
 // Doctor
@@ -292,6 +295,28 @@ export default function AppRoutes() {
                         >
 
                             <AdminUsers />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+
+                {/* ==================================================
+                    ADMIN DOCTOR APPROVAL
+                ================================================== */}
+
+                <Route
+                    path="/admin/doctor-requests"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "admin",
+                            ]}
+                        >
+
+                            <AdminDoctorRequests />
 
                         </RoleRoute>
 

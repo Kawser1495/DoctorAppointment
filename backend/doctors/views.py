@@ -3,12 +3,12 @@ from datetime import datetime, date
 from django.db import models
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 from rest_framework import generics, status
 from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
-    IsAdminUser,
 )
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
@@ -21,7 +21,7 @@ from rest_framework.parsers import (
 from rest_framework.response import Response
 
 from accounts.models import CustomUser
-from accounts.permissions import IsDoctor
+from accounts.permissions import IsAdmin, IsDoctor
 
 from appointments.models import Appointment
 
@@ -90,7 +90,7 @@ class DoctorListView(generics.ListAPIView):
                 is_available=True,
                 user__is_active=True,
                 user__role="doctor",
-                user__doctor_status="approved",
+                approval_status="approved",
             )
             .select_related(
                 "user",
@@ -141,7 +141,7 @@ class DoctorDetailView(generics.RetrieveAPIView):
 
             user__role="doctor",
 
-            user__doctor_status="approved",
+            approval_status="approved",
         )
 
 
@@ -184,7 +184,7 @@ class DoctorSearchView(generics.ListAPIView):
                 is_available=True,
                 user__is_active=True,
                 user__role="doctor",
-                user__doctor_status="approved",
+                approval_status="approved",
             )
             .select_related(
                 "user",
@@ -230,7 +230,7 @@ class DoctorByDepartmentView(generics.ListAPIView):
                 is_available=True,
                 user__is_active=True,
                 user__role="doctor",
-                user__doctor_status="approved",
+                approval_status="approved",
             )
             .select_related(
                 "user",
@@ -276,7 +276,7 @@ class DoctorScheduleListView(generics.ListAPIView):
                 doctor__is_available=True,
                 doctor__user__is_active=True,
                 doctor__user__role="doctor",
-                doctor__user__doctor_status="approved",
+                doctor__approval_status="approved",
                 is_active=True,
             )
             .select_related(
@@ -351,7 +351,7 @@ class DoctorScheduleManageView(
             user__role="doctor",
         )
 
-        if doctor.user.doctor_status != "approved":
+        if doctor.approval_status != "approved":
 
             raise ValidationError({
                 "detail":
@@ -421,7 +421,7 @@ class AvailableTimeSlotAPIView(generics.ListAPIView):
 
                 schedule__doctor__user__role="doctor",
 
-                schedule__doctor__user__doctor_status="approved",
+                schedule__doctor__approval_status="approved",
 
                 schedule__is_active=True,
 
@@ -760,10 +760,10 @@ class DoctorDashboardView(
                 doctor.is_available,
 
                 "doctor_status":
-                doctor.user.doctor_status,
+                doctor.approval_status,
 
                 "doctor_rejection_reason":
-                doctor.user.doctor_rejection_reason,
+                doctor.rejection_reason,
 
             },
 
@@ -822,7 +822,8 @@ class AdminPendingDoctorListView(
     serializer_class = DoctorSerializer
 
     permission_classes = [
-        IsAdminUser
+        IsAuthenticated,
+        IsAdmin,
     ]
 
     pagination_class = None
@@ -833,7 +834,7 @@ class AdminPendingDoctorListView(
             Doctor.objects
             .filter(
                 user__role="doctor",
-                user__doctor_status="pending",
+                approval_status="pending",
             )
             .select_related(
                 "user",
@@ -859,7 +860,8 @@ class AdminDoctorListView(
     serializer_class = DoctorSerializer
 
     permission_classes = [
-        IsAdminUser
+        IsAuthenticated,
+        IsAdmin,
     ]
 
     pagination_class = None
@@ -906,7 +908,7 @@ class PublicDoctorListView(
             Doctor.objects
             .filter(
                 user__role="doctor",
-                user__doctor_status="approved",
+                approval_status="approved",
                 user__is_active=True,
                 is_available=True,
             )
@@ -934,7 +936,8 @@ class PublicDoctorListView(
 class AdminApproveDoctorView(APIView):
 
     permission_classes = [
-        IsAdminUser
+        IsAuthenticated,
+        IsAdmin,
     ]
 
     def post(self, request, doctor_id):
@@ -967,6 +970,19 @@ class AdminApproveDoctorView(APIView):
         doctor.user.is_verified = True
 
         doctor.user.doctor_rejection_reason = ""
+
+        doctor.approval_status = "approved"
+        doctor.rejection_reason = ""
+        doctor.approved_at = timezone.now()
+
+        doctor.save(
+            update_fields=[
+                "approval_status",
+                "rejection_reason",
+                "approved_at",
+                "updated_at",
+            ]
+        )
 
         doctor.user.save(
             update_fields=[
@@ -1003,7 +1019,8 @@ class AdminApproveDoctorView(APIView):
 class AdminRejectDoctorView(APIView):
 
     permission_classes = [
-        IsAdminUser
+        IsAuthenticated,
+        IsAdmin,
     ]
 
     def post(self, request, doctor_id):
@@ -1048,6 +1065,19 @@ class AdminRejectDoctorView(APIView):
 
         doctor.user.doctor_rejection_reason = (
             rejection_reason
+        )
+
+        doctor.approval_status = "rejected"
+        doctor.rejection_reason = rejection_reason
+        doctor.approved_at = None
+
+        doctor.save(
+            update_fields=[
+                "approval_status",
+                "rejection_reason",
+                "approved_at",
+                "updated_at",
+            ]
         )
 
         doctor.user.save(

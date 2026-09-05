@@ -1,20 +1,16 @@
 import api from "./axios";
 
-
 // ==========================================================
 // Register
 // POST: /api/accounts/register/
 // ==========================================================
 
 export const registerApi = (data) => {
-
     return api.post(
-        "accounts/register/",
+        "/accounts/register/",
         data
     );
-
 };
-
 
 // ==========================================================
 // Login
@@ -22,14 +18,11 @@ export const registerApi = (data) => {
 // ==========================================================
 
 export const loginApi = (data) => {
-
     return api.post(
-        "accounts/login/",
+        "/accounts/login/",
         data
     );
-
 };
-
 
 // ==========================================================
 // Refresh Token
@@ -37,12 +30,10 @@ export const loginApi = (data) => {
 // ==========================================================
 
 export const refreshTokenApi = (refresh) => {
-
     return api.post(
-        "accounts/refresh/",
+        "/accounts/refresh/",
         {
             refresh,
         }
     );
-
 };

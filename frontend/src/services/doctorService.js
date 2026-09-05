@@ -206,3 +206,48 @@ export const replaceDoctorProfile = async (
     );
 
 };
+
+
+// ==========================================================
+// Admin: Pending Doctor Requests
+// ==========================================================
+
+export const getPendingDoctorRequests = async () => {
+
+    return await api.get(
+        "doctors/admin/pending/"
+    );
+
+};
+
+
+// ==========================================================
+// Admin: Approve Doctor
+// ==========================================================
+
+export const approveDoctor = async (doctorId) => {
+
+    return await api.post(
+        `doctors/admin/${doctorId}/approve/`
+    );
+
+};
+
+
+// ==========================================================
+// Admin: Reject Doctor
+// ==========================================================
+
+export const rejectDoctor = async (
+    doctorId,
+    rejectionReason
+) => {
+
+    return await api.post(
+        `doctors/admin/${doctorId}/reject/`,
+        {
+            rejection_reason: rejectionReason,
+        }
+    );
+
+};

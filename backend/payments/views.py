@@ -28,6 +28,8 @@ from rest_framework.views import (
     APIView,
 )
 
+from accounts.permissions import IsAdmin
+
 from .models import (
     Payment,
 )
@@ -528,6 +530,7 @@ class AdminPaymentListView(
     permission_classes = [
 
         IsAuthenticated,
+        IsAdmin,
 
     ]
 
@@ -541,7 +544,8 @@ class AdminPaymentListView(
         # ==================================================
 
         if not (
-            self.request.user.is_staff
+            self.request.user.role == "admin"
+            or self.request.user.is_superuser
         ):
 
             return (
@@ -598,6 +602,7 @@ class PaymentStatusUpdateView(
     permission_classes = [
 
         IsAuthenticated,
+        IsAdmin,
 
     ]
 
@@ -660,7 +665,10 @@ class PaymentStatusUpdateView(
         # Admin Check
         # ==================================================
 
-        if not request.user.is_staff:
+        if not (
+            request.user.role == "admin"
+            or request.user.is_superuser
+        ):
 
             return Response(
 
@@ -990,6 +998,7 @@ class PaymentRefundView(
     permission_classes = [
 
         IsAuthenticated,
+        IsAdmin,
 
     ]
 
@@ -1008,7 +1017,10 @@ class PaymentRefundView(
         # Admin Check
         # ==================================================
 
-        if not request.user.is_staff:
+        if not (
+            request.user.role == "admin"
+            or request.user.is_superuser
+        ):
 
             return Response(
 

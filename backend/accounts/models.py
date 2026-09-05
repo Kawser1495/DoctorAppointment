@@ -15,29 +15,13 @@ class CustomUserManager(UserManager):
         password=None,
         **extra_fields
     ):
-
-        extra_fields.setdefault(
-            "is_staff",
-            True
-        )
-
-        extra_fields.setdefault(
-            "is_superuser",
-            True
-        )
-
-        extra_fields.setdefault(
-            "is_active",
-            True
-        )
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
 
         # Superuser must always be Admin
         extra_fields["role"] = "admin"
-
-        extra_fields["doctor_status"] = (
-            "not_applicable"
-        )
-
+        extra_fields["doctor_status"] = "not_applicable"
         extra_fields["is_verified"] = True
 
         return super().create_superuser(
@@ -96,22 +80,10 @@ class CustomUser(AbstractUser):
     # ======================================================
 
     DOCTOR_STATUS_CHOICES = (
-        (
-            "not_applicable",
-            "Not Applicable"
-        ),
-        (
-            "pending",
-            "Pending"
-        ),
-        (
-            "approved",
-            "Approved"
-        ),
-        (
-            "rejected",
-            "Rejected"
-        ),
+        ("not_applicable", "Not Applicable"),
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
     )
 
     doctor_status = models.CharField(
@@ -149,33 +121,24 @@ class CustomUser(AbstractUser):
     # ======================================================
 
     class Meta:
-
-        ordering = [
-            "username"
-        ]
+        ordering = ["username"]
 
     # ======================================================
     # STRING REPRESENTATION
     # ======================================================
 
     def __str__(self):
-
         return self.username
 
     # ======================================================
     # SAVE
-    #
     # Keeps doctor_status consistent with role.
     # ======================================================
 
     def save(self, *args, **kwargs):
 
         if self.role != "doctor":
-
-            self.doctor_status = (
-                "not_applicable"
-            )
-
+            self.doctor_status = "not_applicable"
             self.doctor_rejection_reason = None
 
         super().save(*args, **kwargs)
@@ -186,25 +149,18 @@ class CustomUser(AbstractUser):
 
     @property
     def is_admin_role(self):
-
-        return (
-            self.role == "admin"
-            or self.is_superuser
-        )
+        return self.role == "admin" or self.is_superuser
 
     @property
     def is_doctor_role(self):
-
         return self.role == "doctor"
 
     @property
     def is_patient_role(self):
-
         return self.role == "patient"
 
     @property
     def is_receptionist_role(self):
-
         return self.role == "receptionist"
 
     # ======================================================
@@ -213,7 +169,6 @@ class CustomUser(AbstractUser):
 
     @property
     def is_doctor_pending(self):
-
         return (
             self.role == "doctor"
             and self.doctor_status == "pending"
@@ -221,7 +176,6 @@ class CustomUser(AbstractUser):
 
     @property
     def is_doctor_approved(self):
-
         return (
             self.role == "doctor"
             and self.doctor_status == "approved"
@@ -229,7 +183,6 @@ class CustomUser(AbstractUser):
 
     @property
     def is_doctor_rejected(self):
-
         return (
             self.role == "doctor"
             and self.doctor_status == "rejected"

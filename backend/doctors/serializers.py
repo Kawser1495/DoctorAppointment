@@ -35,7 +35,7 @@ class DepartmentSerializer(
             is_available=True,
             user__is_active=True,
             user__role="doctor",
-            user__doctor_status="approved",
+            approval_status="approved",
         ).count()
 
 
@@ -79,12 +79,12 @@ class DoctorSerializer(
     # ======================================================
 
     doctor_status = serializers.CharField(
-        source="user.doctor_status",
+        source="approval_status",
         read_only=True,
     )
 
     doctor_rejection_reason = serializers.CharField(
-        source="user.doctor_rejection_reason",
+        source="rejection_reason",
         read_only=True,
         allow_null=True,
     )
