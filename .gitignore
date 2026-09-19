@@ -4,3 +4,10 @@ __pycache__/
 *.log
 .DS_Store
 repo-backup-before-history-cleanup.bundle
+backend/venv/
+*.pyc
+
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/staticfiles/

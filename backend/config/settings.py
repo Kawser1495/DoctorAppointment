@@ -171,17 +171,27 @@ WSGI_APPLICATION = "config.wsgi.application"
 # DATABASE
 # ==========================================================
 
-DATABASES = {
-
-    "default": {
-
-        "ENGINE": "django.db.backends.sqlite3",
-
-        "NAME": BASE_DIR / "db.sqlite3",
-
+if os.getenv("POSTGRES_HOST"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB"),
+            "USER": os.getenv("POSTGRES_USER"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+            "HOST": os.getenv("POSTGRES_HOST"),
+            "PORT": os.getenv("POSTGRES_PORT", "5432"),
+            "OPTIONS": {
+                "sslmode": os.getenv("POSTGRES_SSLMODE", "disable"),
+            },
+        }
     }
-
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # ==========================================================
@@ -335,24 +345,21 @@ SIMPLE_JWT = {
 # ==========================================================
 
 CORS_ALLOWED_ORIGINS = [
-
-    "http://localhost:5173",
-
-    "http://127.0.0.1:5173",
-
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
 ]
 
-
-# ==========================================================
-# CSRF
-# ==========================================================
-
 CSRF_TRUSTED_ORIGINS = [
-
-    "http://localhost:8000",
-
-    "http://127.0.0.1:8000",
-
+    origin.strip()
+    for origin in os.getenv(
+        "CSRF_TRUSTED_ORIGINS",
+        "http://localhost:8000,http://127.0.0.1:8000"
+    ).split(",")
+    if origin.strip()
 ]
 
 
@@ -394,6 +401,7 @@ else:
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
     X_FRAME_OPTIONS = "DENY"
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # ==========================================================
