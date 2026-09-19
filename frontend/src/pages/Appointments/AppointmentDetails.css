@@ -1,0 +1,20 @@
+.appointment-page { width: min(100% - 32px, 980px); margin: 30px auto 60px; color: #123a40; }
+.appointment-reports-panel { margin-top: 24px; padding: 24px; border: 1px solid #dce9e6; border-radius: 12px; background: #f8fcfb; }
+.appointment-reports-panel__heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 18px; border-bottom: 1px solid #e1eeeb; }
+.appointment-reports-panel__heading span { color: #0d9b8f; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.appointment-reports-panel__heading h2 { margin: 6px 0 0; font-size: 22px; }
+.appointment-reports-panel__heading small { max-width: 280px; color: #6e8587; font-size: 11px; line-height: 1.5; }
+.appointment-report-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding-top: 20px; }
+.appointment-report-columns h3 { margin: 0 0 12px; font-size: 14px; }
+.appointment-report-card { padding: 16px; border: 1px solid #dce9e6; border-radius: 9px; background: white; }
+.appointment-report-card + .appointment-report-card { margin-top: 10px; }
+.appointment-report-card__heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+.appointment-report-card__heading strong, .appointment-report-card__heading small { display: block; }
+.appointment-report-card__heading strong { font-size: 13px; }
+.appointment-report-card__heading small { margin-top: 4px; color: #789093; font-size: 10px; }
+.appointment-report-card__heading span { padding: 4px 7px; border-radius: 999px; color: #087a73; background: #e2f3ef; font-size: 9px; font-weight: 700; }
+.appointment-report-label { display: block; margin-top: 9px; color: #789093; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.appointment-report-card p { margin: 4px 0 0; color: #496c70; font-size: 11px; line-height: 1.55; white-space: pre-line; }
+.appointment-report-link { display: inline-block; margin-top: 13px; color: #0d9b8f; font-size: 10px; font-weight: 700; }
+.appointment-reports-empty { color: #789093; font-size: 11px; }
+@media (max-width: 700px) { .appointment-page { width: min(100% - 20px, 560px); margin-top: 18px; }.appointment-reports-panel { padding: 17px; }.appointment-reports-panel__heading { display: block; }.appointment-reports-panel__heading small { display: block; margin-top: 9px; }.appointment-report-columns { grid-template-columns: 1fr; } }
