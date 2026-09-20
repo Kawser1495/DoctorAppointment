@@ -8,6 +8,7 @@ import {
 import {
     getMedicalReports,
 } from "../../services/reportService";
+import { BACKEND_URL } from "../../config";
 
 import "./MedicalReports.css";
 
@@ -493,13 +494,7 @@ function MedicalReports() {
             }
 
 
-            const backendUrl =
-                import.meta.env
-                    ?.VITE_BACKEND_URL
-
-                ||
-
-                "http://127.0.0.1:8000";
+            const backendUrl = BACKEND_URL;
 
 
             return `${backendUrl}${reportFile}`;

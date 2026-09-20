@@ -199,3 +199,14 @@ export const getAdminAppointments =
 export const updateAdminAppointmentStatus = async (id, status) => {
     return await api.patch(`appointments/admin/${id}/status/`, { status });
 };
+
+export const getReceptionistAppointments = async () => {
+    return await api.get("appointments/receptionist/");
+};
+
+export const updateReceptionistAppointmentStatus = async (id, status) => {
+    return await api.patch(
+        `appointments/receptionist/${id}/status/`,
+        { status },
+    );
+};

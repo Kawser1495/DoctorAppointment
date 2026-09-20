@@ -11,3 +11,15 @@ backend/.env
 backend/.env.*
 !backend/.env.example
 backend/staticfiles/
+
+# Local databases, uploads, and generated deployment files
+*.sqlite3
+*.sqlite3-*
+backend/media/
+frontend/node_modules/
+frontend/dist/
+
+# Local environment files in any workspace folder
+.env
+.env.*
+!.env.example

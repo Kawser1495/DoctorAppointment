@@ -1,11 +1,12 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config";
 
 // ==========================================================
 // Axios Instance
 // ==========================================================
 
 const api = axios.create({
-    baseURL: "http://127.0.0.1:8000/api/",
+    baseURL: API_BASE_URL,
 });
 
 // ==========================================================
@@ -129,7 +130,7 @@ api.interceptors.response.use(
             // যাতে refresh request আবার interceptor loop-এ না যায়।
 
             const refreshResponse = await axios.post(
-                "http://127.0.0.1:8000/api/accounts/refresh/",
+                `${API_BASE_URL}accounts/refresh/`,
                 {
                     refresh: refreshToken,
                 }

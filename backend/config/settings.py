@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 
@@ -30,25 +31,41 @@ load_dotenv(BASE_DIR / ".env")
 # SECURITY
 # ==========================================================
 
+DEBUG = os.getenv(
+    "DEBUG",
+    "False" if os.getenv("WEBSITE_HOSTNAME") else "True",
+).lower() == "true"
+
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
     "django-insecure-development-only-key",
 )
 
-DEBUG = os.getenv(
-    "DEBUG",
-    "True",
-).lower() == "true"
+if not DEBUG and SECRET_KEY == "django-insecure-development-only-key":
+    raise ImproperlyConfigured(
+        "SECRET_KEY must be configured when DEBUG=False."
+    )
+
+default_allowed_hosts = (
+    "127.0.0.1,localhost"
+    if DEBUG
+    else ""
+)
 
 
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv(
         "ALLOWED_HOSTS",
-        "127.0.0.1,localhost",
+        default_allowed_hosts,
     ).split(",")
     if host.strip()
 ]
+
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured(
+        "ALLOWED_HOSTS must be configured when DEBUG=False."
+    )
 
 
 # ==========================================================
@@ -171,7 +188,12 @@ WSGI_APPLICATION = "config.wsgi.application"
 # DATABASE
 # ==========================================================
 
-if os.getenv("POSTGRES_HOST"):
+USE_POSTGRES = os.getenv(
+    "USE_POSTGRES",
+    "True" if os.getenv("WEBSITE_HOSTNAME") else "False",
+).lower() == "true"
+
+if USE_POSTGRES and os.getenv("POSTGRES_HOST"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -181,7 +203,10 @@ if os.getenv("POSTGRES_HOST"):
             "HOST": os.getenv("POSTGRES_HOST"),
             "PORT": os.getenv("POSTGRES_PORT", "5432"),
             "OPTIONS": {
-                "sslmode": os.getenv("POSTGRES_SSLMODE", "disable"),
+                "sslmode": os.getenv(
+                    "POSTGRES_SSLMODE",
+                    "require" if os.getenv("WEBSITE_HOSTNAME") else "disable",
+                ),
             },
         }
     }
@@ -349,6 +374,8 @@ CORS_ALLOWED_ORIGINS = [
     for origin in os.getenv(
         "CORS_ALLOWED_ORIGINS",
         "http://localhost:5173,http://127.0.0.1:5173"
+        if DEBUG
+        else "",
     ).split(",")
     if origin.strip()
 ]
@@ -358,9 +385,23 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in os.getenv(
         "CSRF_TRUSTED_ORIGINS",
         "http://localhost:8000,http://127.0.0.1:8000"
+        if DEBUG
+        else "",
     ).split(",")
     if origin.strip()
 ]
+
+if not DEBUG and not CORS_ALLOWED_ORIGINS:
+    raise ImproperlyConfigured(
+        "CORS_ALLOWED_ORIGINS must be configured when DEBUG=False."
+    )
+
+if not DEBUG and not CSRF_TRUSTED_ORIGINS:
+    raise ImproperlyConfigured(
+        "CSRF_TRUSTED_ORIGINS must be configured when DEBUG=False."
+    )
+
+CORS_ALLOW_CREDENTIALS = True
 
 
 # ==========================================================
@@ -376,18 +417,18 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 # SECURITY SETTINGS
 # ==========================================================
 
-if DEBUG:
+SECURE_SSL_REDIRECT = os.getenv(
+    "SECURE_SSL_REDIRECT",
+    "False" if DEBUG else "True",
+).lower() == "true"
 
-    SECURE_SSL_REDIRECT = False
+if not SECURE_SSL_REDIRECT:
 
     SESSION_COOKIE_SECURE = False
 
     CSRF_COOKIE_SECURE = False
 
 else:
-
-    SECURE_SSL_REDIRECT = True
-
     SESSION_COOKIE_SECURE = True
 
     CSRF_COOKIE_SECURE = True

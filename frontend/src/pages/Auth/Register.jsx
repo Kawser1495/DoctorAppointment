@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
 import { registerUser } from "../../services/authService";
+import { API_BASE_URL } from "../../config";
 
 const INITIAL_FORM_DATA = {
     username: "",
@@ -95,7 +96,7 @@ export default function Register() {
 
             try {
                 const response = await fetch(
-                    "http://127.0.0.1:8000/api/doctors/departments/"
+                    `${API_BASE_URL}doctors/departments/`
                 );
 
                 const data = await response.json();

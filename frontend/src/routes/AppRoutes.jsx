@@ -24,14 +24,6 @@ import Logout
 
 
 // ==========================================================
-// General Dashboard
-// ==========================================================
-
-import Dashboard
-    from "../pages/Dashboard/Dashboard";
-
-
-// ==========================================================
 // Admin
 // ==========================================================
 
@@ -122,6 +114,17 @@ import DoctorList
 
 import PatientDashboard
     from "../pages/Patients/PatientDashboard";
+
+
+// ==================================================
+// Receptionist
+// ==================================================
+
+import ReceptionistDashboard
+    from "../pages/Receptionist/ReceptionistDashboard";
+
+import ReceptionistProfile
+    from "../pages/Receptionist/ReceptionistProfile";
 
 
 // ==========================================================
@@ -278,9 +281,31 @@ export default function AppRoutes() {
                 <Route
                     path="/dashboard"
                     element={
-                        <ProtectedRoute>
-                            <Dashboard />
-                        </ProtectedRoute>
+                        <RoleRoute
+                            allowedRoles={[
+                                "receptionist",
+                            ]}
+                        >
+                            <ReceptionistDashboard />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
+                    path="/receptionist/dashboard"
+                    element={
+                        <RoleRoute allowedRoles={["receptionist"]}>
+                            <ReceptionistDashboard />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
+                    path="/receptionist/profile"
+                    element={
+                        <RoleRoute allowedRoles={["receptionist"]}>
+                            <ReceptionistProfile />
+                        </RoleRoute>
                     }
                 />
 

@@ -18,6 +18,7 @@ import {
     FaGraduationCap,
     FaHospital,
 } from "react-icons/fa";
+import { BACKEND_URL } from "../../config";
 
 import {
     getDoctors,
@@ -62,8 +63,7 @@ const normalizeListResponse = (data) => {
 
 const getBackendUrl = () => {
 
-    const apiBaseUrl =
-        import.meta.env.VITE_API_BASE_URL;
+    const apiBaseUrl = BACKEND_URL;
 
 
     if (apiBaseUrl) {
@@ -86,7 +86,7 @@ const getBackendUrl = () => {
     }
 
 
-    return "http://127.0.0.1:8000";
+    return BACKEND_URL;
 
 };
 
