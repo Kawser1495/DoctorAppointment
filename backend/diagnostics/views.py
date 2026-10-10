@@ -1,5 +1,7 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from rest_framework import generics, status
 from rest_framework.filters import SearchFilter
@@ -91,10 +93,40 @@ class DiagnosticTestListView(
     generics.ListAPIView
 ):
 
+    queryset = (
+        DiagnosticTest.objects
+        .filter(
+            is_available=True,
+            category__is_active=True,
+        )
+        .select_related("category")
+        .order_by("name")
+    )
+
     serializer_class = DiagnosticTestSerializer
+
+    # The catalog is small and the patient dashboard needs the complete
+    # active test list for its count and category filtering.
+    pagination_class = None
 
     permission_classes = [
         AllowAny
+    ]
+
+    filter_backends = [
+        DjangoFilterBackend,
+        SearchFilter,
+    ]
+
+    filterset_fields = [
+        "category",
+    ]
+
+    search_fields = [
+        "name",
+        "description",
+        "preparation",
+        "category__name",
     ]
 
 
@@ -369,6 +401,8 @@ class MyTestBookingListView(
 
     serializer_class = TestBookingSerializer
 
+    pagination_class = None
+
     permission_classes = [
         IsAuthenticated
     ]
@@ -399,6 +433,7 @@ class MyTestBookingListView(
                 "patient",
 
                 "patient__user",
+                "appointment__doctor__user",
 
                 "family_member",
 
@@ -407,6 +442,8 @@ class MyTestBookingListView(
                 "diagnostic_test__category",
 
             )
+
+            .prefetch_related("payments")
 
             .filter(
 
@@ -470,6 +507,7 @@ class TestBookingDetailView(
                 "patient",
 
                 "patient__user",
+                "appointment__doctor__user",
 
                 "family_member",
 
@@ -547,6 +585,7 @@ class TestBookingCancelView(
                 "patient",
 
                 "patient__user",
+                "appointment__doctor__user",
 
                 "family_member",
 
@@ -736,13 +775,56 @@ class AdminTestBookingStatusView(APIView):
         next_status = request.data.get("status")
         valid_statuses = dict(TestBooking.STATUS_CHOICES)
 
-        if next_status not in valid_statuses:
+        report_available_at = request.data.get("report_available_at")
+        report_available_note = request.data.get("report_available_note")
+        parsed_report_available_at = None
+        if report_available_at:
+            parsed_report_available_at = parse_datetime(report_available_at)
+            if parsed_report_available_at is None:
+                return Response(
+                    {"report_available_at": "Use a valid date and time."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if timezone.is_naive(parsed_report_available_at):
+                parsed_report_available_at = timezone.make_aware(parsed_report_available_at)
+
+        if next_status is not None and next_status not in valid_statuses:
             return Response(
                 {"detail": "Invalid diagnostic booking status."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        booking.status = next_status
-        booking.save(update_fields=["status", "updated_at"])
+        if next_status == "Cancelled" and booking.payments.filter(
+            payment_status__in=["Paid", "Partially Paid"]
+        ).exists():
+            return Response(
+                {
+                    "success": False,
+                    "message": (
+                        "A paid or partially paid diagnostic booking "
+                        "cannot be cancelled."
+                    ),
+                    "booking_number": booking.booking_number,
+                    "status": booking.status,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        return Response({"id": booking.id, "status": booking.status})
+        update_fields = ["updated_at"]
+        if next_status is not None:
+            booking.status = next_status
+            update_fields.append("status")
+        if "report_available_at" in request.data:
+            booking.report_available_at = parsed_report_available_at
+            update_fields.append("report_available_at")
+        if "report_available_note" in request.data:
+            booking.report_available_note = report_available_note or ""
+            update_fields.append("report_available_note")
+        booking.save(update_fields=update_fields)
+
+        return Response({
+            "id": booking.id,
+            "status": booking.status,
+            "report_available_at": booking.report_available_at,
+            "report_available_note": booking.report_available_note,
+        })

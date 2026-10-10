@@ -6,6 +6,3 @@ __pycache__/
 *.py[cod]
 *.sqlite3
 media/
-migration-output-*.txt
-sqlite_data_before_postgresql.json
-migration-output*.txt

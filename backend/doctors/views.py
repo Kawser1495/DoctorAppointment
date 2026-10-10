@@ -1,7 +1,8 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
+from django.db.models.functions import TruncMonth
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -31,6 +32,8 @@ from .models import (
     Department,
     DoctorSchedule,
     TimeSlot,
+    DoctorRating,
+    HealthTip,
 )
 
 from .serializers import (
@@ -38,7 +41,10 @@ from .serializers import (
     DepartmentSerializer,
     DoctorScheduleSerializer,
     TimeSlotSerializer,
+    DoctorTimeSlotUpdateSerializer,
     DoctorProfileUpdateSerializer,
+    DoctorRatingSerializer,
+    HealthTipSerializer,
 )
 
 
@@ -118,7 +124,6 @@ class DoctorListView(generics.ListAPIView):
         return (
             Doctor.objects
             .filter(
-                is_available=True,
                 user__is_active=True,
                 user__role="doctor",
                 approval_status="approved",
@@ -174,6 +179,76 @@ class DoctorDetailView(generics.RetrieveAPIView):
 
             approval_status="approved",
         )
+
+
+class DoctorRatingListCreateView(generics.ListCreateAPIView):
+
+    serializer_class = DoctorRatingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        doctor_id = self.request.query_params.get("doctor")
+        queryset = DoctorRating.objects.select_related(
+            "doctor",
+            "patient__user",
+            "appointment",
+        )
+
+        if doctor_id:
+            return queryset.filter(doctor_id=doctor_id)
+
+        if (
+            getattr(self.request.user, "role", None) == "doctor"
+            and hasattr(self.request.user, "doctor_profile")
+        ):
+            return queryset.filter(doctor=self.request.user.doctor_profile)
+
+        if hasattr(self.request.user, "patient_profile"):
+            return queryset.filter(patient=self.request.user.patient_profile)
+
+        return queryset.none()
+
+    def perform_create(self, serializer):
+        rating = serializer.save()
+        patient_name = rating.patient.user.get_full_name().strip() or rating.patient.user.username
+        Notification.objects.create(
+            user=rating.doctor.user,
+            notification_type="Report",
+            title="New doctor rating received",
+            message=f"{patient_name} rated you {rating.rating}/5 stars.",
+            is_read=False,
+        )
+
+
+class HealthTipListCreateView(generics.ListCreateAPIView):
+
+    serializer_class = HealthTipSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = HealthTip.objects.select_related("doctor__user")
+        if getattr(self.request.user, "role", None) == "doctor" and hasattr(self.request.user, "doctor_profile"):
+            return queryset.filter(doctor=self.request.user.doctor_profile)
+        return queryset.filter(is_published=True)
+
+    def perform_create(self, serializer):
+        if getattr(self.request.user, "role", None) != "doctor" or not hasattr(self.request.user, "doctor_profile"):
+            raise ValidationError("Only doctors can create health tips.")
+        if HealthTip.objects.filter(doctor=self.request.user.doctor_profile).count() >= 10:
+            raise ValidationError("You can keep a maximum of 10 health tips.")
+        serializer.save(doctor=self.request.user.doctor_profile, is_published=True)
+
+
+class HealthTipDetailView(generics.RetrieveUpdateDestroyAPIView):
+
+    serializer_class = HealthTipSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = HealthTip.objects.select_related("doctor__user")
+        if getattr(self.request.user, "role", None) == "doctor" and hasattr(self.request.user, "doctor_profile"):
+            return queryset.filter(doctor=self.request.user.doctor_profile)
+        return queryset.filter(is_published=True)
 
 
 # ==========================================================
@@ -394,8 +469,20 @@ class DoctorScheduleManageView(
             doctor=doctor
         )
 
+    def perform_update(self, serializer):
 
-class AdminScheduleListView(generics.ListAPIView):
+        doctor = get_object_or_404(
+            Doctor,
+            user=self.request.user,
+            user__role="doctor",
+        )
+
+        serializer.save(
+            doctor=doctor
+        )
+
+
+class AdminScheduleListView(generics.ListCreateAPIView):
 
     serializer_class = DoctorScheduleSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -407,6 +494,18 @@ class AdminScheduleListView(generics.ListAPIView):
         ).prefetch_related("slots").order_by(
             "doctor__user__first_name", "day", "start_time",
         )
+
+    def perform_create(self, serializer):
+        doctor_id = self.request.data.get("doctor")
+        doctor = get_object_or_404(
+            Doctor,
+            id=doctor_id,
+            approval_status="approved",
+            user__is_active=True,
+        )
+        if DoctorSchedule.objects.filter(doctor=doctor, day=serializer.validated_data["day"]).exists():
+            raise ValidationError({"day": "This doctor already has a schedule for this day."})
+        serializer.save(doctor=doctor)
 
 
 class AdminScheduleDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -437,6 +536,33 @@ class AdminTimeSlotAvailabilityView(APIView):
         slot.is_active = is_active
         slot.save(update_fields=["is_active", "updated_at"])
         return Response({"id": slot.id, "is_active": slot.is_active})
+
+
+class DoctorTimeSlotManageView(
+    generics.RetrieveUpdateAPIView
+):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsDoctor,
+    ]
+
+    def get_queryset(self):
+
+        return TimeSlot.objects.filter(
+            schedule__doctor__user=self.request.user,
+        ).select_related(
+            "schedule",
+            "schedule__doctor",
+            "schedule__doctor__user",
+        )
+
+    def get_serializer_class(self):
+
+        if self.request.method in ["PUT", "PATCH"]:
+            return DoctorTimeSlotUpdateSerializer
+
+        return TimeSlotSerializer
 
 
 # ==========================================================
@@ -628,7 +754,7 @@ class DoctorDashboardView(
             user=request.user,
         )
 
-        today = date.today()
+        today = timezone.localdate()
 
         # ==================================================
         # All Doctor Appointments
@@ -655,7 +781,7 @@ class DoctorDashboardView(
         today_appointments_count = (
             appointments
             .filter(
-                appointment_date=today
+                appointment_date=today,
             )
             .count()
         )
@@ -717,14 +843,11 @@ class DoctorDashboardView(
         today_appointments = (
             appointments
             .filter(
-                appointment_date=today
-            )
-            .exclude(
-                status="Cancelled"
+                appointment_date=today,
             )
             .order_by(
                 "slot__slot_time"
-            )[:5]
+            )
         )
 
         # ==================================================
@@ -774,6 +897,8 @@ class DoctorDashboardView(
                     appointment.patient.user.username
                 )
 
+            family_member = appointment.family_member
+
             return {
                 "id":
                 appointment.id,
@@ -784,11 +909,19 @@ class DoctorDashboardView(
                 "patient_name":
                 patient_name,
 
+                "family_member_name": family_member.name if family_member else None,
+
+                "family_member_relation": family_member.relation if family_member else None,
+
+                "booked_for": family_member.name if family_member else patient_name,
+
                 "appointment_date":
                 appointment.appointment_date,
 
                 "appointment_time":
                 appointment.slot.slot_time,
+
+                "time_slot": appointment.slot.time_range,
 
                 "status":
                 appointment.status,
@@ -823,7 +956,7 @@ class DoctorDashboardView(
                 str(doctor),
 
                 "department":
-                doctor.department.name,
+                doctor.department.name if doctor.department else "",
 
                 "specialization":
                 doctor.specialization,
@@ -880,6 +1013,85 @@ class DoctorDashboardView(
                 for appointment in upcoming_appointments
             ],
 
+        })
+
+
+# ==========================================================
+# Doctor Analytics
+# ==========================================================
+
+class DoctorAnalyticsView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsDoctor,
+    ]
+
+    def get(self, request):
+
+        doctor = get_object_or_404(
+            Doctor,
+            user=request.user,
+        )
+
+        appointments = Appointment.objects.filter(
+            doctor=doctor,
+        ).exclude(
+            payments__payment_status="Refunded",
+        ).distinct()
+
+        today = timezone.localdate()
+        week_start = today - timedelta(days=6)
+        month_start = today.replace(day=1)
+
+        weekly = []
+        for offset in range(7):
+            day = week_start + timedelta(days=offset)
+            weekly.append({
+                "date": day,
+                "label": day.strftime("%a"),
+                "total": appointments.filter(
+                    appointment_date=day,
+                ).count(),
+            })
+
+        monthly = list(
+            appointments
+            .filter(appointment_date__gte=month_start)
+            .annotate(month=TruncMonth("appointment_date"))
+            .values("month")
+            .annotate(total=models.Count("id"))
+            .order_by("month")
+        )
+
+        status_distribution = list(
+            appointments
+            .values("status")
+            .annotate(total=models.Count("id"))
+            .order_by("status")
+        )
+
+        patient_growth = list(
+            appointments
+            .filter(appointment_date__gte=month_start)
+            .annotate(month=TruncMonth("appointment_date"))
+            .values("month")
+            .annotate(total=models.Count("patient", distinct=True))
+            .order_by("month")
+        )
+
+        return Response({
+            "summary": {
+                "total_patients": appointments.values("patient_id").distinct().count(),
+                "total_appointments": appointments.count(),
+                "completed_appointments": appointments.filter(status="Completed").count(),
+                "cancelled_appointments": appointments.filter(status="Cancelled").count(),
+                "pending_requests": appointments.filter(status="Pending").count(),
+            },
+            "weekly_appointments": weekly,
+            "monthly_appointments": monthly,
+            "status_distribution": status_distribution,
+            "patient_growth": patient_growth,
         })
 
 
@@ -942,8 +1154,7 @@ class AdminDoctorListView(
     pagination_class = None
 
     def get_queryset(self):
-
-        return (
+        queryset = (
             Doctor.objects
             .filter(
                 user__role="doctor",
@@ -952,9 +1163,49 @@ class AdminDoctorListView(
                 "user",
                 "department",
             )
-            .order_by(
-                "-created_at"
+            .order_by("-created_at")
+        )
+        search = self.request.query_params.get("search", "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=search)
+                | Q(user__last_name__icontains=search)
+                | Q(user__username__icontains=search)
+                | Q(user__email__icontains=search)
+                | Q(specialization__icontains=search)
+                | Q(qualification__icontains=search)
+                | Q(department__name__icontains=search)
+            ).distinct()
+        return queryset
+
+
+class AdminDoctorDetailView(generics.RetrieveUpdateDestroyAPIView):
+
+    serializer_class = DoctorSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        return Doctor.objects.select_related("user", "department").prefetch_related(
+            "schedules", "ratings",
+        ).filter(user__role="doctor")
+
+    def destroy(self, request, *args, **kwargs):
+        doctor = self.get_object()
+        doctor_name = doctor.user.get_full_name().strip() or doctor.user.username
+        with transaction.atomic():
+            affected_appointments = Appointment.objects.filter(doctor=doctor)
+            cancelled_count = affected_appointments.update(
+                status="Cancelled",
+                rejection_reason="Doctor account was removed by an administrator.",
             )
+            affected_appointments.delete()
+            doctor.user.delete()
+        return Response(
+            {
+                "detail": f"Doctor {doctor_name} and related doctor records were deleted.",
+                "cancelled_appointments": cancelled_count,
+            },
+            status=status.HTTP_200_OK,
         )
 
 
@@ -1038,36 +1289,27 @@ class AdminApproveDoctorView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        doctor.user.doctor_status = "approved"
-
-        doctor.user.is_active = True
-
-        doctor.user.is_verified = True
-
-        doctor.user.doctor_rejection_reason = ""
-
-        doctor.approval_status = "approved"
-        doctor.rejection_reason = ""
-        doctor.approved_at = timezone.now()
-
-        doctor.save(
-            update_fields=[
+        with transaction.atomic():
+            doctor.user.doctor_status = "approved"
+            doctor.user.is_active = True
+            doctor.user.is_verified = True
+            doctor.user.doctor_rejection_reason = ""
+            doctor.approval_status = "approved"
+            doctor.rejection_reason = ""
+            doctor.approved_at = timezone.now()
+            doctor.save(update_fields=[
                 "approval_status",
                 "rejection_reason",
                 "approved_at",
                 "updated_at",
-            ]
-        )
-
-        doctor.user.save(
-            update_fields=[
+            ])
+            doctor.user.save(update_fields=[
                 "doctor_status",
                 "is_active",
                 "is_verified",
                 "doctor_rejection_reason",
                 "updated_at",
-            ]
-        )
+            ])
 
         Notification.objects.create(
             user=doctor.user,

@@ -170,6 +170,12 @@ class Appointment(models.Model):
 
     )
 
+    ai_category = models.CharField(max_length=120, blank=True, default="")
+    ai_urgency = models.CharField(max_length=20, blank=True, default="")
+    ai_specialist = models.CharField(max_length=120, blank=True, default="")
+    ai_guidance = models.TextField(blank=True, default="")
+    ai_report_shared = models.BooleanField(default=False)
+
 
     # ======================================================
     # Status
@@ -182,6 +188,16 @@ class Appointment(models.Model):
         choices=STATUS_CHOICES,
 
         default="Pending",
+
+    )
+
+    rejection_reason = models.TextField(
+
+        blank=True,
+
+        default="",
+
+        help_text="Reason provided by the doctor when rejecting an appointment.",
 
     )
 
@@ -217,6 +233,7 @@ class Appointment(models.Model):
 
         ]
 
+
         verbose_name = "Appointment"
 
         verbose_name_plural = "Appointments"
@@ -229,21 +246,31 @@ class Appointment(models.Model):
             # ------------------------------------------------
 
             models.UniqueConstraint(
-
                 fields=[
-
                     "patient",
-
                     "doctor",
-
                     "appointment_date",
-
                     "slot",
-
                 ],
-
-                name="unique_patient_doctor_slot_date",
-
+                condition=models.Q(
+                    family_member__isnull=True,
+                    status__in=["Pending", "Confirmed"],
+                ),
+                name="unique_patient_doctor_slot_date_direct",
+            ),
+            models.UniqueConstraint(
+                fields=[
+                    "patient",
+                    "doctor",
+                    "appointment_date",
+                    "slot",
+                    "family_member",
+                ],
+                condition=models.Q(
+                    family_member__isnull=False,
+                    status__in=["Pending", "Confirmed"],
+                ),
+                name="unique_patient_doctor_slot_date_family",
             ),
 
         ]
@@ -698,4 +725,57 @@ class Appointment(models.Model):
             *args,
             **kwargs
         )
+
+
+class AISymptomReport(models.Model):
+
+    CONSULTATION_FEE = 100
+    PAYMENT_STATUS_CHOICES = (
+        ("Pending", "Pending"),
+        ("Paid", "Paid"),
+        ("Failed", "Failed"),
+    )
+
+    patient = models.ForeignKey(PatientProfile, on_delete=models.CASCADE, related_name="ai_symptom_reports")
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="ai_symptom_reports")
+    symptoms = models.TextField()
+    duration = models.CharField(max_length=80, blank=True, default="")
+    severity = models.CharField(max_length=30, blank=True, default="")
+    ai_category = models.CharField(max_length=120, blank=True, default="")
+    possible_conditions = models.TextField(blank=True, default="")
+    ai_urgency = models.CharField(max_length=20, blank=True, default="")
+    ai_specialist = models.CharField(max_length=120, blank=True, default="")
+    ai_guidance = models.TextField(blank=True, default="")
+    doctor_assessment = models.TextField(blank=True, default="")
+    consultation_fee = models.DecimalField(max_digits=8, decimal_places=2, default=CONSULTATION_FEE)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="Pending")
+    payment_transaction_id = models.CharField(max_length=80, blank=True, default="")
+    paid_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class AISymptomReportPayment(models.Model):
+
+    report = models.OneToOneField(
+        AISymptomReport,
+        on_delete=models.CASCADE,
+        related_name="payment",
+    )
+    patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        related_name="ai_report_payments",
+    )
+    amount = models.DecimalField(max_digits=8, decimal_places=2, default=100)
+    payment_method = models.CharField(max_length=20, default="Card")
+    transaction_id = models.CharField(max_length=80, unique=True)
+    payment_status = models.CharField(max_length=20, default="Paid")
+    paid_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-paid_at"]
         

@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 from datetime import timedelta
 
-from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 
@@ -19,6 +18,9 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 
 # ==========================================================
 # ENVIRONMENT VARIABLES
@@ -26,46 +28,38 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
 
+SSLCOMMERZ_STORE_ID = os.getenv("SSLCOMMERZ_STORE_ID", "")
+SSLCOMMERZ_STORE_PASSWORD = os.getenv("SSLCOMMERZ_STORE_PASSWORD", "")
+SSLCOMMERZ_IS_SANDBOX = os.getenv("SSLCOMMERZ_IS_SANDBOX", "True").lower() == "true"
+SSLCOMMERZ_BACKEND_URL = os.getenv("SSLCOMMERZ_BACKEND_URL", "http://127.0.0.1:8000")
+SSLCOMMERZ_FRONTEND_URL = os.getenv("SSLCOMMERZ_FRONTEND_URL", "http://localhost:5173")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+
 
 # ==========================================================
 # SECURITY
 # ==========================================================
-
-DEBUG = os.getenv(
-    "DEBUG",
-    "False" if os.getenv("WEBSITE_HOSTNAME") else "True",
-).lower() == "true"
 
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
     "django-insecure-development-only-key",
 )
 
-if not DEBUG and SECRET_KEY == "django-insecure-development-only-key":
-    raise ImproperlyConfigured(
-        "SECRET_KEY must be configured when DEBUG=False."
-    )
-
-default_allowed_hosts = (
-    "127.0.0.1,localhost"
-    if DEBUG
-    else ""
-)
+DEBUG = os.getenv(
+    "DEBUG",
+    "True",
+).lower() == "true"
 
 
 ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv(
         "ALLOWED_HOSTS",
-        default_allowed_hosts,
+        "127.0.0.1,localhost",
     ).split(",")
     if host.strip()
 ]
-
-if not DEBUG and not ALLOWED_HOSTS:
-    raise ImproperlyConfigured(
-        "ALLOWED_HOSTS must be configured when DEBUG=False."
-    )
 
 
 # ==========================================================
@@ -91,7 +85,6 @@ INSTALLED_APPS = [
 
     "rest_framework",
     "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
 
@@ -188,36 +181,25 @@ WSGI_APPLICATION = "config.wsgi.application"
 # DATABASE
 # ==========================================================
 
-USE_POSTGRES = os.getenv(
-    "USE_POSTGRES",
-    "True" if os.getenv("WEBSITE_HOSTNAME") else "False",
-).lower() == "true"
+DATABASES = {
 
-if USE_POSTGRES and os.getenv("POSTGRES_HOST"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("POSTGRES_DB"),
-            "USER": os.getenv("POSTGRES_USER"),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-            "HOST": os.getenv("POSTGRES_HOST"),
-            "PORT": os.getenv("POSTGRES_PORT", "5432"),
-            "OPTIONS": {
-                "sslmode": os.getenv(
-                    "POSTGRES_SSLMODE",
-                    "require" if os.getenv("WEBSITE_HOSTNAME") else "disable",
-                ),
-            },
-        }
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
+    "default": {
+
+        "ENGINE": "django.db.backends.postgresql",
+
+        "NAME": os.getenv("POSTGRES_DB"),
+
+        "USER": os.getenv("POSTGRES_USER"),
+
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+
+        "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),
+
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+
     }
 
+}
 
 # ==========================================================
 # PASSWORD VALIDATION
@@ -370,38 +352,25 @@ SIMPLE_JWT = {
 # ==========================================================
 
 CORS_ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173"
-        if DEBUG
-        else "",
-    ).split(",")
-    if origin.strip()
+
+    "http://localhost:5173",
+
+    "http://127.0.0.1:5173",
+
 ]
+
+
+# ==========================================================
+# CSRF
+# ==========================================================
 
 CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv(
-        "CSRF_TRUSTED_ORIGINS",
-        "http://localhost:8000,http://127.0.0.1:8000"
-        if DEBUG
-        else "",
-    ).split(",")
-    if origin.strip()
+
+    "http://localhost:8000",
+
+    "http://127.0.0.1:8000",
+
 ]
-
-if not DEBUG and not CORS_ALLOWED_ORIGINS:
-    raise ImproperlyConfigured(
-        "CORS_ALLOWED_ORIGINS must be configured when DEBUG=False."
-    )
-
-if not DEBUG and not CSRF_TRUSTED_ORIGINS:
-    raise ImproperlyConfigured(
-        "CSRF_TRUSTED_ORIGINS must be configured when DEBUG=False."
-    )
-
-CORS_ALLOW_CREDENTIALS = True
 
 
 # ==========================================================
@@ -417,18 +386,18 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 # SECURITY SETTINGS
 # ==========================================================
 
-SECURE_SSL_REDIRECT = os.getenv(
-    "SECURE_SSL_REDIRECT",
-    "False" if DEBUG else "True",
-).lower() == "true"
+if DEBUG:
 
-if not SECURE_SSL_REDIRECT:
+    SECURE_SSL_REDIRECT = False
 
     SESSION_COOKIE_SECURE = False
 
     CSRF_COOKIE_SECURE = False
 
 else:
+
+    SECURE_SSL_REDIRECT = True
+
     SESSION_COOKIE_SECURE = True
 
     CSRF_COOKIE_SECURE = True
@@ -442,7 +411,6 @@ else:
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
     X_FRAME_OPTIONS = "DENY"
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 # ==========================================================

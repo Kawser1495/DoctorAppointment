@@ -9,6 +9,7 @@ import {
     markAllNotificationsRead,
     deleteNotification,
 } from "../../services/notificationService";
+import "./Notifications.css";
 
 
 function Notifications() {
@@ -349,7 +350,7 @@ function Notifications() {
 
         return (
 
-            <div className="page-container">
+            <div className="page-container notifications-page">
 
                 <h2>
                     Notifications
@@ -374,7 +375,7 @@ function Notifications() {
 
         return (
 
-            <div className="page-container">
+            <div className="page-container notifications-page">
 
                 <h2>
                     Notifications
@@ -385,6 +386,7 @@ function Notifications() {
                 </p>
 
                 <button
+                    className="notifications-retry"
                     onClick={loadNotifications}
                 >
                     Try Again
@@ -403,7 +405,7 @@ function Notifications() {
 
     return (
 
-        <div className="page-container">
+        <div className="page-container notifications-page">
 
             {/* Header */}
 
@@ -442,6 +444,7 @@ function Notifications() {
                 {unreadCount > 0 && (
 
                     <button
+                        className="notifications-mark-all"
                         onClick={
                             handleMarkAllAsRead
                         }
@@ -463,7 +466,7 @@ function Notifications() {
 
             {notifications.length === 0 ? (
 
-                <div
+                <div className="notifications-empty"
                     style={{
                         textAlign: "center",
                         padding: "50px 20px",
@@ -496,6 +499,7 @@ function Notifications() {
                         (notification) => (
 
                             <div
+                                className={`notification-card${notification.is_read ? " is-read" : " is-unread"}`}
                                 key={
                                     notification.id
                                 }
@@ -632,6 +636,7 @@ function Notifications() {
                                         {!notification.is_read && (
 
                                             <button
+                                                className="notification-action notification-read-action"
                                                 onClick={() =>
                                                     handleMarkAsRead(
                                                         notification
@@ -651,6 +656,7 @@ function Notifications() {
 
 
                                         <button
+                                            className="notification-action notification-delete-action"
                                             onClick={() =>
                                                 handleDelete(
                                                     notification.id

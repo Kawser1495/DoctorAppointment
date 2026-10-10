@@ -22,6 +22,11 @@ from .views import (
     DoctorMyProfileView,
     DoctorDashboardView,
     DoctorScheduleManageView,
+    DoctorTimeSlotManageView,
+    DoctorAnalyticsView,
+    DoctorRatingListCreateView,
+    HealthTipListCreateView,
+    HealthTipDetailView,
 )
 
 
@@ -29,6 +34,7 @@ from .views import (
 from .views import (
     AdminPendingDoctorListView,
     AdminDoctorListView,
+    AdminDoctorDetailView,
     AdminDoctorAvailabilityView,
     AdminApproveDoctorView,
     AdminRejectDoctorView,
@@ -174,6 +180,30 @@ urlpatterns = [
         name="doctor-dashboard",
     ),
 
+    path(
+        "analytics/",
+        DoctorAnalyticsView.as_view(),
+        name="doctor-analytics",
+    ),
+
+    path(
+        "ratings/",
+        DoctorRatingListCreateView.as_view(),
+        name="doctor-ratings",
+    ),
+
+    path(
+        "health-tips/",
+        HealthTipListCreateView.as_view(),
+        name="health-tips",
+    ),
+
+    path(
+        "health-tips/<int:pk>/",
+        HealthTipDetailView.as_view(),
+        name="health-tip-detail",
+    ),
+
 
     # ------------------------------------------------------
     # My Doctor Profile
@@ -214,6 +244,12 @@ urlpatterns = [
     ),
 
     path(
+        "schedules/slots/<int:pk>/",
+        DoctorTimeSlotManageView.as_view(),
+        name="doctor-time-slot-manage-detail",
+    ),
+
+    path(
         "admin/schedules/",
         AdminScheduleListView.as_view(),
         name="admin-schedule-list",
@@ -242,6 +278,12 @@ urlpatterns = [
         "admin/all/",
         AdminDoctorListView.as_view(),
         name="admin-doctor-list",
+    ),
+
+    path(
+        "admin/<int:pk>/",
+        AdminDoctorDetailView.as_view(),
+        name="admin-doctor-detail",
     ),
 
     path(

@@ -1,140 +1,70 @@
+import { useEffect, useState } from "react";
+
 import DoctorLayout from "../../layouts/DoctorLayout";
+import { getDoctorAnalytics } from "../../services/doctorService";
 import "./DoctorAnalytics.css";
 
+const statusColors = {
+    Pending: "#f59e0b",
+    Confirmed: "#0ea5a4",
+    Completed: "#22a866",
+    Cancelled: "#ef6461",
+    Rejected: "#a855f7",
+};
+
+const formatMonth = (value) => value
+    ? new Date(value).toLocaleDateString(undefined, { month: "short" })
+    : "-";
+
 export default function DoctorAnalytics() {
-    const stats = [
-        {
-            label: "Total Patients",
-            value: "24",
-            icon: "fas fa-users",
-            color: "primary",
-            change: "+2 this month",
-        },
-        {
-            label: "Total Appointments",
-            value: "156",
-            icon: "fas fa-calendar-check",
-            color: "info",
-            change: "+12 this month",
-        },
-        {
-            label: "Completed",
-            value: "142",
-            icon: "fas fa-check-circle",
-            color: "success",
-            change: "91% completion rate",
-        },
-        {
-            label: "Pending",
-            value: "8",
-            icon: "fas fa-clock",
-            color: "warning",
-            change: "Awaiting confirmation",
-        },
+    const [analytics, setAnalytics] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    const loadAnalytics = async () => {
+        try {
+            setLoading(true);
+            setError("");
+            setAnalytics((await getDoctorAnalytics()).data);
+        } catch (loadError) {
+            setError(loadError?.response?.data?.detail || "Unable to load analytics.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { loadAnalytics(); }, []);
+
+    const summary = analytics?.summary || {};
+    const weekly = analytics?.weekly_appointments || [];
+    const statusDistribution = analytics?.status_distribution || [];
+    const maxWeekly = Math.max(...weekly.map((item) => item.total), 1);
+    const totalStatuses = statusDistribution.reduce((sum, item) => sum + item.total, 0) || 1;
+    const completionRate = summary.total_appointments
+        ? Math.round((summary.completed_appointments / summary.total_appointments) * 100)
+        : 0;
+
+    const statCards = [
+        ["Total Patients", summary.total_patients || 0, "fas fa-users", "primary"],
+        ["Total Appointments", summary.total_appointments || 0, "fas fa-calendar-check", "info"],
+        ["Completed", summary.completed_appointments || 0, "fas fa-check-circle", "success"],
+        ["Cancelled", summary.cancelled_appointments || 0, "fas fa-calendar-xmark", "danger"],
+        ["Pending Requests", summary.pending_requests || 0, "fas fa-clock", "warning"],
     ];
 
-    const weeklyData = [
-        { day: "Mon", count: 5 },
-        { day: "Tue", count: 8 },
-        { day: "Wed", count: 6 },
-        { day: "Thu", count: 9 },
-        { day: "Fri", count: 7 },
-        { day: "Sat", count: 4 },
-        { day: "Sun", count: 2 },
-    ];
-
-    const maxCount = Math.max(...weeklyData.map((d) => d.count));
+    if (loading) return <DoctorLayout><div className="doctor-analytics__loading">Loading analytics...</div></DoctorLayout>;
 
     return (
         <DoctorLayout>
             <div className="doctor-analytics">
-                <h2 className="doctor-analytics__title">
-                    <i className="fas fa-chart-bar me-2" />
-                    Analytics & Reports
-                </h2>
-
-                {/* Statistics Cards */}
-                <div className="row g-3 mb-4">
-                    {stats.map((stat) => (
-                        <div key={stat.label} className="col-md-6 col-lg-3">
-                            <div className={`card border-0 h-100 analytics-card analytics-card--${stat.color}`}>
-                                <div className="card-body">
-                                    <div className="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <p className="analytics-card__label">{stat.label}</p>
-                                            <h3 className="analytics-card__value">{stat.value}</h3>
-                                            <small className="analytics-card__change">{stat.change}</small>
-                                        </div>
-                                        <div className={`analytics-card__icon analytics-card__icon--${stat.color}`}>
-                                            <i className={stat.icon} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Weekly Chart */}
-                <div className="row g-3">
-                    <div className="col-lg-8">
-                        <div className="card border-0">
-                            <div className="card-header bg-transparent border-bottom py-3">
-                                <h5 className="mb-0">Weekly Appointments</h5>
-                            </div>
-                            <div className="card-body">
-                                <div className="analytics-chart">
-                                    {weeklyData.map((data) => (
-                                        <div key={data.day} className="analytics-chart__item">
-                                            <div className="analytics-chart__bar">
-                                                <div
-                                                    className="analytics-chart__fill"
-                                                    style={{
-                                                        height: `${(data.count / maxCount) * 100}%`,
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="analytics-chart__label">{data.day}</div>
-                                            <div className="analytics-chart__value">{data.count}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Appointment Status */}
-                    <div className="col-lg-4">
-                        <div className="card border-0">
-                            <div className="card-header bg-transparent border-bottom py-3">
-                                <h5 className="mb-0">Status Distribution</h5>
-                            </div>
-                            <div className="card-body">
-                                <div className="analytics-status">
-                                    <div className="analytics-status__item">
-                                        <div className="analytics-status__color" style={{ background: "#22c55e" }} />
-                                        <span>Completed</span>
-                                        <strong>142</strong>
-                                    </div>
-                                    <div className="analytics-status__item">
-                                        <div className="analytics-status__color" style={{ background: "#0ea5e9" }} />
-                                        <span>Confirmed</span>
-                                        <strong>8</strong>
-                                    </div>
-                                    <div className="analytics-status__item">
-                                        <div className="analytics-status__color" style={{ background: "#f59e0b" }} />
-                                        <span>Pending</span>
-                                        <strong>5</strong>
-                                    </div>
-                                    <div className="analytics-status__item">
-                                        <div className="analytics-status__color" style={{ background: "#ef4444" }} />
-                                        <span>Rejected</span>
-                                        <strong>1</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <header className="doctor-analytics__header"><div><p className="doctor-analytics__eyebrow">Practice intelligence</p><h1>Doctor Analytics</h1><p>Understand your patient flow, appointment demand and completion rate.</p></div><button type="button" onClick={loadAnalytics}><i className="fas fa-sync-alt" /> Refresh</button></header>
+                {error && <div className="doctor-analytics__alert">{error}</div>}
+                <div className="doctor-analytics__stats">{statCards.map(([label, value, icon, tone]) => <div className={`doctor-analytics__stat ${tone}`} key={label}><div><span>{label}</span><strong>{value}</strong></div><i className={icon} /></div>)}</div>
+                <div className="doctor-analytics__grid">
+                    <section className="doctor-analytics__panel weekly"><div className="doctor-analytics__panel-heading"><div><p>Last 7 days</p><h2>Weekly appointments</h2></div><span>{summary.total_appointments || 0} total</span></div><div className="doctor-analytics__bars">{weekly.map((item) => <div className="doctor-analytics__bar-item" key={item.date}><strong>{item.total}</strong><div className="doctor-analytics__bar-track"><div style={{ height: `${Math.max((item.total / maxWeekly) * 100, item.total ? 8 : 2)}%` }} /></div><span>{item.label}</span></div>)}</div></section>
+                    <section className="doctor-analytics__panel status"><div className="doctor-analytics__panel-heading"><div><p>All appointments</p><h2>Status distribution</h2></div><span>{completionRate}% complete</span></div><div className="doctor-analytics__status-list">{statusDistribution.length ? statusDistribution.map((item) => <div className="doctor-analytics__status-row" key={item.status}><i style={{ background: statusColors[item.status] || "#94a3b8" }} /><span>{item.status}</span><b>{item.total}</b><em>{Math.round((item.total / totalStatuses) * 100)}%</em></div>) : <p className="doctor-analytics__muted">No appointment data yet.</p>}</div></section>
+                    <section className="doctor-analytics__panel monthly"><div className="doctor-analytics__panel-heading"><div><p>Current month</p><h2>Monthly appointments</h2></div></div><div className="doctor-analytics__mini-chart">{(analytics?.monthly_appointments || []).map((item) => <div key={item.month}><strong>{item.total}</strong><span style={{ height: `${Math.max(item.total * 10, 8)}px` }} /><small>{formatMonth(item.month)}</small></div>)}</div></section>
+                    <section className="doctor-analytics__panel growth"><div className="doctor-analytics__panel-heading"><div><p>Current month</p><h2>Patient growth</h2></div></div><div className="doctor-analytics__growth-value"><strong>{(analytics?.patient_growth || []).reduce((sum, item) => sum + item.total, 0)}</strong><span>unique patient visits recorded</span></div></section>
                 </div>
             </div>
         </DoctorLayout>

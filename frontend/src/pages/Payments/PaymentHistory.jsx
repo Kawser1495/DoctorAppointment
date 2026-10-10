@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { getMyPayments } from "../../services/paymentService";
+import { createRefundRequest, getMyPayments } from "../../services/paymentService";
 
 
 function PaymentHistory() {
@@ -15,6 +15,18 @@ function PaymentHistory() {
     const [loading, setLoading] = useState(true);
 
     const [error, setError] = useState("");
+
+    const [requestingRefundId, setRequestingRefundId] = useState(null);
+
+    const completedPaymentStatuses = [
+        "Paid",
+        "Partially Paid",
+        "Refunded",
+    ];
+
+    const getPaymentAmount = (payment) => Number(
+        payment.net_amount ?? payment.amount ?? 0
+    );
 
 
     // ==========================================================
@@ -36,23 +48,17 @@ function PaymentHistory() {
                     await getMyPayments();
 
 
-                console.log(
-                    "Payment History Response:",
-                    response.data
-                );
-
-
                 // ==================================================
                 // Support Different Backend Response Structures
                 // ==================================================
 
                 const data =
 
-                    response.data?.results ||
+                    response?.data?.results ||
 
-                    response.data?.data ||
+                    response?.data?.data ||
 
-                    response.data ||
+                    response?.data ||
 
                     [];
 
@@ -137,6 +143,25 @@ function PaymentHistory() {
         loadPayments();
 
     }, []);
+
+    const handleRefundRequest = async (payment) => {
+        const reason = window.prompt("Why are you requesting a refund?", "I need to cancel this appointment.");
+        if (!reason?.trim()) return;
+        try {
+            setRequestingRefundId(payment.id);
+            const response = await createRefundRequest(payment.id, reason.trim());
+            setPayments((current) => current.map((item) => (
+                item.id === payment.id
+                    ? { ...item, refund_request_status: response.data.refund_status, can_request_refund: false }
+                    : item
+            )));
+            alert("Refund request sent to the doctor and admin.");
+        } catch (requestError) {
+            alert(requestError.response?.data?.detail || "Unable to send refund request.");
+        } finally {
+            setRequestingRefundId(null);
+        }
+    };
 
 
     // ==========================================================
@@ -255,12 +280,20 @@ function PaymentHistory() {
 
                 <span className="badge bg-secondary">
 
-                    Refunded
+                    Refunded ৳{payment.refund_amount || 0} (80%) · Retained ৳{payment.refund_retained_amount || 0} (20%)
 
                 </span>
 
             );
 
+        }
+
+        if (payment.refund_request_status === "Pending") {
+            return (
+                <span className="badge bg-warning text-dark">
+                    Refund Requested
+                </span>
+            );
         }
 
 
@@ -383,6 +416,35 @@ function PaymentHistory() {
     // Payment History
     // ==========================================================
 
+    const appointmentPayments = payments.filter(
+        (payment) => payment.payment_type !== "Diagnostic Test"
+    );
+
+    const diagnosticPayments = payments.filter(
+        (payment) => payment.payment_type === "Diagnostic Test"
+    );
+
+    const completedPayments = payments.filter(
+        (payment) => completedPaymentStatuses.includes(payment.payment_status)
+    );
+
+    const completedAppointmentPayments = appointmentPayments.filter(
+        (payment) => completedPaymentStatuses.includes(payment.payment_status)
+    );
+
+    const completedDiagnosticPayments = diagnosticPayments.filter(
+        (payment) => completedPaymentStatuses.includes(payment.payment_status)
+    );
+
+    const totalPaidAmount = payments.reduce(
+        (total, payment) => completedPaymentStatuses.includes(payment.payment_status)
+            ? total + getPaymentAmount(payment)
+            : total,
+        0
+    );
+
+    const formatAmount = (amount) => `৳ ${amount.toLocaleString()}`;
+
     return (
 
         <div className="container mt-5 mb-5">
@@ -435,7 +497,7 @@ function PaymentHistory() {
 
                     {/* Total Payments */}
 
-                    <div className="col-md-4 mb-3">
+                    <div className="col-md-3 mb-3">
 
                         <div className="card shadow-sm h-100">
 
@@ -450,7 +512,7 @@ function PaymentHistory() {
 
                                 <h3 className="mb-0">
 
-                                    {payments.length}
+                                    {completedPayments.length}
 
                                 </h3>
 
@@ -461,9 +523,9 @@ function PaymentHistory() {
                     </div>
 
 
-                    {/* Successful Payments */}
+                    {/* Completed Payments */}
 
-                    <div className="col-md-4 mb-3">
+                    <div className="col-md-3 mb-3">
 
                         <div className="card shadow-sm h-100">
 
@@ -471,7 +533,7 @@ function PaymentHistory() {
 
                                 <small className="text-muted">
 
-                                    Successful Payments
+                                    Completed Payments
 
                                 </small>
 
@@ -485,8 +547,47 @@ function PaymentHistory() {
                                                 payment
                                             ) =>
 
-                                                payment.payment_status ===
-                                                "Paid"
+                                                completedPaymentStatuses.includes(
+                                                    payment.payment_status
+                                                )
+
+                                        ).length
+                                    }
+
+                                </h3>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                                    {/* Refund Payments */}
+
+                    <div className="col-md-3 mb-3">
+
+                        <div className="card shadow-sm h-100">
+
+                            <div className="card-body">
+
+                                <small className="text-muted">
+
+                                                Refund Payments
+
+                                </small>
+
+
+                                <h3 className="mb-0 text-warning">
+
+                                    {
+                                        payments.filter(
+
+                                            (
+                                                payment
+                                            ) =>
+
+                                                payment.payment_status === "Refunded"
 
                                         ).length
                                     }
@@ -502,7 +603,7 @@ function PaymentHistory() {
 
                     {/* Refund Eligible */}
 
-                    <div className="col-md-4 mb-3">
+                    <div className="col-md-3 mb-3">
 
                         <div className="card shadow-sm h-100">
 
@@ -530,6 +631,34 @@ function PaymentHistory() {
 
                                         ).length
                                     }
+
+                                </h3>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {/* Total Paid Amount */}
+
+                    <div className="col-md-3 mb-3">
+
+                        <div className="card shadow-sm h-100">
+
+                            <div className="card-body">
+
+                                <small className="text-muted">
+
+                                    Total Paid Amount
+
+                                </small>
+
+
+                                <h3 className="mb-0 text-success">
+
+                                    {formatAmount(totalPaidAmount)}
 
                                 </h3>
 
@@ -678,9 +807,25 @@ function PaymentHistory() {
 
                                         <tbody>
 
+                                            <tr className="table-primary">
+
+                                                <th colSpan="11">
+
+                                                    Doctor Appointment Payments ({completedAppointmentPayments.length})
+                                                    <span className="float-end">
+                                                        {formatAmount(completedAppointmentPayments.reduce(
+                                                            (total, payment) => total + getPaymentAmount(payment),
+                                                            0
+                                                        ))}
+                                                    </span>
+
+                                                </th>
+
+                                            </tr>
+
                                             {
 
-                                                payments.map(
+                                                appointmentPayments.map(
 
                                                     (
                                                         payment
@@ -747,7 +892,7 @@ function PaymentHistory() {
                                                                 {
                                                                     getPaymentTypeBadge(
 
-                                                                        payment.payment_kind
+                                                                        payment.payment_mode
 
                                                                     )
                                                                 }
@@ -762,7 +907,7 @@ function PaymentHistory() {
                                                                 <strong className="text-success">
 
                                                                     ৳ {
-                                                                        payment.amount
+                                                                        payment.net_amount ?? payment.amount
                                                                     }
 
                                                                 </strong>
@@ -906,6 +1051,102 @@ function PaymentHistory() {
 
                                                                 </Link>
 
+                                                                {payment.can_request_refund && payment.payment_status === "Paid" && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-sm btn-warning ms-2"
+                                                                        disabled={requestingRefundId === payment.id}
+                                                                        onClick={() => handleRefundRequest(payment)}
+                                                                    >
+                                                                        {requestingRefundId === payment.id ? "Sending..." : "Request Refund"}
+                                                                    </button>
+                                                                )}
+
+                                                            </td>
+
+                                                        </tr>
+
+                                                    )
+
+                                                )
+
+                                            }
+
+                                            <tr className="table-warning">
+
+                                                <th colSpan="11">
+
+                                                    Diagnostics Payments ({completedDiagnosticPayments.length})
+                                                    <span className="float-end">
+                                                        {formatAmount(completedDiagnosticPayments.reduce(
+                                                            (total, payment) => total + getPaymentAmount(payment),
+                                                            0
+                                                        ))}
+                                                    </span>
+
+                                                </th>
+
+                                            </tr>
+
+                                            {
+
+                                                diagnosticPayments.map(
+
+                                                    (payment) => (
+
+                                                        <tr key={payment.id}>
+
+                                                            <td><strong>#{payment.id}</strong></td>
+
+                                                            <td>{payment.diagnostic_test_name || "Diagnostic Test"}</td>
+
+                                                            <td>{payment.booking_person_name || payment.patient_name || "N/A"}</td>
+
+                                                            <td>{getPaymentTypeBadge(payment.payment_mode)}</td>
+
+                                                            <td>
+                                                                <strong className="text-success">
+                                                                    {formatAmount(getPaymentAmount(payment))}
+                                                                </strong>
+                                                            </td>
+
+                                                            <td>
+                                                                {payment.remaining_amount !== undefined ? (
+                                                                    <strong className={Number(payment.remaining_amount) > 0 ? "text-danger" : "text-success"}>
+                                                                        {formatAmount(Number(payment.remaining_amount))}
+                                                                    </strong>
+                                                                ) : "N/A"}
+                                                            </td>
+
+                                                            <td>{payment.payment_method || "N/A"}</td>
+
+                                                            <td>
+                                                                <span className={`badge ${getStatusBadge(payment.payment_status)}`}>
+                                                                    {payment.payment_status || "Pending"}
+                                                                </span>
+                                                            </td>
+
+                                                            <td>{getRefundBadge(payment)}</td>
+
+                                                            <td>
+                                                                {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : "N/A"}
+                                                            </td>
+
+                                                            <td>
+                                                                <Link to={`/payments/${payment.id}`} className="btn btn-sm btn-primary">
+                                                                    View
+                                                                </Link>
+
+                                                                {payment.can_request_refund && payment.payment_status === "Paid" && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-sm btn-warning ms-2"
+                                                                        disabled={requestingRefundId === payment.id}
+                                                                        onClick={() => handleRefundRequest(payment)}
+                                                                    >
+                                                                        {requestingRefundId === payment.id ? "Sending..." : "Request Refund"}
+                                                                    </button>
+                                                                )}
                                                             </td>
 
                                                         </tr>

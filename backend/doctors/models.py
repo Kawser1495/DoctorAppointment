@@ -65,27 +65,63 @@ class Doctor(models.Model):
         related_name="doctor_profile",
     )
 
+    gender = models.CharField(
+        max_length=10,
+        choices=(
+            ("Male", "Male"),
+            ("Female", "Female"),
+            ("Other", "Other"),
+        ),
+        blank=True,
+        null=True,
+    )
+
+    date_of_birth = models.DateField(
+        blank=True,
+        null=True,
+    )
+
+    address = models.TextField(
+        blank=True,
+        null=True,
+    )
+
     department = models.ForeignKey(
         Department,
         on_delete=models.CASCADE,
         related_name="doctors",
+        blank=True,
+        null=True,
     )
 
     specialization = models.CharField(
         max_length=150,
+        blank=True,
+        default="",
     )
 
     qualification = models.CharField(
         max_length=200,
+        blank=True,
+        default="",
+    )
+
+    license_number = models.CharField(
+        max_length=100,
+        unique=True,
+        blank=True,
+        null=True,
     )
 
     experience = models.PositiveIntegerField(
         help_text="Experience in years",
+        default=0,
     )
 
     consultation_fee = models.DecimalField(
         max_digits=8,
         decimal_places=2,
+        default=0,
     )
 
     biography = models.TextField(
@@ -177,6 +213,63 @@ class Doctor(models.Model):
                     "role"
                 ]
             )
+
+
+class DoctorRating(models.Model):
+
+    doctor = models.ForeignKey(
+        Doctor,
+        on_delete=models.CASCADE,
+        related_name="ratings",
+    )
+
+    patient = models.ForeignKey(
+        "patients.PatientProfile",
+        on_delete=models.CASCADE,
+        related_name="doctor_ratings",
+    )
+
+    appointment = models.OneToOneField(
+        "appointments.Appointment",
+        on_delete=models.CASCADE,
+        related_name="doctor_rating",
+        null=True,
+        blank=True,
+    )
+
+    rating = models.PositiveSmallIntegerField()
+
+    review = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(rating__gte=1, rating__lte=5),
+                name="doctor_rating_between_one_and_five",
+            ),
+        ]
+
+
+class HealthTip(models.Model):
+
+    doctor = models.ForeignKey(
+        Doctor,
+        on_delete=models.CASCADE,
+        related_name="health_tips",
+    )
+    title = models.CharField(max_length=160)
+    content = models.TextField()
+    category = models.CharField(max_length=80, blank=True, default="General wellness")
+    is_published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
 
 
 # ==========================================================

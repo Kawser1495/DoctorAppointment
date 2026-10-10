@@ -31,3 +31,11 @@ export const getDiagnosticBookingDetails = (id) => {
     );
 
 };
+
+export const cancelDiagnosticBooking = (id) => {
+    return api.patch(`/tests/bookings/${id}/cancel/`);
+};
+
+export const requestDiagnosticRefund = (paymentId, reason) => {
+    return api.post(`/payments/${paymentId}/refund-request/`, { reason });
+};

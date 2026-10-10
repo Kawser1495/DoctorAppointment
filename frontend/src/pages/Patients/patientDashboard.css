@@ -1,3 +1,138 @@
+.patient-rate-doctor-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 9px;
+    border: 1px solid #f1c36b;
+    border-radius: 7px;
+    background: #fff8e7;
+    color: #9a6b16;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.patient-rate-doctor-btn:hover {
+    background: #fff0c9;
+}
+
+.patient-rating-dialog {
+    position: fixed;
+    z-index: 1050;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(15, 39, 43, 0.42);
+}
+
+.patient-rating-dialog__card {
+    position: relative;
+    width: min(430px, 100%);
+    padding: 25px;
+    border: 1px solid #dce9e7;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 20px 55px rgba(20, 51, 54, 0.2);
+}
+
+.patient-rating-dialog__close {
+    position: absolute;
+    top: 13px;
+    right: 13px;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #c9dcda;
+    border-radius: 6px;
+    background: white;
+    color: #527075;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.patient-rating-dialog__eyebrow {
+    margin: 0 0 6px;
+    color: #0d8f86;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.patient-rating-dialog__card h3 {
+    margin: 0 0 18px;
+    color: #17333a;
+    font-size: 22px;
+}
+
+.patient-rating-stars {
+    display: flex;
+    gap: 7px;
+    margin-bottom: 17px;
+}
+
+.patient-rating-stars button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #d5dfe0;
+    cursor: pointer;
+    font-size: 29px;
+}
+
+.patient-rating-stars button.selected,
+.patient-rating-stars button:hover {
+    color: #f3a623;
+}
+
+.patient-rating-dialog__card textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+    padding: 10px;
+    border: 1px solid #d2e2df;
+    border-radius: 7px;
+    resize: vertical;
+}
+
+.patient-rating-submit {
+    width: 100%;
+    min-height: 42px;
+    border: 0;
+    border-radius: 7px;
+    background: #0d8f86;
+    color: white;
+    cursor: pointer;
+    font-weight: 800;
+}
+
+.patient-rating-service-card {
+    position: relative;
+    width: 100%;
+    border: 0;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+
+.patient-rating-service-card .patient-service-icon.gold {
+    background: #fff2cf;
+    color: #c58a16;
+}
+
+.patient-rating-service-score {
+    min-width: 24px;
+    margin-left: auto;
+    color: #c58a16;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.patient-rating-service-card:focus-visible {
+    outline: 3px solid rgba(197, 138, 22, 0.25);
+    outline-offset: 2px;
+}
 /* ==========================================================
    Patient Dashboard
    ========================================================== */
@@ -174,7 +309,8 @@
 
 
 .patient-primary-btn,
-.patient-secondary-btn {
+.patient-secondary-btn,
+.patient-symptom-btn {
     display: inline-flex;
 
     align-items: center;
@@ -200,28 +336,51 @@
         box-shadow 0.2s ease;
 }
 
-
-.patient-primary-btn {
-    background: #ffffff;
-
-    color: #2563eb;
+.patient-primary-btn,
+.patient-symptom-btn {
+    border: 1px solid var(--patient-action-border);
+    background: var(--patient-action-background);
+    color: var(--patient-action-color);
 }
 
+.patient-primary-btn {
+    --patient-action-background: #e7f1ff;
+    --patient-action-border: rgba(255, 255, 255, 0.45);
+    --patient-action-color: #1559b7;
+    --patient-action-hover-background: #ffffff;
+    --patient-action-hover-color: #1559b7;
+}
 
-.patient-primary-btn:hover {
-    color: #1d4ed8;
+.patient-find-doctor-btn {
+    --patient-action-background: #e7f1ff;
+    --patient-action-border: rgba(255, 255, 255, 0.45);
+    --patient-action-color: #1559b7;
+    --patient-action-hover-background: #ffffff;
+    --patient-action-hover-color: #1559b7;
+}
 
-    transform:
-        translateY(-2px);
+.patient-ai-symptom-btn {
+    --patient-action-background: #e7f1ff;
+    --patient-action-border: rgba(255, 255, 255, 0.45);
+    --patient-action-color: #1559b7;
+    --patient-action-hover-background: #ffffff;
+    --patient-action-hover-color: #1559b7;
+}
 
-    box-shadow:
-        0 7px 18px
-        rgba(
-            0,
-            0,
-            0,
-            0.14
-        );
+.patient-health-tips-btn {
+    --patient-action-background: #e7f1ff;
+    --patient-action-border: rgba(255, 255, 255, 0.45);
+    --patient-action-color: #1559b7;
+    --patient-action-hover-background: #ffffff;
+    --patient-action-hover-color: #1559b7;
+}
+
+.patient-profile-btn {
+    --patient-action-background: #e7f1ff;
+    --patient-action-border: rgba(255, 255, 255, 0.45);
+    --patient-action-color: #1559b7;
+    --patient-action-hover-background: #ffffff;
+    --patient-action-hover-color: #1559b7;
 }
 
 
@@ -260,6 +419,14 @@
 
     transform:
         translateY(-2px);
+}
+
+.patient-primary-btn:hover,
+.patient-symptom-btn:hover {
+    background: var(--patient-action-hover-background);
+    color: var(--patient-action-hover-color);
+    transform: translateY(-2px);
+    box-shadow: 0 7px 18px rgba(0, 0, 0, 0.14);
 }
 
 
@@ -303,31 +470,33 @@
    ========================================================== */
 
 .patient-section-title {
-    margin:
-        30px
-        0
-        18px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 28px 0 18px;
+    padding: 10px 12px 10px 16px;
+    border-left: 4px solid #2563eb;
+    border-radius: 0 12px 12px 0;
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.02));
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.04);
 }
 
 
 .patient-section-title h2 {
-    margin:
-        0
-        0
-        4px;
-
+    margin: 0;
+    color: #1f2a3d;
     font-size: 21px;
-
     font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 
 .patient-section-title p {
     margin: 0;
-
-    color: #8a94a6;
-
+    color: #7d8ca1;
     font-size: 13px;
+    font-weight: 600;
 }
 
 
@@ -495,7 +664,6 @@
 
     gap: 16px;
 }
-
 
 /* ==========================================================
    Service Card
@@ -696,6 +864,32 @@
    Main Grid
    ========================================================== */
 
+.patient-feedback-panel { margin: 24px 0; padding: 22px; border: 1px solid #d5e3f4; border-radius: 16px; background: linear-gradient(135deg, #f4f8ff, #fffaf2); box-shadow: 0 10px 24px rgba(35, 78, 111, .06); }
+.patient-feedback-panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.patient-feedback-kicker { color: #087f9c; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.patient-feedback-panel h2 { margin: 5px 0 4px; color: #213a5b; font-size: 20px; }
+.patient-feedback-panel-header p { margin: 0; color: #718096; font-size: 12px; }
+.patient-feedback-clear { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; border: 1px solid #efb2b2; border-radius: 8px; padding: 8px 12px; background: #fff5f5; color: #b42318; cursor: pointer; font-size: 11px; font-weight: 800; }
+.patient-feedback-clear:disabled { opacity: .5; cursor: not-allowed; }
+.patient-feedback-composer { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(260px, 1.4fr) auto; gap: 10px; align-items: end; margin-top: 16px; padding: 14px; border: 1px solid #dbe5ef; border-radius: 10px; background: #fff; }
+.patient-feedback-composer select, .patient-feedback-composer textarea { width: 100%; box-sizing: border-box; border: 1px solid #d5deea; border-radius: 7px; padding: 9px 10px; color: #243b53; font: inherit; font-size: 12px; }
+.patient-feedback-composer button { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 8px; padding: 10px 13px; background: #168276; color: #fff; cursor: pointer; font-size: 11px; font-weight: 800; }
+.patient-feedback-composer button:disabled { background: #b8c8c9; cursor: not-allowed; }
+.patient-feedback-list { display: grid; gap: 8px; margin-top: 16px; }
+.patient-feedback-empty { margin: 0; padding: 14px; border: 1px dashed #cbd8e8; border-radius: 9px; color: #718096; font-size: 12px; }
+.patient-feedback-message { padding: 11px 13px; border-left: 3px solid #0f9f78; border-radius: 8px; background: #fff; }
+.patient-feedback-message.is-patient { border-left-color: #f0a43c; background: #fffaf0; }
+.patient-feedback-message div { display: flex; justify-content: space-between; gap: 10px; }
+.patient-feedback-message strong { color: #213a5b; font-size: 12px; }
+.patient-feedback-message small { color: #8091a7; font-size: 10px; }
+.patient-feedback-message p { margin: 5px 0 0; color: #52616f; font-size: 12px; line-height: 1.45; }
+
+@media (max-width: 760px) {
+    .patient-feedback-panel-header { align-items: stretch; flex-direction: column; }
+    .patient-feedback-composer { grid-template-columns: 1fr; }
+    .patient-feedback-message div { align-items: flex-start; flex-direction: column; gap: 3px; }
+}
+
 .patient-main-grid {
     display: grid;
 
@@ -734,12 +928,7 @@
 
     box-shadow:
         0 4px 15px
-        rgba(
-            15,
-            23,
-            42,
-            0.035
-        );
+        rgba(42, 15, 15, 0.035);
 }
 
 
@@ -749,26 +938,23 @@
 
 .patient-panel-header {
     display: flex;
-
     align-items: center;
-
     justify-content: space-between;
-
     gap: 15px;
-
     margin-bottom: 18px;
+    padding: 10px 12px 10px 16px;
+    border-left: 4px solid #0ea5e9;
+    border-radius: 0 12px 12px 0;
+    background: linear-gradient(90deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.02));
 }
 
 
 .patient-panel-header h2 {
-    margin:
-        0
-        0
-        4px;
-
+    margin: 0 0 4px;
+    color: #1d2b3d;
     font-size: 18px;
-
     font-weight: 800;
+    letter-spacing: -0.01em;
 }
 
 
@@ -1778,4 +1964,28 @@
     }
 
 }
+.patient-stat-card strong {
+    display: block;
+    font-size: 27px;
+    font-weight: 800;
+    color: #1e293b;
+}
 
+/* ==========================================================
+   Your Overview
+   ========================================================== */
+
+
+.patient-stat-card:nth-child(0) span,
+.patient-stat-card:nth-child(0) strong {
+    color: rgb(16, 141, 224) !important;
+}
+
+/* ==========================================================
+   Healthcare OVerview
+   ========================================================== */
+
+.patient-service-card:nth-child(0) h3,
+.patient-service-card:nth-child(0) p {
+    color: red !important;
+}

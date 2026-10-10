@@ -86,8 +86,20 @@ export default function SymptomChecker() {
             setShareSaving(true);
             setShareMessage("");
             const reportPayload = {
-                ...result,
-                possible_conditions: result.possibleConditions,
+                symptoms: result.symptoms || symptoms.trim(),
+                duration: result.duration || duration,
+                severity: result.severity || severity,
+                ai_category: result.category || "",
+                possible_conditions: Array.isArray(result.possibleConditions)
+                    ? result.possibleConditions.join(", ")
+                    : result.possibleConditions || "",
+                ai_urgency: result.urgency || "",
+                ai_specialist: result.specialist || "",
+                ai_guidance: result.guidance || "",
+                keywords: Array.isArray(result.keywords) ? result.keywords : [],
+                matched_specialists: Array.isArray(result.matchedSpecialists)
+                    ? result.matchedSpecialists
+                    : [],
                 payment_method: "SSLCOMMERZ",
             };
             if (selectedValue.startsWith("doctor:")) {

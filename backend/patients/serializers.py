@@ -1,3 +1,4 @@
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from rest_framework import serializers
@@ -6,6 +7,7 @@ from .models import PatientProfile, FamilyMember
 
 from appointments.models import Appointment
 from payments.models import Payment
+from doctors.models import Doctor
 
 
 # ==========================================================
@@ -21,7 +23,9 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 
     email = serializers.EmailField(
         source="user.email",
-        read_only=True,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
     )
 
     full_name = serializers.SerializerMethodField()
@@ -40,6 +44,7 @@ class PatientProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "user",
+            "profile_image",
             "username",
             "email",
             "full_name",
@@ -57,7 +62,6 @@ class PatientProfileSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "username",
-            "email",
             "full_name",
             "created_at",
             "updated_at",
@@ -150,9 +154,14 @@ class PatientProfileSerializer(serializers.ModelSerializer):
         # Update CustomUser fields
         user = instance.user
 
-        if "phone" in user_data:
-            user.phone = user_data["phone"]
-            user.save(update_fields=["phone"])
+        user_update_fields = []
+        for field in ("phone", "email"):
+            if field in user_data:
+                setattr(user, field, user_data[field])
+                user_update_fields.append(field)
+
+        if user_update_fields:
+            user.save(update_fields=user_update_fields + ["updated_at"])
 
         return instance
 
@@ -243,6 +252,10 @@ class AdminPatientSerializer(serializers.ModelSerializer):
     family_members = serializers.SerializerMethodField()
     appointment_history = serializers.SerializerMethodField()
     payment_history = serializers.SerializerMethodField()
+    doctors = serializers.SerializerMethodField()
+    active_appointment_count = serializers.SerializerMethodField()
+    payment_count = serializers.SerializerMethodField()
+    total_payment_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = PatientProfile
@@ -251,6 +264,8 @@ class AdminPatientSerializer(serializers.ModelSerializer):
             "gender", "date_of_birth", "blood_group", "address",
             "emergency_contact", "family_members", "appointment_history",
             "payment_history", "created_at", "updated_at",
+            "doctors",
+            "active_appointment_count", "payment_count", "total_payment_amount",
         ]
 
     def get_full_name(self, obj):
@@ -265,7 +280,9 @@ class AdminPatientSerializer(serializers.ModelSerializer):
     def get_appointment_history(self, obj):
         appointments = Appointment.objects.filter(
             patient=obj,
-        ).select_related("doctor", "doctor__user").order_by(
+        ).exclude(
+            payments__payment_status="Refunded",
+        ).select_related("doctor", "doctor__user", "family_member", "slot").order_by(
             "-appointment_date", "-created_at",
         )[:20]
 
@@ -275,8 +292,12 @@ class AdminPatientSerializer(serializers.ModelSerializer):
                 "booking_number": appointment.booking_number,
                 "doctor_name": str(appointment.doctor),
                 "appointment_date": appointment.appointment_date,
+                "slot_time": appointment.slot.slot_time,
+                "time_range": appointment.slot.time_range,
                 "status": appointment.status,
                 "reason": appointment.reason,
+                "person_type": "Family member" if appointment.family_member else "Patient",
+                "person_name": appointment.family_member.name if appointment.family_member else self.get_full_name(obj),
             }
             for appointment in appointments
         ]
@@ -295,4 +316,42 @@ class AdminPatientSerializer(serializers.ModelSerializer):
                 "transaction_id": payment.transaction_id,
             }
             for payment in payments
+        ]
+
+    def get_active_appointment_count(self, obj):
+        return Appointment.objects.filter(
+            patient=obj,
+            status__in=["Pending", "Confirmed", "Completed"],
+        ).count()
+
+    def get_payment_count(self, obj):
+        return Payment.objects.filter(patient=obj).count()
+
+    def get_total_payment_amount(self, obj):
+        total = Payment.objects.filter(patient=obj).aggregate(
+            total=Sum("amount"),
+        )["total"]
+        return total or 0
+
+    def get_doctors(self, obj):
+        doctors = Doctor.objects.filter(
+            appointments__patient=obj,
+        ).select_related("user", "department").annotate(
+            patient_appointment_count=Count(
+                "appointments",
+                filter=Q(
+                    appointments__patient=obj,
+                    appointments__status__in=["Pending", "Confirmed", "Completed"],
+                ),
+            ),
+        ).distinct().order_by("user__first_name", "user__username")
+
+        return [
+            {
+                "id": doctor.id,
+                "name": doctor.user.get_full_name().strip() or doctor.user.username,
+                "department": doctor.department.name if doctor.department else "Unassigned",
+                "appointment_count": doctor.patient_appointment_count,
+            }
+            for doctor in doctors
         ]

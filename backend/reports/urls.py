@@ -17,6 +17,14 @@ from .views import (
 
     AdminMedicalReportStatusView,
 
+    AdminMedicalReportUpdateView,
+
+    FeedbackMessageListView,
+
+    FeedbackMessageCreateView,
+
+    FeedbackMessageClearView,
+
 )
 
 
@@ -74,6 +82,48 @@ urlpatterns = [
         AdminMedicalReportStatusView.as_view(),
 
         name="admin-report-status",
+
+    ),
+
+        path(
+
+            "admin/<int:pk>/",
+
+            AdminMedicalReportUpdateView.as_view(),
+
+            name="admin-report-update",
+
+        ),
+
+
+    path(
+
+        "feedback/",
+
+        FeedbackMessageListView.as_view(),
+
+        name="feedback-list",
+
+    ),
+
+
+    path(
+
+        "feedback/send/",
+
+        FeedbackMessageCreateView.as_view(),
+
+        name="feedback-send",
+
+    ),
+
+    path(
+
+        "feedback/clear/",
+
+        FeedbackMessageClearView.as_view(),
+
+        name="feedback-clear",
 
     ),
 

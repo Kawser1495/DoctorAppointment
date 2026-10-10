@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
     getUserSettings,
     updateUserSettings,
+    changePassword,
 } from "../../services/settingsService";
 
 import "./Settings.css";
@@ -24,6 +25,12 @@ function Settings() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [passwordData, setPasswordData] = useState({
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
+    });
+    const [passwordSaving, setPasswordSaving] = useState(false);
 
 
     // ======================================================
@@ -105,6 +112,47 @@ function Settings() {
 
         setError("");
         setSuccess("");
+    };
+
+    const handlePasswordChange = (event) => {
+        const { name, value } = event.target;
+        setPasswordData((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+        setError("");
+        setSuccess("");
+    };
+
+    const handlePasswordSubmit = async (event) => {
+        event.preventDefault();
+
+        try {
+            setPasswordSaving(true);
+            setError("");
+            setSuccess("");
+
+            await changePassword(passwordData);
+            setPasswordData({
+                current_password: "",
+                new_password: "",
+                confirm_password: "",
+            });
+            setSuccess("Your password has been changed successfully.");
+        } catch (error) {
+            const backendError = error.response?.data;
+            const firstError = backendError && typeof backendError === "object"
+                ? Object.values(backendError)?.[0]
+                : null;
+
+            setError(
+                Array.isArray(firstError)
+                    ? firstError[0]
+                    : firstError || "Unable to change your password. Please try again."
+            );
+        } finally {
+            setPasswordSaving(false);
+        }
     };
 
 
@@ -499,6 +547,71 @@ function Settings() {
 
                     </div>
 
+                </form>
+
+                <form
+                    className="settings-form settings-password-form"
+                    onSubmit={handlePasswordSubmit}
+                >
+                    <div className="settings-section-heading">
+                        <h3>Change Password</h3>
+                        <p>Use your current password to set a new password.</p>
+                    </div>
+
+                    <div className="settings-field">
+                        <label htmlFor="current_password">Current Password</label>
+                        <input
+                            className="settings-input"
+                            type="password"
+                            id="current_password"
+                            name="current_password"
+                            value={passwordData.current_password}
+                            onChange={handlePasswordChange}
+                            autoComplete="current-password"
+                            required
+                        />
+                    </div>
+
+                    <div className="settings-field">
+                        <label htmlFor="new_password">New Password</label>
+                        <input
+                            className="settings-input"
+                            type="password"
+                            id="new_password"
+                            name="new_password"
+                            value={passwordData.new_password}
+                            onChange={handlePasswordChange}
+                            minLength={8}
+                            autoComplete="new-password"
+                            required
+                        />
+                        <small>Use at least 8 characters.</small>
+                    </div>
+
+                    <div className="settings-field">
+                        <label htmlFor="confirm_password">Confirm New Password</label>
+                        <input
+                            className="settings-input"
+                            type="password"
+                            id="confirm_password"
+                            name="confirm_password"
+                            value={passwordData.confirm_password}
+                            onChange={handlePasswordChange}
+                            minLength={8}
+                            autoComplete="new-password"
+                            required
+                        />
+                    </div>
+
+                    <div className="settings-actions">
+                        <button
+                            className="settings-save-btn settings-password-btn"
+                            type="submit"
+                            disabled={passwordSaving}
+                        >
+                            {passwordSaving ? "Updating..." : "Update Password"}
+                        </button>
+                    </div>
                 </form>
 
             </div>

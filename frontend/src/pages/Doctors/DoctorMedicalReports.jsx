@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import DoctorLayout from "../../layouts/DoctorLayout";
 import { getDoctorReports } from "../../services/reportService";
-import { BACKEND_URL } from "../../config";
 import "./DoctorPrescriptions.css";
 
 const listFrom = (response) => (
@@ -33,7 +32,7 @@ const getReportFileUrl = (report) => {
     const file = report?.report_file_url || report?.report_file;
     if (!file) return null;
     if (file.startsWith("http")) return file;
-    return `${BACKEND_URL}${file}`;
+    return `http://127.0.0.1:8000${file}`;
 };
 
 const dateText = (value) => value
@@ -80,7 +79,7 @@ export default function DoctorMedicalReports() {
     }, []);
 
     const visibleReports = useMemo(() => reports.filter((report) => {
-        if (activeView === "diagnostic") return isDiagnosticReport(report) && !isAdminDiagnosticResult(report);
+        if (activeView === "diagnostic") return isDiagnosticReport(report);
         if (activeView === "diagnostic-result") return isAdminDiagnosticResult(report);
         return !isDiagnosticReport(report);
     }), [activeView, reports]);

@@ -1,8 +1,12 @@
+from datetime import timedelta
+from decimal import Decimal
+
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 from patients.models import PatientProfile
-from appointments.models import Appointment
+from appointments.models import Appointment, AISymptomReport
 from diagnostics.models import TestBooking
 
 
@@ -22,6 +26,7 @@ class Payment(models.Model):
         ("Nagad", "Nagad"),
         ("Rocket", "Rocket"),
         ("Card", "Card"),
+        ("SSLCOMMERZ", "SSLCOMMERZ"),
         ("Cash", "Cash"),
 
     ]
@@ -45,7 +50,9 @@ class Payment(models.Model):
 
         ("Pending", "Pending"),
         ("Paid", "Paid"),
+        ("Partially Paid", "Partially Paid"),
         ("Failed", "Failed"),
+        ("Cancelled", "Cancelled"),
         ("Refunded", "Refunded"),
 
     ]
@@ -98,6 +105,14 @@ class Payment(models.Model):
 
         related_name="payments",
 
+    )
+
+    ai_symptom_report = models.ForeignKey(
+        AISymptomReport,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payments",
     )
 
     # ======================================================
@@ -197,6 +212,30 @@ class Payment(models.Model):
 
     )
 
+    refunded_amount = models.DecimalField(
+
+        max_digits=10,
+
+        decimal_places=2,
+
+        null=True,
+
+        blank=True,
+
+    )
+
+    refund_retained_amount = models.DecimalField(
+
+        max_digits=10,
+
+        decimal_places=2,
+
+        null=True,
+
+        blank=True,
+
+    )
+
     # ======================================================
     # Notification Tracking
     # ======================================================
@@ -255,15 +294,9 @@ class Payment(models.Model):
 
                 condition=(
 
-                    Q(
-                        appointment__isnull=False
-                    )
-
-                    ^
-
-                    Q(
-                        test_booking__isnull=False
-                    )
+                    Q(appointment__isnull=False)
+                    ^ Q(test_booking__isnull=False)
+                    ^ Q(ai_symptom_report__isnull=False)
 
                 ),
 
@@ -308,6 +341,10 @@ class Payment(models.Model):
 
             return "Diagnostic Test"
 
+        if self.ai_symptom_report:
+
+            return "AI Symptom Consultation"
+
         return "Unknown"
 
     # ======================================================
@@ -339,6 +376,10 @@ class Payment(models.Model):
 
             )
 
+        if self.ai_symptom_report:
+
+            return self.ai_symptom_report.consultation_fee
+
         return 0
 
     # ======================================================
@@ -358,7 +399,7 @@ class Payment(models.Model):
 
             patient=self.patient,
 
-            payment_status="Paid",
+            payment_status__in=["Paid", "Partially Paid"],
 
         )
 
@@ -388,6 +429,14 @@ class Payment(models.Model):
 
             )
 
+
+        elif self.ai_symptom_report:
+
+            queryset = queryset.filter(
+
+                ai_symptom_report=self.ai_symptom_report
+
+            )
 
         else:
 
@@ -460,20 +509,37 @@ class Payment(models.Model):
     @property
     def refundable_amount(self):
 
-        if (
-
-            self.payment_status == "Paid"
-
-            and
-
-            self.is_refundable
-
-        ):
+        if self.can_be_refunded:
 
             return self.amount
 
 
         return 0
+
+    @property
+    def can_be_refunded(self):
+        """Return whether this payment is refundable right now."""
+        return (
+            self.payment_status == "Paid"
+            and self.payment_mode == "Full"
+            and self.is_refundable
+            and timezone.now() - self.payment_date <= timedelta(hours=24)
+        )
+
+    @property
+    def refund_breakdown(self):
+        """Return the 80% patient refund and 20% doctor retention."""
+        refund_amount = (
+            self.refunded_amount
+            if self.refunded_amount is not None
+            else (self.amount * Decimal("0.80")).quantize(Decimal("0.01"))
+        )
+        retained_amount = (
+            self.refund_retained_amount
+            if self.refund_retained_amount is not None
+            else self.amount - refund_amount
+        )
+        return refund_amount, retained_amount
 
     # ======================================================
     # String Representation

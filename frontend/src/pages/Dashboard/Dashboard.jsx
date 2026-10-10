@@ -147,7 +147,7 @@ function Dashboard() {
             "/admin/dashboard",
 
         receptionist:
-            "/dashboard",
+            "/receptionist/dashboard",
 
     };
 

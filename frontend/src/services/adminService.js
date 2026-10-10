@@ -56,10 +56,18 @@ export const searchAdminUsers = async ({
 
 };
 
-export const getAdminPatients = async () => {
-    return await api.get("patients/admin/");
+export const getAdminPatients = async (params = {}) => {
+    return await api.get("patients/admin/", { params });
+};
+
+export const getAdminDoctorPatientSummary = async () => {
+    return await api.get("patients/admin/doctor-summary/");
 };
 
 export const getAdminPatientDetails = async (patientId) => {
     return await api.get(`patients/admin/${patientId}/`);
+};
+
+export const deleteAdminPatient = async (patientId) => {
+    return await api.delete(`patients/admin/${patientId}/`);
 };

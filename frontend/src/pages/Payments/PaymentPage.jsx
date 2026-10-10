@@ -1,20 +1,17 @@
 import { useState } from "react";
 import {
-    useNavigate,
     useLocation,
     Link,
 } from "react-router-dom";
 
 import {
-    createPayment,
+    createSSLCommerzPayment,
 } from "../../services/paymentService";
 
 import "../../styles/payment.css";
 
 
 function PaymentPage() {
-
-    const navigate = useNavigate();
 
     const location = useLocation();
 
@@ -32,16 +29,10 @@ function PaymentPage() {
     // State
     // ==========================================================
 
-    const [paymentMethod, setPaymentMethod] =
-        useState("Bkash");
-
     const [paymentMode, setPaymentMode] =
         useState("Full");
 
-    const [transactionId, setTransactionId] =
-        useState("");
-
-    const [loading, setLoading] =
+    const [sslLoading, setSslLoading] =
         useState(false);
 
     const [error, setError] =
@@ -79,269 +70,23 @@ function PaymentPage() {
     }
 
 
-    // ==========================================================
-    // Handle Payment
-    // ==========================================================
-
-    const handlePayment = async (
-        event
-    ) => {
-
-        event.preventDefault();
-
-
-        // ======================================================
-        // Reset Error
-        // ======================================================
-
+    const handleSSLCommerzPayment = async () => {
         setError("");
-
-
-        // ======================================================
-        // Clean Transaction ID
-        // ======================================================
-
-        const cleanTransactionId =
-            transactionId.trim();
-
-
-        // ======================================================
-        // Validation
-        // ======================================================
-
-        if (!cleanTransactionId) {
-
-            setError(
-                "Please enter the Transaction ID."
-            );
-
-            return;
-
-        }
-
-
-        if (cleanTransactionId.length < 4) {
-
-            setError(
-                "Transaction ID must be at least 4 characters."
-            );
-
-            return;
-
-        }
-
-
-        // ======================================================
-        // Payload
-        //
-        // IMPORTANT:
-        // amount is NOT sent.
-        //
-        // Backend calculates:
-        //
-        // Full    → Remaining Amount
-        // Partial → 20% Minimum Policy
-        // ======================================================
-
-        const payload = {
-
-            appointment:
-                appointment.id,
-
-            payment_mode:
-                paymentMode,
-
-            payment_method:
-                paymentMethod,
-
-            transaction_id:
-                cleanTransactionId,
-
-        };
-
-
-        console.log(
-            "Payment Payload:",
-            payload
-        );
-
-
-        // ======================================================
-        // API Request
-        // ======================================================
-
         try {
-
-            setLoading(true);
-
-
-            const response =
-                await createPayment(
-                    payload
-                );
-
-
-            console.log(
-                "Payment Response:",
-                response.data
-            );
-
-
-            const paymentData =
-                response.data?.data ||
-                response.data?.payment ||
-                response.data;
-
-
-            navigate(
-
-                "/payment-success",
-
-                {
-
-                    state: {
-
-                        payment:
-                            paymentData,
-
-                        appointment:
-                            appointment,
-
-                    },
-
-                }
-
-            );
-
-        }
-
-
-        // ======================================================
-        // Error Handling
-        // ======================================================
-
-        catch (error) {
-
-            console.error(
-                "Payment Error:",
-                error
-            );
-
-
-            const data =
-                error.response?.data;
-
-
-            // ==================================================
-            // Network Error
-            // ==================================================
-
-            if (!data) {
-
-                setError(
-                    "Cannot connect to the server. Please try again."
-                );
-
-                return;
-
-            }
-
-
-            // ==================================================
-            // General Message
-            // ==================================================
-
-            if (data.message) {
-
-                setError(
-                    data.message
-                );
-
-                return;
-
-            }
-
-
-            // ==================================================
-            // Detail
-            // ==================================================
-
-            if (data.detail) {
-
-                setError(
-                    data.detail
-                );
-
-                return;
-
-            }
-
-
-            // ==================================================
-            // Field Errors
-            // ==================================================
-
-            const fieldErrors = [
-
-                "transaction_id",
-
-                "appointment",
-
-                "payment",
-
-                "payment_for",
-
-                "patient",
-
-                "authentication",
-
-                "payment_mode",
-
-                "payment_method",
-
-            ];
-
-
-            for (
-                const field of fieldErrors
-            ) {
-
-                if (data[field]) {
-
-                    const message =
-                        Array.isArray(
-                            data[field]
-                        )
-
-                            ? data[field][0]
-
-                            : data[field];
-
-
-                    setError(
-                        message
-                    );
-
-                    return;
-
-                }
-
-            }
-
-
+            setSslLoading(true);
+            const response = await createSSLCommerzPayment({
+                appointment: appointment.id,
+                payment_mode: paymentMode,
+            });
+            window.location.assign(response.data.gateway_url);
+        } catch (error) {
             setError(
-                "Payment failed. Please check your information."
+                error.response?.data?.detail ||
+                "Unable to start SSLCOMMERZ payment."
             );
-
+        } finally {
+            setSslLoading(false);
         }
-
-
-        finally {
-
-            setLoading(false);
-
-        }
-
     };
 
 
@@ -553,9 +298,7 @@ function PaymentPage() {
                         Payment Form
                     ================================================== */}
 
-                    <form
-                        onSubmit={handlePayment}
-                    >
+                    <div>
 
 
                         {/* ==================================================
@@ -584,7 +327,7 @@ function PaymentPage() {
                                         )
                                 }
 
-                                disabled={loading}
+                                disabled={sslLoading}
 
                             >
 
@@ -615,166 +358,25 @@ function PaymentPage() {
                         </div>
 
 
-                        {/* ==================================================
-                            Payment Method
-                        ================================================== */}
-
-                        <div className="mb-3">
-
-                            <label className="form-label">
-
-                                Payment Method
-
-                            </label>
-
-
-                            <select
-
-                                className="form-select"
-
-                                value={paymentMethod}
-
-                                onChange={
-                                    (event) =>
-                                        setPaymentMethod(
-                                            event.target.value
-                                        )
-                                }
-
-                                disabled={loading}
-
-                            >
-
-                                <option value="Bkash">
-
-                                    Bkash
-
-                                </option>
-
-
-                                <option value="Nagad">
-
-                                    Nagad
-
-                                </option>
-
-
-                                <option value="Rocket">
-
-                                    Rocket
-
-                                </option>
-
-
-                                <option value="Card">
-
-                                    Card
-
-                                </option>
-
-
-                                <option value="Cash">
-
-                                    Cash
-
-                                </option>
-
-                            </select>
-
-                        </div>
-
-
-                        {/* ==================================================
-                            Transaction ID
-                        ================================================== */}
-
-                        <div className="mb-4">
-
-                            <label className="form-label">
-
-                                Transaction ID
-
-                            </label>
-
-
-                            <input
-
-                                type="text"
-
-                                className="form-control"
-
-                                placeholder="Enter Transaction ID"
-
-                                value={transactionId}
-
-                                onChange={
-                                    (event) =>
-                                        setTransactionId(
-                                            event.target.value
-                                        )
-                                }
-
-                                disabled={loading}
-
-                                required
-
-                            />
-
-
-                            <small className="text-muted">
-
-                                Enter the transaction ID
-                                provided by your payment service.
-
-                            </small>
-
-                        </div>
-
-
-                        {/* ==================================================
-                            Actions
-                        ================================================== */}
-
-                        <div className="d-flex gap-2">
-
-
-                            <Link
-
-                                to="/appointments"
-
-                                className="btn btn-secondary w-50"
-
-                            >
-
-                                Cancel
-
-                            </Link>
-
-
-                            <button
-
-                                type="submit"
-
-                                className="btn btn-success w-50"
-
-                                disabled={loading}
-
-                            >
-
-                                {
-                                    loading
-
-                                        ? "Processing Payment..."
-
-                                        : "Confirm Payment"
-                                }
-
-                            </button>
-
-                        </div>
-
-
-                    </form>
+                        <button
+                            type="button"
+                            className="btn btn-primary w-100"
+                            onClick={handleSSLCommerzPayment}
+                            disabled={sslLoading}
+                        >
+                            {sslLoading
+                                ? "Redirecting to SSLCOMMERZ..."
+                                : "Pay securely with SSLCOMMERZ"}
+                        </button>
+
+                        <Link
+                            to="/appointments"
+                            className="btn btn-secondary w-100 mt-3"
+                        >
+                            Cancel
+                        </Link>
+
+                    </div>
 
                 </div>
 

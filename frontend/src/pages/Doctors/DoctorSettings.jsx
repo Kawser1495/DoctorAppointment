@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import DoctorLayout from "../../layouts/DoctorLayout";
 import AuthContext from "../../context/AuthContext";
 import api from "../../services/api";
@@ -28,6 +28,50 @@ export default function DoctorSettings() {
         allow_direct_messages: true,
         two_factor_auth: false,
     });
+
+    const [profileSettings, setProfileSettings] = useState({
+        username: "",
+        email: "",
+        first_name: "",
+        last_name: "",
+    });
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const response = await api.get("accounts/settings/");
+                const data = response?.data || {};
+
+                setNotificationSettings((previous) => ({
+                    ...previous,
+                    email_on_new_appointment: data.notification_new_appointment ?? previous.email_on_new_appointment,
+                    email_on_cancellation: data.notification_cancellation ?? previous.email_on_cancellation,
+                    appointment_reminders: data.notification_reminder ?? previous.appointment_reminders,
+                    sms_reminders: data.notification_reminder ?? previous.sms_reminders,
+                }));
+
+                setAccountSettings((previous) => ({
+                    ...previous,
+                    profile_visibility: data.profile_visibility || previous.profile_visibility,
+                    allow_direct_messages: data.allow_direct_messages ?? previous.allow_direct_messages,
+                }));
+
+                setProfileSettings({
+                    username: data.username || "",
+                    email: data.email || "",
+                    first_name: data.first_name || "",
+                    last_name: data.last_name || "",
+                });
+            } catch (loadError) {
+                setMessage({
+                    type: "error",
+                    text: loadError?.response?.data?.detail || "Unable to load settings.",
+                });
+            }
+        };
+
+        loadSettings();
+    }, []);
 
     const handlePasswordChange = async (e) => {
         e.preventDefault();
@@ -63,7 +107,11 @@ export default function DoctorSettings() {
     const handleNotificationUpdate = async () => {
         try {
             setLoading(true);
-            await api.patch("/accounts/notification-settings/", notificationSettings);
+            await api.patch("accounts/settings/", {
+                notification_new_appointment: notificationSettings.email_on_new_appointment,
+                notification_cancellation: notificationSettings.email_on_cancellation,
+                notification_reminder: notificationSettings.appointment_reminders,
+            });
             setMessage({ type: "success", text: "Notification settings updated!" });
         } catch {
             setMessage({
@@ -78,12 +126,21 @@ export default function DoctorSettings() {
     const handleAccountUpdate = async () => {
         try {
             setLoading(true);
-            await api.patch("/accounts/account-settings/", accountSettings);
-            setMessage({ type: "success", text: "Account settings updated!" });
-        } catch {
+            await api.patch("accounts/settings/", {
+                username: profileSettings.username.trim(),
+                email: profileSettings.email.trim(),
+                first_name: profileSettings.first_name.trim(),
+                last_name: profileSettings.last_name.trim(),
+                profile_visibility: accountSettings.profile_visibility,
+                allow_direct_messages: accountSettings.allow_direct_messages,
+            });
+            setMessage({ type: "success", text: "Account information updated!" });
+        } catch (error) {
             setMessage({
                 type: "error",
-                text: "Failed to update account settings",
+                text: error?.response?.data?.detail ||
+                    Object.values(error?.response?.data || {}).flat().join(" ") ||
+                    "Failed to update account information",
             });
         } finally {
             setLoading(false);
@@ -323,6 +380,51 @@ export default function DoctorSettings() {
                                         Account Settings
                                     </h5>
 
+                                    <h6 className="mb-3">Personal Information</h6>
+
+                                    <div className="row">
+                                        <div className="col-md-6 mb-3">
+                                            <label className="form-label">Username</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={profileSettings.username}
+                                                onChange={(e) => setProfileSettings({ ...profileSettings, username: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="col-md-6 mb-3">
+                                            <label className="form-label">Email</label>
+                                            <input
+                                                type="email"
+                                                className="form-control"
+                                                value={profileSettings.email}
+                                                onChange={(e) => setProfileSettings({ ...profileSettings, email: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="col-md-6 mb-3">
+                                            <label className="form-label">First Name</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={profileSettings.first_name}
+                                                onChange={(e) => setProfileSettings({ ...profileSettings, first_name: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="col-md-6 mb-3">
+                                            <label className="form-label">Last Name</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                value={profileSettings.last_name}
+                                                onChange={(e) => setProfileSettings({ ...profileSettings, last_name: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div className="mb-3">
                                         <label className="form-label">Profile Visibility</label>
                                         <select
@@ -360,28 +462,6 @@ export default function DoctorSettings() {
                                                     setAccountSettings({
                                                         ...accountSettings,
                                                         allow_direct_messages: e.target.checked,
-                                                    })
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="doctor-settings__switch-item mb-4">
-                                        <div>
-                                            <h6 className="mb-1">Two-Factor Authentication</h6>
-                                            <p className="text-muted small mb-0">
-                                                Add extra security to your account
-                                            </p>
-                                        </div>
-                                        <div className="form-check form-switch">
-                                            <input
-                                                className="form-check-input"
-                                                type="checkbox"
-                                                checked={accountSettings.two_factor_auth}
-                                                onChange={(e) =>
-                                                    setAccountSettings({
-                                                        ...accountSettings,
-                                                        two_factor_auth: e.target.checked,
                                                     })
                                                 }
                                             />

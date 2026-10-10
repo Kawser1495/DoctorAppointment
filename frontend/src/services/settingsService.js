@@ -1,6 +1,7 @@
 import {
     getUserSettingsApi,
     updateUserSettingsApi,
+    changePasswordApi,
 } from "../api/settingsApi";
 
 
@@ -27,4 +28,8 @@ export const updateUserSettings = async (
         data
     );
 
+};
+
+export const changePassword = async (data) => {
+    return await changePasswordApi(data);
 };

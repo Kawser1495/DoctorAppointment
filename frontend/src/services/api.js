@@ -1,7 +1,6 @@
 import axios from "axios";
-import { API_BASE_URL } from "../config";
 
-const BASE_URL = API_BASE_URL;
+const BASE_URL = "http://127.0.0.1:8000/api/";
 
 // ==========================================================
 // API Instance
@@ -63,6 +62,15 @@ api.interceptors.request.use(
             config.headers = config.headers || {};
             config.headers.Authorization =
                 `Bearer ${accessToken}`;
+        }
+
+        // Let the browser add the multipart boundary for file uploads.
+        if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+            if (typeof config.headers.delete === "function") {
+                config.headers.delete("Content-Type");
+            } else {
+                delete config.headers["Content-Type"];
+            }
         }
 
         return config;

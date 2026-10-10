@@ -5,6 +5,7 @@ import {
     FaHome,
     FaCalendarCheck,
     FaUserMd,
+    FaHeartbeat,
     FaFlask,
     FaClipboardList,
     FaFileMedical,
@@ -29,7 +30,7 @@ function Sidebar() {
         },
 
         {
-            name: "Book Appointment",
+            name: "Book Appointments",
             path: "/appointments/book",
             icon: <FaCalendarCheck />,
         },
@@ -102,7 +103,8 @@ function Sidebar() {
         <aside className="sidebar">
 
             <h2 className="logo">
-                Doctor Appointment
+                <span className="logo-mark"><FaHeartbeat /></span>
+                <span><strong>MediCare</strong><small>Connect</small></span>
             </h2>
 
 
@@ -118,6 +120,13 @@ function Sidebar() {
                                 ? "menu-item active"
                                 : "menu-item"
                         }
+
+
+                        onClick={(e) => {
+                            if (item.name === "") {
+                                e.preventDefault();
+                            }
+                        }}
                     >
 
                         <span className="icon">

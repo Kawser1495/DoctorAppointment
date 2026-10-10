@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from patients.models import PatientProfile, FamilyMember
+from appointments.models import Appointment
 
 
 # ==========================================================
@@ -170,6 +171,14 @@ class TestBooking(models.Model):
         related_name="test_bookings"
     )
 
+    appointment = models.ForeignKey(
+        Appointment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="diagnostic_bookings",
+    )
+
     # ------------------------------------------------------
     # Diagnostic Test
     # ------------------------------------------------------
@@ -187,6 +196,17 @@ class TestBooking(models.Model):
     booking_date = models.DateField()
 
     booking_time = models.TimeField()
+
+    report_available_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the paid diagnostic report will be available to the patient.",
+    )
+
+    report_available_note = models.TextField(
+        blank=True,
+        help_text="Message from the diagnostic centre about report availability.",
+    )
 
     # ------------------------------------------------------
     # Status

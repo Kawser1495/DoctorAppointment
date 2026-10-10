@@ -24,11 +24,50 @@ z-index:100;
 
 .navbar-left h2{
 
-font-size:22px;
-
-color:#0D6EFD;
+margin:0;
+display:flex;
+align-items:center;
+gap:10px;
+color:#16313a;
 
 }
+
+.navbar-brand-mark{
+width:36px;
+height:36px;
+display:inline-flex;
+align-items:center;
+justify-content:center;
+border-radius:10px;
+background:#06df67;
+color:#0d3540;
+font-size:16px;
+box-shadow:0 5px 12px rgba(242,191,67,.25);
+}
+
+.navbar-brand-copy strong,.navbar-brand-copy small{
+display:block;
+}
+
+.navbar-brand-copy strong{
+font-size:20px;
+font-weight:800;
+line-height:1;
+letter-spacing:-.02em;
+color:#0d4fa8;
+text-shadow:0 1px 0 rgba(255,255,255,.7);
+}
+
+.navbar-brand-copy small{
+margin-top:5px;
+color:#0d4fa8;
+font-size:11px;
+font-weight:800;
+letter-spacing:.08em;
+text-transform:uppercase;
+}
+
+@media (max-width:700px){.navbar{padding:0 14px}.navbar-brand-copy strong{font-size:15px}.navbar-brand-mark{width:32px;height:32px;font-size:14px}.navbar-left{min-width:0}.navbar-center{display:none}}
 
 .search-box{
 
@@ -45,6 +84,30 @@ border-radius:8px;
 width:350px;
 
 gap:10px;
+
+}
+
+.search-box button{
+
+border:0;
+
+background:transparent;
+
+padding:0;
+
+display:flex;
+
+align-items:center;
+
+color:#334155;
+
+cursor:pointer;
+
+}
+
+.search-box button:hover{
+
+color:#0D6EFD;
 
 }
 
@@ -69,6 +132,7 @@ align-items:center;
 gap:30px;
 
 position:relative;
+z-index:110;
 
 }
 
@@ -78,9 +142,17 @@ position:relative;
 
 cursor:pointer;
 
+border:0;
+
+background:transparent;
+
+padding:4px;
+
+color:inherit;
+
 }
 
-.badge{
+.notification .badge{
 
 position:absolute;
 
@@ -118,13 +190,37 @@ gap:10px;
 
 cursor:pointer;
 
+border:0;
+
+background:transparent;
+
+padding:0;
+
+color:inherit;
+
+font:inherit;
+
+}
+
+.navbar-profile-image{
+width:35px;
+height:35px;
+object-fit:cover;
+border-radius:50%;
+border:2px solid #dbeafe;
+}
+
+.profile-menu{
+position:relative;
+display:flex;
+align-items:center;
 }
 
 .dropdown{
 
 position:absolute;
 
-top:60px;
+top:calc(100% + 10px);
 
 right:0;
 
@@ -137,6 +233,12 @@ border-radius:10px;
 width:180px;
 
 padding:10px;
+
+z-index:1200;
+
+overflow:hidden;
+
+transform:translateZ(0);
 
 }
 
@@ -154,5 +256,40 @@ border-radius:5px;
 
 background:#F3F4F6;
 
+}
+
+.dropdown button{
+
+display:block;
+
+width:100%;
+
+padding:10px;
+
+border:0;
+
+background:transparent;
+
+text-align:left;
+
+cursor:pointer;
+
+border-radius:5px;
+
+font:inherit;
+
+}
+
+.dropdown button:hover{
+
+background:#F3F4F6;
+
+}
+
+@media (max-width:700px){
+	.dropdown{
+		top:calc(100% + 8px);
+		right:0;
+	}
 }
 

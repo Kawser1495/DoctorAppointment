@@ -92,6 +92,53 @@ class MedicalReport(models.Model):
         db_index=True,
     )
 
+    medicines = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
+    clinical_history = models.TextField(
+        blank=True,
+    )
+
+    vitals = models.JSONField(
+        default=dict,
+        blank=True,
+    )
+
+    diagnostic_tests = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
+    diagnostic_result = models.TextField(
+        blank=True,
+    )
+
+    admin_result_published = models.BooleanField(
+        default=False,
+        db_index=True,
+    )
+
+    admin_managed = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="True when an administrator has edited or supplied this report.",
+    )
+
+    symptoms = models.TextField(
+        blank=True,
+    )
+
+    advice = models.TextField(
+        blank=True,
+    )
+
+    follow_up_date = models.DateField(
+        blank=True,
+        null=True,
+    )
+
     # ======================================================
     # Report File
     # PDF / JPG / PNG etc.
@@ -136,3 +183,44 @@ class MedicalReport(models.Model):
             f"{self.report_type} | "
             f"{self.report_title}"
         )
+
+
+class FeedbackMessage(models.Model):
+
+    SENDER_CHOICES = (
+        ("Doctor", "Doctor"),
+        ("Patient", "Patient"),
+    )
+
+    doctor = models.ForeignKey(
+        Doctor,
+        on_delete=models.CASCADE,
+        related_name="feedback_messages",
+    )
+
+    patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        related_name="feedback_messages",
+    )
+
+    appointment = models.ForeignKey(
+        Appointment,
+        on_delete=models.CASCADE,
+        related_name="feedback_messages",
+    )
+
+    sender = models.CharField(
+        max_length=10,
+        choices=SENDER_CHOICES,
+    )
+
+    message = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.sender} feedback for {self.appointment.booking_number}"

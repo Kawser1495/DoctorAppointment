@@ -6,9 +6,9 @@ from rest_framework.test import APITestCase
 User = get_user_model()
 
 
-class AdminDashboardPermissionTests(APITestCase):
+class DashboardPermissionTests(APITestCase):
 
-	def test_only_admin_can_access_dashboard_endpoint(self):
+	def test_authenticated_roles_can_access_dashboard_endpoint(self):
 
 		for role in [
 			"patient",
@@ -26,10 +26,7 @@ class AdminDashboardPermissionTests(APITestCase):
 
 			response = self.client.get("/api/dashboard/")
 
-			self.assertEqual(
-				response.status_code,
-				status.HTTP_403_FORBIDDEN,
-			)
+			self.assertNotEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 	def test_admin_can_access_dashboard_endpoint(self):
 

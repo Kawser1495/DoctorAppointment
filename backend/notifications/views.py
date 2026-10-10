@@ -24,6 +24,8 @@ class NotificationListView(
 
     serializer_class = NotificationSerializer
 
+    pagination_class = None
+
     permission_classes = [
         IsAuthenticated
     ]
@@ -231,7 +233,9 @@ class AdminNotificationListView(generics.ListAPIView):
     filterset_fields = ["notification_type", "is_read"]
 
     def get_queryset(self):
-        return Notification.objects.select_related("user").order_by(
+        return Notification.objects.filter(
+            user=self.request.user,
+        ).select_related("user").order_by(
             "-created_at"
         )
 
@@ -241,10 +245,22 @@ class AdminNotificationReadView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def patch(self, request, pk):
-        notification = get_object_or_404(Notification, pk=pk)
+        notification = get_object_or_404(Notification, pk=pk, user=request.user)
         notification.is_read = True
         notification.save(update_fields=["is_read", "updated_at"])
         return Response(AdminNotificationSerializer(notification).data)
+
+
+class AdminNotificationMarkAllReadView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def patch(self, request):
+        Notification.objects.filter(
+            user=request.user,
+            is_read=False,
+        ).update(is_read=True)
+        return Response({"success": True, "unread_count": 0})
 
 
 class AdminNotificationDeleteView(APIView):
@@ -252,6 +268,6 @@ class AdminNotificationDeleteView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def delete(self, request, pk):
-        notification = get_object_or_404(Notification, pk=pk)
+        notification = get_object_or_404(Notification, pk=pk, user=request.user)
         notification.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -14,6 +14,16 @@ export const getMedicalReports =
 
     };
 
+export const getAppointmentReports = async (appointmentId) => {
+    const response = await getMedicalReports();
+    const reports = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.results || [];
+    return reports.filter(
+        (report) => String(report.appointment) === String(appointmentId)
+    );
+};
+
 
 // ==========================================================
 // Doctor Medical Reports
@@ -119,4 +129,23 @@ export const updateAdminReportStatus = async (id, reportStatus) => {
     return await api.patch(`reports/admin/${id}/status/`, {
         report_status: reportStatus,
     });
+};
+
+export const updateAdminReport = async (id, report) => {
+    return await api.patch(`reports/admin/${id}/`, report);
+};
+
+export const getFeedbackMessages = async () => {
+    return await api.get("reports/feedback/");
+};
+
+export const sendFeedbackMessage = async (appointment, message) => {
+    return await api.post("reports/feedback/send/", {
+        appointment,
+        message,
+    });
+};
+
+export const clearFeedbackMessages = async () => {
+    return await api.delete("reports/feedback/clear/");
 };

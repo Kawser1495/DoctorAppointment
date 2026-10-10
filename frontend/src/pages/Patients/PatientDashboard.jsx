@@ -20,10 +20,13 @@ import {
     FaFlask,
     FaArrowRight,
     FaPlus,
+    FaUser,
     FaCalendarAlt,
     FaStethoscope,
     FaClipboardList,
     FaUserFriends,
+    FaStar,
+    FaBookMedical,
 } from "react-icons/fa";
 
 import useAuth from "../../context/useAuth";
@@ -34,6 +37,8 @@ import {
 
 import {
     getDoctors,
+    getMyRatings,
+    createDoctorRating,
 } from "../../services/doctorService";
 
 import {
@@ -55,6 +60,10 @@ import {
 import {
     getNotifications,
 } from "../../services/notificationService";
+
+import {
+    getDashboardData,
+} from "../../services/dashboardApi";
 
 import Navbar from "../../components/Navbar";
 import Sidebar from "../../components/Sidebar";
@@ -128,8 +137,7 @@ const normalizeAppointments = (
     response
 ) => {
 
-    const data =
-        response?.data;
+    const data = response?.data ?? response;
 
 
     if (
@@ -178,10 +186,29 @@ const normalizeAppointments = (
 
     }
 
+    if (Array.isArray(data?.data?.appointments)) {
+
+        return data.data.appointments;
+
+    }
+
 
     return [];
 
 };
+
+const getAppointmentStatus = (appointment) => (
+    String(
+        appointment?.status ||
+        appointment?.appointment_status ||
+        appointment?.status_display ||
+        ""
+    ).trim().toLowerCase()
+);
+
+const isRateableAppointment = (appointment) => (
+    ["pending", "confirmed", "completed", "complete"].includes(getAppointmentStatus(appointment))
+);
 
 
 // ==========================================================
@@ -343,6 +370,11 @@ export default function PatientDashboard() {
         setDiagnosticBookings,
     ] = useState([]);
 
+    const [
+        dashboardDiagnosticTotal,
+        setDashboardDiagnosticTotal,
+    ] = useState(null);
+
 
     const [
         reports,
@@ -367,7 +399,11 @@ export default function PatientDashboard() {
         setNotifications,
     ] = useState([]);
 
-
+    const [ratings, setRatings] = useState([]);
+    const [ratingAppointment, setRatingAppointment] = useState(null);
+    const [ratingValue, setRatingValue] = useState(5);
+    const [ratingReview, setRatingReview] = useState("");
+    const [ratingSaving, setRatingSaving] = useState(false);
     const [
         loading,
         setLoading,
@@ -417,6 +453,10 @@ export default function PatientDashboard() {
 
                                 getNotifications(),
 
+                                getMyRatings(),
+
+                                getDashboardData(),
+
                             ]
                         );
 
@@ -428,7 +468,6 @@ export default function PatientDashboard() {
                         return;
 
                     }
-
 
                     // ==========================================
                     // Appointments
@@ -514,6 +553,20 @@ export default function PatientDashboard() {
 
                         setDiagnosticBookings([]);
 
+                    }
+
+                    if (
+                        results[8].status ===
+                        "fulfilled"
+                    ) {
+                        const dashboardData =
+                            results[8].value?.data ||
+                            results[8].value ||
+                            {};
+
+                        setDashboardDiagnosticTotal(
+                            dashboardData.total_diagnostic_bookings ?? null
+                        );
                     }
 
 
@@ -632,6 +685,10 @@ export default function PatientDashboard() {
 
                     }
 
+                    if (results[7].status === "fulfilled") {
+                        setRatings(normalizeListResponse(results[7].value));
+                    }
+
                 }
 
                 catch (
@@ -673,15 +730,85 @@ export default function PatientDashboard() {
 
         loadDashboardData();
 
+        const refreshDashboardOnFocus = () => {
+            loadDashboardData();
+        };
+
+        const refreshNotifications = () => {
+            getNotifications()
+                .then((response) => {
+                    if (mounted) {
+                        setNotifications(normalizeListResponse(response));
+                    }
+                })
+                .catch((notificationError) => {
+                    console.error("Notifications refresh error:", notificationError);
+                });
+        };
+
+        window.addEventListener(
+            "focus",
+            refreshDashboardOnFocus
+        );
+
+        document.addEventListener(
+            "visibilitychange",
+            refreshDashboardOnFocus
+        );
+
+        window.addEventListener(
+            "notifications-updated",
+            refreshNotifications
+        );
+
 
         return () => {
 
             mounted = false;
 
+            window.removeEventListener(
+                "focus",
+                refreshDashboardOnFocus
+            );
+
+            document.removeEventListener(
+                "visibilitychange",
+                refreshDashboardOnFocus
+            );
+
+            window.removeEventListener(
+                "notifications-updated",
+                refreshNotifications
+            );
+
         };
 
     }, []);
 
+    const submitRating = async (event) => {
+        event.preventDefault();
+
+        if (!ratingAppointment) return;
+
+        try {
+            setRatingSaving(true);
+            await createDoctorRating({
+                appointment: ratingAppointment.id,
+                rating: ratingValue,
+                review: ratingReview.trim(),
+            });
+            setRatings((previous) => [...previous, {
+                appointment: ratingAppointment.id,
+                rating: ratingValue,
+            }]);
+            setRatingAppointment(null);
+            setRatingReview("");
+        } catch (ratingError) {
+            setError(ratingError?.response?.data?.detail || "Unable to submit rating.");
+        } finally {
+            setRatingSaving(false);
+        }
+    };
 
     // ======================================================
     // Safe Appointments
@@ -693,7 +820,9 @@ export default function PatientDashboard() {
             return Array.isArray(
                 appointments
             )
-                ? appointments
+                ? appointments.filter(
+                    (appointment) => appointment?.status !== "Cancelled"
+                )
                 : [];
 
         }, [
@@ -841,8 +970,7 @@ export default function PatientDashboard() {
 
 
                         if (
-                            paymentStatus !==
-                            "paid"
+                            !["paid", "partially paid", "refunded"].includes(paymentStatus)
                         ) {
 
                             return total;
@@ -850,10 +978,9 @@ export default function PatientDashboard() {
                         }
 
 
-                        const amount =
-                            Number(
-                                payment?.amount ||
-                                0
+                            const amount = Number(
+                                payment?.net_amount ??
+                                (Number(payment?.amount || 0) - Number(payment?.refund_amount || 0))
                             );
 
 
@@ -890,18 +1017,32 @@ export default function PatientDashboard() {
                     appointmentStatistics.confirmed,
 
 
-                // Total Payment Records
+                // Completed Payment Records
                 payments:
-                    safePayments.length,
+                    safePayments.filter(
+                        (payment) => [
+                            "paid",
+                            "partially paid",
+                            "refunded",
+                        ].includes(
+                            String(
+                                payment?.payment_status ||
+                                payment?.status ||
+                                ""
+                            ).trim().toLowerCase()
+                        )
+                    ).length,
 
 
                 // Diagnostic Bookings
                 diagnostics:
-                    Array.isArray(
+                    dashboardDiagnosticTotal ?? (Array.isArray(
                         diagnosticBookings
                     )
-                        ? diagnosticBookings.length
-                        : 0,
+                        ? diagnosticBookings.filter(
+                            (booking) => booking.status !== "Cancelled"
+                        ).length
+                        : 0),
 
 
                 // Available Doctors
@@ -948,6 +1089,8 @@ export default function PatientDashboard() {
             appointmentStatistics,
 
             diagnosticBookings,
+
+            dashboardDiagnosticTotal,
 
             doctors,
 
@@ -1084,7 +1227,7 @@ export default function PatientDashboard() {
 
                                 <Link
                                     to="/doctors"
-                                    className="patient-secondary-btn"
+                                    className="patient-symptom-btn patient-find-doctor-btn"
                                 >
 
                                     <FaUserMd />
@@ -1092,6 +1235,51 @@ export default function PatientDashboard() {
                                     Find Doctor
 
                                 </Link>
+
+                                <Link
+                                    to="/symptom-checker"
+                                    className="patient-symptom-btn patient-ai-symptom-btn"
+                                >
+
+                                    <FaStethoscope />
+
+                                    AI Symptom Checker
+
+                                </Link>
+
+                                <Link
+                                    to="/health-tips"
+                                    className="patient-symptom-btn patient-health-tips-btn"
+                                >
+
+                                    <FaBookMedical />
+
+                                    Health Tips
+
+                                </Link>
+
+                                <Link
+                                    to="/patient/profile"
+                                    className="patient-symptom-btn patient-profile-btn"
+                                >
+
+                                    <FaUser />
+
+                                    My Profile
+
+                                </Link>
+                                {/*
+                                <Link
+                                    to="/Kawser"
+                                    className="patient-symptom-btn patient-kawser-btn"
+                                >
+
+                                    <FaUser />
+
+                                    Kawser
+
+                                </Link>
+                                */}
 
                             </div>
 
@@ -1105,7 +1293,6 @@ export default function PatientDashboard() {
                         </div>
 
                     </div>
-
 
                     {/* ==========================================
                         Your Overview
@@ -1411,7 +1598,6 @@ export default function PatientDashboard() {
 
                     </div>
 
-
                     {/* ==========================================
                         Healthcare Services
                     ========================================== */}
@@ -1449,7 +1635,7 @@ export default function PatientDashboard() {
 
                             <div>
 
-                                <h3>
+                                <h3> 
                                     Find a Doctor
                                 </h3>
 
@@ -1893,6 +2079,17 @@ export default function PatientDashboard() {
 
                                                         )}
 
+                                                        {isRateableAppointment(appointment) &&
+                                                            !ratings.some((item) => String(item.appointment) === String(appointmentId)) && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="patient-rate-doctor-btn"
+                                                                    onClick={() => setRatingAppointment(appointment)}
+                                                                >
+                                                                    <FaStar /> Rate doctor
+                                                                </button>
+                                                            )}
+
                                                     </div>
 
                                                 );
@@ -1906,6 +2103,44 @@ export default function PatientDashboard() {
 
                         </div>
 
+
+                        {ratingAppointment && (
+                            <div className="patient-rating-dialog">
+                                <div className="patient-rating-dialog__card">
+                                    <button
+                                        type="button"
+                                        className="patient-rating-dialog__close"
+                                        onClick={() => setRatingAppointment(null)}
+                                    >
+                                        &times;
+                                    </button>
+                                    <p className="patient-rating-dialog__eyebrow">Completed appointment</p>
+                                    <h3>Rate {ratingAppointment.doctor_name || "your doctor"}</h3>
+                                    <div className="patient-rating-stars">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                type="button"
+                                                key={star}
+                                                className={star <= ratingValue ? "selected" : ""}
+                                                onClick={() => setRatingValue(star)}
+                                                aria-label={`${star} star${star === 1 ? "" : "s"}`}
+                                            >
+                                                <FaStar />
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <textarea
+                                        value={ratingReview}
+                                        onChange={(event) => setRatingReview(event.target.value)}
+                                        placeholder="Share a short review (optional)"
+                                        rows="3"
+                                    />
+                                    <button type="button" className="patient-rating-submit" onClick={submitRating} disabled={ratingSaving}>
+                                        {ratingSaving ? "Submitting..." : "Submit rating"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Quick Access */}
 

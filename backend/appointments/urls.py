@@ -13,8 +13,12 @@ from .views import (
     DoctorCompleteAppointmentView,
     AdminAppointmentListView,
     AdminAppointmentStatusView,
+    AdminAppointmentDeleteView,
     ReceptionistAppointmentListView,
     ReceptionistAppointmentStatusView,
+    AppointmentAIReportView,
+    SharedAISymptomReportView,
+    SymptomAnalysisView,
 )
 
 
@@ -40,6 +44,9 @@ urlpatterns = [
         name="admin-appointments",
     ),
 
+    path("receptionist/", ReceptionistAppointmentListView.as_view(), name="receptionist-appointments"),
+    path("receptionist/<int:pk>/status/", ReceptionistAppointmentStatusView.as_view(), name="receptionist-appointment-status"),
+
     path(
         "admin/<int:pk>/status/",
         AdminAppointmentStatusView.as_view(),
@@ -47,15 +54,9 @@ urlpatterns = [
     ),
 
     path(
-        "receptionist/",
-        ReceptionistAppointmentListView.as_view(),
-        name="receptionist-appointments",
-    ),
-
-    path(
-        "receptionist/<int:pk>/status/",
-        ReceptionistAppointmentStatusView.as_view(),
-        name="receptionist-appointment-status",
+        "admin/<int:pk>/delete/",
+        AdminAppointmentDeleteView.as_view(),
+        name="admin-appointment-delete",
     ),
 
 
@@ -92,6 +93,30 @@ urlpatterns = [
         "doctor/<int:id>/",
         DoctorAppointmentDetailView.as_view(),
         name="doctor-appointment-detail",
+    ),
+
+    path(
+        "<int:id>/ai-report/",
+        AppointmentAIReportView.as_view(),
+        name="appointment-ai-report",
+    ),
+
+    path(
+        "ai-reports/",
+        SharedAISymptomReportView.as_view(),
+        name="shared-ai-reports",
+    ),
+
+    path(
+        "symptom-analysis/",
+        SymptomAnalysisView.as_view(),
+        name="symptom-analysis",
+    ),
+
+    path(
+        "ai-reports/<int:id>/",
+        SharedAISymptomReportView.as_view(),
+        name="shared-ai-report-detail",
     ),
 
 

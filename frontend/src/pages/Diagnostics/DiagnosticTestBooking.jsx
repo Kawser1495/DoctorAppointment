@@ -18,6 +18,7 @@ import {
 import {
     fetchFamilyMembers,
 } from "../../services/patientService";
+import { getMyAppointments } from "../../services/appointmentService";
 
 
 function DiagnosticTestBooking() {
@@ -57,6 +58,9 @@ function DiagnosticTestBooking() {
 
     const [familyMember, setFamilyMember] =
         useState("");
+
+    const [appointments, setAppointments] = useState([]);
+    const [appointment, setAppointment] = useState("");
 
 
     // ======================================================
@@ -301,6 +305,11 @@ function DiagnosticTestBooking() {
 
 
         loadFamilyMembers();
+
+        getMyAppointments().then((response) => {
+            const data = response?.data;
+            setAppointments((Array.isArray(data) ? data : data?.results || []).filter((item) => ["Confirmed", "Completed"].includes(item.status)));
+        }).catch(() => setAppointments([]));
 
     }, []);
 
@@ -562,6 +571,8 @@ function DiagnosticTestBooking() {
 
                 booking_time:
                     bookingTime,
+
+                ...(appointment ? { appointment: Number(appointment) } : {}),
 
             };
 
@@ -1090,6 +1101,15 @@ function DiagnosticTestBooking() {
                             </div>
 
 
+                            <div className="form-group">
+                                <label htmlFor="appointment"><span>🩺</span> Referring Doctor Appointment</label>
+                                <select id="appointment" value={appointment} onChange={(event) => setAppointment(event.target.value)} disabled={bookingLoading}>
+                                    <option value="">No referring appointment</option>
+                                    {appointments.map((item) => <option key={item.id} value={item.id}>{item.doctor_name || item.doctor?.name || "Doctor"} · {item.appointment_date}</option>)}
+                                </select>
+                                <small className="form-help">Choose the appointment so the doctor can also receive this diagnostic report.</small>
+                            </div>
+
                             {/* ==================================================
                                 Date + Time
                             ================================================== */}
@@ -1141,7 +1161,7 @@ function DiagnosticTestBooking() {
                                             🕐
                                         </span>
 
-                                        Preferred Time *
+                                        Booking Time *
 
                                     </label>
 

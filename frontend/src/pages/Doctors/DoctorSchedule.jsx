@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 
-import api from "../../services/api";
+import {
+    createDoctorSchedule,
+    deleteDoctorSchedule,
+    getMyDoctorSchedules,
+    updateDoctorSchedule,
+    updateDoctorTimeSlot,
+} from "../../services/doctorService";
+
+import "./DoctorSchedule.css";
 
 const EMPTY_FORM = {
     day: "Monday",
@@ -23,6 +31,20 @@ const dayOptions = [
 
 const durationOptions = [15, 20, 30, 45, 60];
 
+const formatTime = (value) => {
+
+    if (!value) {
+        return "";
+    }
+
+    const [hours, minutes] = value.split(":");
+    const hour = Number(hours);
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+
+    return `${displayHour}:${minutes} ${suffix}`;
+};
+
 export default function DoctorSchedule() {
     const [schedules, setSchedules] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -31,16 +53,17 @@ export default function DoctorSchedule() {
     const [submitting, setSubmitting] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState(EMPTY_FORM);
+    const [editingSlotId, setEditingSlotId] = useState(null);
+    const [slotCapacity, setSlotCapacity] = useState("");
+    const [slotSavingId, setSlotSavingId] = useState(null);
 
     const loadSchedules = async () => {
         try {
             setLoading(true);
             setError("");
 
-            const response = await api.get("doctors/dashboard/");
-            const data = response?.data?.data || response?.data || {};
-
-            const scheduleSource = data.schedules || [];
+            const response = await getMyDoctorSchedules();
+            const scheduleSource = response?.data?.results || response?.data || [];
             setSchedules(Array.isArray(scheduleSource) ? scheduleSource : []);
 
         } catch (err) {
@@ -73,6 +96,16 @@ export default function DoctorSchedule() {
     const handleSubmit = async (event) => {
         event.preventDefault();
 
+        const duplicateDay = schedules.some((schedule) => (
+            schedule.day === form.day && schedule.id !== editingId
+        ));
+
+        if (duplicateDay) {
+            setError(`A schedule already exists for ${form.day}. Choose another day or edit the existing schedule.`);
+            setSuccess("");
+            return;
+        }
+
         try {
             setSubmitting(true);
             setError("");
@@ -85,10 +118,10 @@ export default function DoctorSchedule() {
             };
 
             if (editingId) {
-                await api.patch(`doctors/schedules/${editingId}/`, payload);
+                await updateDoctorSchedule(editingId, payload);
                 setSuccess("Schedule updated successfully.");
             } else {
-                await api.post("doctors/schedules/", payload);
+                await createDoctorSchedule(payload);
                 setSuccess("Schedule created successfully.");
             }
 
@@ -97,7 +130,7 @@ export default function DoctorSchedule() {
             await loadSchedules();
         } catch (err) {
             console.error("Save schedule error:", err);
-            setError(err?.response?.data?.detail || err?.response?.data?.message || "Unable to save schedule.");
+            setError(getErrorMessage(err));
         } finally {
             setSubmitting(false);
         }
@@ -107,8 +140,8 @@ export default function DoctorSchedule() {
         setEditingId(schedule.id);
         setForm({
             day: schedule.day,
-            start_time: schedule.start_time,
-            end_time: schedule.end_time,
+            start_time: schedule.start_time?.slice(0, 5),
+            end_time: schedule.end_time?.slice(0, 5),
             slot_duration_minutes: schedule.slot_duration_minutes || 30,
             max_patient_per_slot: schedule.max_patient_per_slot || 1,
             is_active: schedule.is_active,
@@ -121,13 +154,122 @@ export default function DoctorSchedule() {
         }
 
         try {
-            await api.delete(`doctors/schedules/${id}/`);
+            await deleteDoctorSchedule(id);
             setSuccess("Schedule deleted.");
             await loadSchedules();
         } catch (err) {
             console.error("Delete schedule error:", err);
-            setError(err?.response?.data?.detail || err?.response?.data?.message || "Unable to delete schedule.");
+            setError(
+                err?.response?.data?.detail ||
+                "Unable to delete schedule."
+            );
         }
+    };
+
+    const handleToggle = async (schedule) => {
+
+        try {
+            setError("");
+            setSuccess("");
+
+            await updateDoctorSchedule(schedule.id, {
+                is_active: !schedule.is_active,
+            });
+
+            setSuccess(
+                schedule.is_active
+                    ? "Schedule deactivated."
+                    : "Schedule activated."
+            );
+
+            await loadSchedules();
+        } catch (err) {
+            setError(
+                err?.response?.data?.detail ||
+                err?.response?.data?.message ||
+                "Unable to change schedule status."
+            );
+        }
+    };
+
+    const handleSlotToggle = async (slot) => {
+
+        try {
+            setSlotSavingId(slot.id);
+            setError("");
+            setSuccess("");
+
+            await updateDoctorTimeSlot(slot.id, {
+                is_active: !slot.is_active,
+            });
+
+            setSuccess(
+                slot.is_active
+                    ? "Time slot disabled."
+                    : "Time slot enabled."
+            );
+
+            await loadSchedules();
+        } catch (err) {
+            setError(getErrorMessage(err));
+        } finally {
+            setSlotSavingId(null);
+        }
+    };
+
+    const handleSlotCapacitySave = async (slot) => {
+
+        const capacity = Number(slotCapacity);
+
+        if (!Number.isInteger(capacity) || capacity < slot.booked_count) {
+            setError(
+                `Capacity must be at least ${slot.booked_count} for this slot.`
+            );
+            return;
+        }
+
+        try {
+            setSlotSavingId(slot.id);
+            setError("");
+            setSuccess("");
+
+            await updateDoctorTimeSlot(slot.id, {
+                max_patient: capacity,
+            });
+
+            setEditingSlotId(null);
+            setSlotCapacity("");
+            setSuccess("Slot capacity updated.");
+            await loadSchedules();
+        } catch (err) {
+            setError(getErrorMessage(err));
+        } finally {
+            setSlotSavingId(null);
+        }
+    };
+
+    const startSlotEdit = (slot) => {
+        setEditingSlotId(slot.id);
+        setSlotCapacity(slot.max_patient);
+    };
+
+    const getErrorMessage = (err) => {
+        const data = err?.response?.data;
+
+        if (typeof data?.detail === "string") {
+            return data.detail;
+        }
+
+        if (data && typeof data === "object") {
+            return Object.entries(data)
+                .flatMap(([field, value]) => {
+                    const messages = Array.isArray(value) ? value : [value];
+                    return messages.map((message) => `${field}: ${message}`);
+                })
+                .join(" ");
+        }
+
+        return "Unable to save schedule.";
     };
 
     if (loading) {
@@ -142,56 +284,59 @@ export default function DoctorSchedule() {
     }
 
     return (
-        <div className="doctor-dashboard" style={{ padding: "24px" }}>
-            <div className="doctor-dashboard__shell">
-                <header className="doctor-dashboard__header mb-4">
+        <div className="doctor-schedule-page">
+            <div className="doctor-schedule__shell">
+                <header className="doctor-schedule-header">
                     <div>
-                        <p className="doctor-dashboard__eyebrow">Scheduling</p>
-                        <h2><i className="fas fa-calendar-alt me-2" />Doctor Schedule</h2>
+                        <p className="doctor-schedule-eyebrow">Availability control</p>
+                        <h1>Doctor Schedule</h1>
+                        <p className="doctor-schedule-subtitle">
+                            Set when patients can book you and how each visit is paced.
+                        </p>
                     </div>
-                    <button className="btn btn-outline-primary" onClick={loadSchedules}>
-                        <i className="fas fa-sync-alt me-2" />Refresh
+                    <button className="doctor-schedule-refresh" onClick={loadSchedules}>
+                        <i className="fas fa-sync-alt" />
+                        Refresh
                     </button>
                 </header>
 
-                {error && <div className="alert alert-danger">{error}</div>}
-                {success && <div className="alert alert-success">{success}</div>}
+                {error && <div className="doctor-schedule-alert error">{error}</div>}
+                {success && <div className="doctor-schedule-alert success">{success}</div>}
 
-                <div className="row g-4 mb-4">
-                    <div className="col-md-4">
-                        <div className="card border-0 shadow-sm h-100">
-                            <div className="card-body">
-                                <p className="text-muted mb-1">Active schedules</p>
-                                <h3 className="mb-0">{scheduleSummary.active}</h3>
-                            </div>
+                <div className="doctor-schedule-stats">
+                    <div className="doctor-schedule-stat">
+                        <span className="doctor-schedule-stat-icon">◷</span>
+                        <div>
+                            <p>Active days</p>
+                            <strong>{scheduleSummary.active}</strong>
                         </div>
                     </div>
-                    <div className="col-md-4">
-                        <div className="card border-0 shadow-sm h-100">
-                            <div className="card-body">
-                                <p className="text-muted mb-1">Generated slots</p>
-                                <h3 className="mb-0">{scheduleSummary.totalSlots}</h3>
-                            </div>
+                    <div className="doctor-schedule-stat">
+                        <span className="doctor-schedule-stat-icon">▦</span>
+                        <div>
+                            <p>Bookable slots</p>
+                            <strong>{scheduleSummary.totalSlots}</strong>
                         </div>
                     </div>
-                    <div className="col-md-4">
-                        <div className="card border-0 shadow-sm h-100">
-                            <div className="card-body">
-                                <p className="text-muted mb-1">Availability</p>
-                                <h3 className="mb-0 text-success">Open</h3>
-                            </div>
+                    <div className="doctor-schedule-stat highlight">
+                        <span className="doctor-schedule-stat-icon">✓</span>
+                        <div>
+                            <p>Availability</p>
+                            <strong>{scheduleSummary.active ? "Open" : "Closed"}</strong>
                         </div>
                     </div>
                 </div>
 
-                <div className="row g-4">
-                    <div className="col-lg-5">
-                        <div className="card border-0 shadow-sm">
-                            <div className="card-header bg-white">
-                                <h5 className="mb-0">{editingId ? "Edit schedule" : "Add schedule"}</h5>
+                <div className="doctor-schedule-layout">
+                    <section className="doctor-schedule-form-card">
+                        <div className="doctor-schedule-card-heading">
+                            <div>
+                                <p className="doctor-schedule-eyebrow">{editingId ? "Update hours" : "New availability"}</p>
+                                <h2>{editingId ? "Edit schedule" : "Add schedule"}</h2>
                             </div>
-                            <div className="card-body">
-                                <form onSubmit={handleSubmit}>
+                            <span className="doctor-schedule-heading-mark">+</span>
+                        </div>
+                        <form onSubmit={handleSubmit} className="doctor-schedule-form">
                                     <div className="mb-3">
                                         <label className="form-label">Day</label>
                                         <select className="form-select" name="day" value={form.day} onChange={handleInputChange}>
@@ -243,58 +388,89 @@ export default function DoctorSchedule() {
                                             </button>
                                         )}
                                     </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+                        </form>
+                    </section>
 
-                    <div className="col-lg-7">
-                        <div className="card border-0 shadow-sm">
-                            <div className="card-header bg-white">
-                                <h5 className="mb-0">Schedule overview</h5>
+                    <section className="doctor-schedule-list-card">
+                        <div className="doctor-schedule-card-heading">
+                            <div>
+                                <p className="doctor-schedule-eyebrow">Your weekly rhythm</p>
+                                <h2>Schedule overview</h2>
                             </div>
-                            <div className="card-body">
+                            <span className="doctor-schedule-count">{schedules.length} day{schedules.length === 1 ? "" : "s"}</span>
+                        </div>
+                        <div className="doctor-schedule-list">
                                 {schedules.length === 0 ? (
-                                    <div className="text-center py-4 text-muted">
+                                    <div className="doctor-schedule-empty">
                                         <i className="fas fa-calendar-times fa-2x mb-2" />
                                         <p className="mb-0">No schedule added yet.</p>
                                     </div>
                                 ) : (
-                                    <div className="list-group list-group-flush">
+                                    <div>
                                         {schedules.map((schedule) => (
-                                            <div key={schedule.id} className="list-group-item px-0 py-3">
-                                                <div className="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                                            <div key={schedule.id} className="doctor-schedule-row">
+                                                <div className="doctor-schedule-row-main">
                                                     <div>
-                                                        <div className="fw-bold">{schedule.day}</div>
-                                                        <div className="text-muted small">
-                                                            {schedule.start_time} - {schedule.end_time}
+                                                        <div className="doctor-schedule-day">{schedule.day}</div>
+                                                        <div className="doctor-schedule-time">
+                                                            {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
                                                         </div>
-                                                        <div className="text-muted small">
+                                                        <div className="doctor-schedule-meta">
                                                             {schedule.slot_duration_minutes} min / {schedule.max_patient_per_slot} per slot
                                                         </div>
                                                     </div>
-                                                    <div className="d-flex gap-2 align-items-center">
-                                                        <span className={`badge ${schedule.is_active ? "bg-success" : "bg-secondary"}`}>
+                                                    <div className="doctor-schedule-actions">
+                                                        <span className={`doctor-schedule-status ${schedule.is_active ? "active" : "inactive"}`}>
                                                             {schedule.is_active ? "Active" : "Inactive"}
                                                         </span>
-                                                        <button className="btn btn-sm btn-outline-primary" onClick={() => handleEdit(schedule)}>Edit</button>
-                                                        <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(schedule.id)}>Delete</button>
+                                                        <button className="doctor-schedule-action edit" onClick={() => handleEdit(schedule)}>Edit</button>
+                                                        <button className="doctor-schedule-action" onClick={() => handleToggle(schedule)}>{schedule.is_active ? "Deactivate" : "Activate"}</button>
+                                                        <button className="doctor-schedule-action danger" onClick={() => handleDelete(schedule.id)}>Delete</button>
                                                     </div>
                                                 </div>
-                                                 <div className="mt-3 d-flex flex-wrap gap-2">
+                                                <div className="doctor-schedule-slots">
                                                     {(schedule.slots || []).map((slot) => (
-                                                        <span key={slot.id} className={`badge ${slot.is_full ? "bg-danger" : slot.is_active ? "bg-primary" : "bg-secondary"}`}>
-                                                            {slot.slot_time} · {slot.booked_count}/{slot.max_patient}
-                                                        </span>
+                                                        <div key={slot.id} className={`doctor-slot-card ${slot.is_full ? "full" : slot.is_active ? "available" : "closed"}`}>
+                                                            <div className="doctor-slot-card-topline">
+                                                                <strong>{formatTime(slot.slot_time)}</strong>
+                                                                <span className="doctor-slot-status">
+                                                                    {!slot.is_active ? "Disabled" : slot.is_full ? "Full" : "Open"}
+                                                                </span>
+                                                            </div>
+                                                            <div className="doctor-slot-capacity">
+                                                                <span>Booked <b>{slot.booked_count} / {slot.max_patient}</b></span>
+                                                                <span>{slot.is_active ? `${slot.remaining_seats} available` : "Not bookable"}</span>
+                                                            </div>
+                                                            {editingSlotId === slot.id ? (
+                                                                <div className="doctor-slot-edit-row">
+                                                                    <input
+                                                                        type="number"
+                                                                        min={slot.booked_count}
+                                                                        max="100"
+                                                                        value={slotCapacity}
+                                                                        onChange={(event) => setSlotCapacity(event.target.value)}
+                                                                        aria-label={`Maximum patients for ${formatTime(slot.slot_time)}`}
+                                                                    />
+                                                                    <button type="button" onClick={() => handleSlotCapacitySave(slot)} disabled={slotSavingId === slot.id}>Save</button>
+                                                                    <button type="button" className="cancel" onClick={() => setEditingSlotId(null)}>Cancel</button>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="doctor-slot-actions">
+                                                                    <button type="button" onClick={() => startSlotEdit(slot)}>Edit capacity</button>
+                                                                    <button type="button" onClick={() => handleSlotToggle(slot)} disabled={slotSavingId === slot.id}>
+                                                                        {slot.is_active ? "Disable" : "Enable"}
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     ))}
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 )}
-                            </div>
                         </div>
-                    </div>
+                    </section>
                 </div>
             </div>
         </div>

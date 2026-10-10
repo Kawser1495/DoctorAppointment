@@ -485,6 +485,19 @@ function PaymentSuccess() {
 
                         <Link
 
+                            to="/patient/dashboard"
+
+                            className="btn btn-outline-primary me-2"
+
+                        >
+
+                            Patient Dashboard
+
+                        </Link>
+
+
+                        <Link
+
                             to={
 
                                 isDiagnosticPayment

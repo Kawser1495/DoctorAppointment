@@ -53,6 +53,14 @@ export const getAdminPaymentsApi = () => {
 
 };
 
+export const deleteAdminPaymentApi = (id) => (
+    api.delete(`/payments/admin/${id}/`)
+);
+
+export const updateDiagnosticReportInfoApi = (id, data) => (
+    api.patch(`/payments/admin/${id}/diagnostic-report/`, data)
+);
+
 
 // ==========================================================
 // Update Payment Status
@@ -88,3 +96,26 @@ export const refundPaymentApi = (
     );
 
 };
+
+export const createRefundRequestApi = (paymentId, reason) => {
+    return api.post(`/payments/${paymentId}/refund-request/`, { reason });
+};
+
+export const getRefundRequestsApi = () => {
+    return api.get("/payments/refund-requests/");
+};
+
+export const updateRefundRequestApi = (requestId, refund_status, admin_note = "") => {
+    return api.patch(`/payments/refund-requests/${requestId}/status/`, {
+        refund_status,
+        admin_note,
+    });
+};
+
+export const createSSLCommerzPaymentApi = (data) => (
+    api.post("/payments/sslcommerz/create/", data)
+);
+
+export const createSSLCommerzAIReportPaymentApi = (data) => (
+    api.post("/payments/sslcommerz/ai-report/create/", data)
+);

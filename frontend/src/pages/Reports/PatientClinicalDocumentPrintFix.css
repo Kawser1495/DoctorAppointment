@@ -1,0 +1,94 @@
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+
+    html,
+    body,
+    #root {
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 290mm !important;
+        max-height: 290mm !important;
+        overflow: hidden !important;
+        background: #fff !important;
+    }
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    .report-modal-overlay {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: auto !important;
+        bottom: auto !important;
+        display: block !important;
+        width: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #fff !important;
+    }
+
+    .report-modal {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        display: block !important;
+        width: 210mm !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-width: none !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #fff !important;
+        box-shadow: none !important;
+    }
+
+    .report-modal > *:not(.patient-clinical-document) {
+        display: none !important;
+    }
+
+    .patient-clinical-document,
+    .patient-clinical-document * {
+        visibility: visible !important;
+    }
+
+    .patient-clinical-document {
+        display: block !important;
+        position: static !important;
+        width: 210mm !important;
+        height: 290mm !important;
+        min-height: 0 !important;
+        max-height: 290mm !important;
+        max-width: none !important;
+        margin: 0 !important;
+        aspect-ratio: auto !important;
+        overflow: hidden !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        page-break-before: avoid !important;
+        page-break-after: auto !important;
+        break-before: avoid !important;
+        break-after: auto !important;
+    }
+
+    .patient-clinical-header,
+    .patient-clinical-patient-grid,
+    .patient-clinical-body,
+    .patient-clinical-footer {
+        break-inside: avoid !important;
+    }
+
+    .patient-clinical-footer {
+        position: static !important;
+        margin-top: 0 !important;
+    }
+}

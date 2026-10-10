@@ -90,6 +90,7 @@ export default function PatientProfile() {
                 ...current,
                 phone: response.data.phone || "",
             }));
+            window.dispatchEvent(new Event("patient-profile-updated"));
             setEditing(false);
             setSuccess("Profile updated successfully.");
         } catch (saveError) {

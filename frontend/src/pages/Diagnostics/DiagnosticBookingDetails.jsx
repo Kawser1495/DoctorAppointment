@@ -215,6 +215,21 @@ function DiagnosticBookingDetails() {
 
                     </div>
 
+                    {(booking.diagnostic_result || booking.prescription || booking.report_file_url) && <div className="booking-details-card diagnostic-result-card">
+                        <h3>Diagnostic Test Result</h3>
+                        {booking.diagnostic_result && <div className="details-row">
+                            <span>Result</span>
+                            <strong>{booking.diagnostic_result}</strong>
+                        </div>}
+                        {booking.prescription && <div className="details-row">
+                            <span>Prescription</span>
+                            <strong>{booking.prescription}</strong>
+                        </div>}
+                        {booking.report_file_url && <a className="view-details-btn" href={booking.report_file_url} target="_blank" rel="noreferrer">
+                            View Result File
+                        </a>}
+                    </div>}
+
 
                     {/* ===================================== */}
                     {/* Booking Details Card */}
@@ -291,6 +306,25 @@ function DiagnosticBookingDetails() {
 
                         </div>
 
+                        <div className="details-row report-availability-row">
+                            <span>Report Expected</span>
+                            <strong>
+                                {!booking.is_paid && booking.payment_status !== "Paid"
+                                    ? "Available after payment"
+                                    : booking.report_available_at
+                                    ? new Date(booking.report_available_at).toLocaleString([], {
+                                        dateStyle: "medium",
+                                        timeStyle: "short",
+                                    })
+                                    : "Will be updated by the diagnostic centre"}
+                            </strong>
+                        </div>
+
+                        {booking.is_paid && booking.report_available_note && <div className="details-row">
+                            <span>Centre Note</span>
+                            <strong>{booking.report_available_note}</strong>
+                        </div>}
+
 
                         <div className="details-row">
 
@@ -341,11 +375,13 @@ function DiagnosticBookingDetails() {
                         </h3>
 
                         <p>
-                            Complete your payment for this diagnostic test.
+                            {booking.is_paid
+                                ? "Your payment is complete. The report availability time is set by the diagnostic centre."
+                                : "Complete your payment for this diagnostic test to begin report processing."}
                         </p>
 
 
-                        <button
+                        {!booking.is_paid && <button
                             className="pay-now-button"
                             onClick={() =>
                                 navigate(
@@ -354,7 +390,7 @@ function DiagnosticBookingDetails() {
                             }
                         >
                             Pay Now
-                        </button>
+                        </button>}
 
                     </div>
 

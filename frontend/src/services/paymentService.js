@@ -7,12 +7,20 @@ import {
     getPaymentDetailsApi,
 
     getAdminPaymentsApi,
+    deleteAdminPaymentApi,
+    updateDiagnosticReportInfoApi,
 
     updatePaymentStatusApi,
 
     refundPaymentApi,
+    createRefundRequestApi,
+    getRefundRequestsApi,
+    updateRefundRequestApi,
+    createSSLCommerzPaymentApi,
+    createSSLCommerzAIReportPaymentApi,
 
 } from "../api/paymentApi";
+import api from "../api/axios";
 
 
 // ==========================================================
@@ -28,6 +36,14 @@ export const createPayment = async (
     );
 
 };
+
+export const createSSLCommerzPayment = async (data) => (
+    createSSLCommerzPaymentApi(data)
+);
+
+export const createSSLCommerzAIReportPayment = async (data) => (
+    createSSLCommerzAIReportPaymentApi(data)
+);
 
 
 // ==========================================================
@@ -66,6 +82,14 @@ export const getAdminPayments = async () => {
 
 };
 
+export const deleteAdminPayment = async (id) => (
+    deleteAdminPaymentApi(id)
+);
+
+export const updateDiagnosticReportInfo = async (id, data) => (
+    updateDiagnosticReportInfoApi(id, data)
+);
+
 
 // ==========================================================
 // Update Payment Status
@@ -97,3 +121,21 @@ export const refundPayment = async (
     );
 
 };
+
+export const getDoctorPayments = async () => {
+    return await api.get("payments/doctor/");
+};
+
+export const refundDoctorPayment = async (paymentId, reason) => {
+    return await api.patch(`payments/doctor/${paymentId}/refund/`, { reason });
+};
+
+export const createRefundRequest = async (paymentId, reason) => (
+    createRefundRequestApi(paymentId, reason)
+);
+
+export const getRefundRequests = async () => getRefundRequestsApi();
+
+export const updateRefundRequest = async (requestId, refundStatus, adminNote = "") => (
+    updateRefundRequestApi(requestId, refundStatus, adminNote)
+);

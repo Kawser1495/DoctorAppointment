@@ -9,6 +9,11 @@ import GuestRoute from "./GuestRoute";
 import RoleRoute from "./RoleRoute";
 
 
+import Kawser from "../pages/Patients/Kawser";
+import Kaium from "../pages/Doctors/Kaium";
+import Sarzil from "../pages/Admin/Sarzil";
+
+
 // ==========================================================
 // Authentication
 // ==========================================================
@@ -19,8 +24,26 @@ import Login
 import Register
     from "../pages/Auth/Register";
 
+import Landing
+    from "../pages/Landing/Landing";
+
 import Logout
     from "../pages/Auth/Logout";
+
+
+// ==========================================================
+// General Dashboard
+// ==========================================================
+
+import Dashboard
+    from "../pages/Dashboard/Dashboard";
+
+import ReceptionistDashboard
+    from "../pages/Receptionist/ReceptionistDashboard";
+
+import ReceptionistProfile
+    from "../pages/Receptionist/ReceptionistProfile";
+
 
 
 // ==========================================================
@@ -95,11 +118,15 @@ import DoctorPatients
 import DoctorPrescriptions
     from "../pages/Doctors/DoctorPrescriptions";
 
+import DoctorMedicalReports
+    from "../pages/Doctors/DoctorMedicalReports";
+
 import DoctorNotifications
     from "../pages/Doctors/DoctorNotifications";
 
 import DoctorAnalytics
     from "../pages/Doctors/DoctorAnalytics";
+
 
 import DoctorSettings
     from "../pages/Doctors/DoctorSettings";
@@ -115,16 +142,14 @@ import DoctorList
 import PatientDashboard
     from "../pages/Patients/PatientDashboard";
 
+import PatientProfile
+    from "../pages/Patients/PatientProfile";
 
-// ==================================================
-// Receptionist
-// ==================================================
+import SymptomChecker
+    from "../pages/Patients/SymptomChecker";
 
-import ReceptionistDashboard
-    from "../pages/Receptionist/ReceptionistDashboard";
-
-import ReceptionistProfile
-    from "../pages/Receptionist/ReceptionistProfile";
+import HealthTips
+    from "../pages/HealthTips";
 
 
 // ==========================================================
@@ -194,6 +219,9 @@ import PaymentReceipt
 import PaymentInvoice
     from "../pages/Payments/PaymentInvoice";
 
+import PaymentResult
+    from "../pages/Payments/PaymentResult";
+
 
 // ==========================================================
 // Family
@@ -223,7 +251,7 @@ import Settings
 // App Routes
 // ==========================================================
 
-export default function AppRoutes() {
+function AppRoutes() {
 
     return (
 
@@ -240,7 +268,7 @@ export default function AppRoutes() {
                     path="/"
                     element={
                         <GuestRoute>
-                            <Login />
+                            <Landing />
                         </GuestRoute>
                     }
                 />
@@ -255,6 +283,20 @@ export default function AppRoutes() {
                     }
                 />
 
+                <Route
+                    path="/Kawser"
+                    element={<Kawser />}
+                />
+
+
+                <Route
+                    path="/doctor/Kaium"
+                    element={<Kaium />}
+                />
+                <Route
+                    path="/admin/Sarzil"
+                    element={<Sarzil />}
+                />
 
                 <Route
                     path="/register"
@@ -281,33 +323,22 @@ export default function AppRoutes() {
                 <Route
                     path="/dashboard"
                     element={
-                        <RoleRoute
-                            allowedRoles={[
-                                "receptionist",
-                            ]}
-                        >
-                            <ReceptionistDashboard />
-                        </RoleRoute>
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
                     }
                 />
 
                 <Route
                     path="/receptionist/dashboard"
-                    element={
-                        <RoleRoute allowedRoles={["receptionist"]}>
-                            <ReceptionistDashboard />
-                        </RoleRoute>
-                    }
+                    element={<RoleRoute allowedRoles={["receptionist"]}><ReceptionistDashboard /></RoleRoute>}
                 />
 
                 <Route
                     path="/receptionist/profile"
-                    element={
-                        <RoleRoute allowedRoles={["receptionist"]}>
-                            <ReceptionistProfile />
-                        </RoleRoute>
-                    }
+                    element={<RoleRoute allowedRoles={["receptionist"]}><ReceptionistProfile /></RoleRoute>}
                 />
+
 
 
                 {/* ==================================================
@@ -329,6 +360,11 @@ export default function AppRoutes() {
                         </RoleRoute>
 
                     }
+                />
+
+                <Route
+                    path="/payment-result"
+                    element={<PaymentResult />}
                 />
 
 
@@ -632,6 +668,15 @@ export default function AppRoutes() {
                 />
 
                 <Route
+                    path="/doctor/medical-reports"
+                    element={
+                        <RoleRoute allowedRoles={["doctor"]}>
+                            <DoctorMedicalReports />
+                        </RoleRoute>
+                    }
+                />
+
+                <Route
                     path="/doctor/notifications"
                     element={
 
@@ -704,6 +749,41 @@ export default function AppRoutes() {
                     }
                 />
 
+                <Route
+                    path="/patient/profile"
+                    element={
+
+                        <RoleRoute
+                            allowedRoles={[
+                                "patient",
+                            ]}
+                        >
+
+                            <PatientProfile />
+
+                        </RoleRoute>
+
+                    }
+                />
+
+                <Route
+                    path="/symptom-checker"
+                    element={
+                        <ProtectedRoute>
+                            <SymptomChecker />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/health-tips"
+                    element={
+                        <ProtectedRoute>
+                            <HealthTips />
+                        </ProtectedRoute>
+                    }
+                />
+
 
                 {/* ==================================================
                     APPOINTMENTS
@@ -722,9 +802,9 @@ export default function AppRoutes() {
                 <Route
                     path="/appointments/book"
                     element={
-                        <ProtectedRoute>
+                        <RoleRoute allowedRoles={["patient"]}>
                             <BookAppointment />
-                        </ProtectedRoute>
+                        </RoleRoute>
                     }
                 />
 
@@ -993,3 +1073,5 @@ export default function AppRoutes() {
     );
 
 }
+
+export default AppRoutes;

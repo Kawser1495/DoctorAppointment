@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { getPaymentDetails } from "../../services/paymentService";
+import "./PaymentPrint.css";
 
 
 function PaymentReceipt() {

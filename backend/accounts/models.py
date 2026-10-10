@@ -67,6 +67,32 @@ class CustomUser(AbstractUser):
         null=True,
     )
 
+    profile_visibility = models.CharField(
+        max_length=20,
+        choices=(
+            ("public", "Public"),
+            ("private", "Private"),
+            ("contacts", "Contacts Only"),
+        ),
+        default="public",
+    )
+
+    allow_direct_messages = models.BooleanField(
+        default=True,
+    )
+
+    notification_new_appointment = models.BooleanField(
+        default=True,
+    )
+
+    notification_cancellation = models.BooleanField(
+        default=True,
+    )
+
+    notification_reminder = models.BooleanField(
+        default=True,
+    )
+
     # ======================================================
     # ACCOUNT VERIFICATION
     # ======================================================

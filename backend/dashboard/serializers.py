@@ -142,6 +142,54 @@ class DashboardSerializer(serializers.Serializer):
         required=False
     )
 
+    today_appointments = serializers.ListField(
+        child=serializers.DictField(),
+        required=False
+    )
+
+    receptionist_patients = serializers.ListField(
+        child=serializers.DictField(),
+        required=False
+    )
+
+    receptionist_doctors = serializers.ListField(
+        child=serializers.DictField(),
+        required=False
+    )
+
+    pending_payment_total = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        required=False
+    )
+
+    pending_payment_count = serializers.IntegerField(required=False)
+
+    today_diagnostic_bookings = serializers.IntegerField(required=False)
+    today_appointment_count = serializers.IntegerField(required=False)
+    today_pending_appointment_count = serializers.IntegerField(required=False)
+    appointment_overview = serializers.DictField(required=False)
+    payment_overview = serializers.DictField(required=False)
+    total_revenue = serializers.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        required=False,
+    )
+    payment_history_count = serializers.IntegerField(required=False)
+    payment_history_records = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+    )
+    pending_payment_records = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+    )
+    receptionist_appointment_serials = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+    )
+    unread_notifications = serializers.IntegerField(required=False)
+
 
     # ==================================================
     # Admin Dashboard
@@ -208,9 +256,21 @@ class AdminDashboardSerializer(serializers.Serializer):
         default=0
     )
 
+    upcoming_appointments_by_doctor = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        default=list,
+    )
+
     upcoming_appointments = serializers.IntegerField(
         required=False,
         default=0
+    )
+
+    doctor_overview = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        default=list,
     )
 
     pending_appointments = serializers.IntegerField(
@@ -233,7 +293,6 @@ class AdminDashboardSerializer(serializers.Serializer):
         default=0
     )
 
-
     # ==================================================
     # Payment Statistics
     # ==================================================
@@ -250,6 +309,27 @@ class AdminDashboardSerializer(serializers.Serializer):
         default=0
     )
 
+    paid_payments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    refundable_payments = serializers.IntegerField(
+        required=False,
+        default=0
+    )
+
+    payment_history = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        default=list,
+    )
+
+    payment_summary = serializers.DictField(
+        required=False,
+        default=dict,
+    )
+
 
     # ==================================================
     # Diagnostic Statistics
@@ -258,6 +338,17 @@ class AdminDashboardSerializer(serializers.Serializer):
     total_diagnostic_bookings = serializers.IntegerField(
         required=False,
         default=0
+    )
+
+    diagnostic_status_totals = serializers.DictField(
+        required=False,
+        default=dict,
+    )
+
+    diagnostic_booking_history = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        default=list,
     )
 
 

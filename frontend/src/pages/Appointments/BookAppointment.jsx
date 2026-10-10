@@ -9,6 +9,8 @@ import {
     useLocation,
 } from "react-router-dom";
 
+import useAuth from "../../context/useAuth";
+
 import DepartmentDropdown from "../../components/DepartmentDropdown";
 
 import {
@@ -60,6 +62,18 @@ const getTodayDate = () => {
     ).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
+};
+
+const formatSlotTime = (value) => {
+    if (!value) return "";
+    const [hours, minutes] = String(value).split(":");
+    const date = new Date(2000, 0, 1, Number(hours), Number(minutes));
+    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+};
+
+const getSlotLabel = (slot) => {
+    if (slot.time_range) return slot.time_range.replace(" - ", " – ");
+    return formatSlotTime(slot.slot_time);
 };
 
 
@@ -124,6 +138,7 @@ function BookAppointment() {
     const navigate = useNavigate();
 
     const location = useLocation();
+    const { user } = useAuth();
 
 
     // ======================================================
@@ -136,6 +151,12 @@ function BookAppointment() {
             || null,
         [location.state]
     );
+
+    useEffect(() => {
+        if (user && String(user.role || "").toLowerCase() !== "patient") {
+            navigate("/dashboard", { replace: true });
+        }
+    }, [navigate, user]);
 
 
     const selectedDoctorId = useMemo(
@@ -321,7 +342,7 @@ function BookAppointment() {
 
                 const members =
                     normalizeArrayResponse(
-                        response.data
+                        response.data?.data || response.data
                     );
 
 
@@ -1455,92 +1476,7 @@ function BookAppointment() {
                         </label>
 
 
-                        <select
-
-                            value={
-                                timeSlot
-                            }
-
-                            disabled={
-                                !doctor
-                                ||
-                                !appointmentDate
-                                ||
-                                slotLoading
-                            }
-
-                            onChange={
-                                handleTimeSlotChange
-                            }
-
-                        >
-
-                            <option value="">
-
-                                {!doctor
-
-                                    ? "Select Doctor First"
-
-                                    : !appointmentDate
-
-                                        ? "Select Date First"
-
-                                        : slotLoading
-
-                                            ? "Loading Available Times..."
-
-                                            : timeSlots.length === 0
-
-                                                ? "No Available Time"
-
-                                                : "Select Available Time"
-
-                                }
-
-                            </option>
-
-
-                            {timeSlots.map(
-                                (slot) => (
-
-                                    <option
-
-                                        key={
-                                            slot.id
-                                        }
-
-                                        value={
-                                            slot.id
-                                        }
-
-                                    >
-
-                                        {
-                                            slot.slot_time
-                                        }
-
-                                        {" — "}
-
-                                        {
-                                            slot.booked_count
-                                            ?? 0
-                                        }
-
-                                        {" / "}
-
-                                        {
-                                            slot.max_patient
-                                            ?? 0
-                                        }
-
-                                        {" booked"}
-
-                                    </option>
-
-                                )
-                            )}
-
-                        </select>
+                        {slotLoading ? <div className="appointment-slot-state">Loading available time slots...</div> : !doctor || !appointmentDate ? <div className="appointment-slot-state">Select a doctor and date to view available time slots.</div> : timeSlots.length === 0 ? <div className="appointment-slot-state">No available time slots for this date.</div> : <div className="appointment-time-slots" role="radiogroup" aria-label="Available time slots">{timeSlots.map((slot) => <button key={slot.id} type="button" className={`appointment-time-slot ${String(timeSlot) === String(slot.id) ? "selected" : ""}`} onClick={() => handleTimeSlotChange({ target: { value: String(slot.id) } })} aria-pressed={String(timeSlot) === String(slot.id)}><strong>{getSlotLabel(slot)}</strong><span>{slot.remaining_seats ?? Math.max((slot.max_patient ?? 0) - (slot.booked_count ?? 0), 0)} seats available</span></button>)}</div>}
 
 
                         {errors.timeSlot && (
@@ -1554,6 +1490,49 @@ function BookAppointment() {
                         )}
 
                     </div>
+
+
+                    {/* ==================================================
+                        Result
+                    ==================================================
+
+                    <div
+                        className="form-group"
+                        style={{
+                            display: "block",
+                            width: "100%",
+                            marginTop: "20px",
+                            marginBottom: "20px"
+                        }}
+                    >
+
+                        <label
+                            style={{
+                                display: "block",
+                                marginBottom: "8px"
+                            }}
+                        >
+                            Result
+                        </label>
+
+                        <textarea
+                            rows="3"
+                            placeholder="Write result here..."
+                            style={{
+                                display: "block",
+                                width: "100%",
+                                minHeight: "80px",
+                                border: "1px solid #ccc",
+                                borderRadius: "6px",
+                                padding: "10px",
+                                background: "#fff"
+                            }}
+                        />
+
+                    </div>
+                    ================================================== */}
+
+                    
 
 
                     {/* ==================================================

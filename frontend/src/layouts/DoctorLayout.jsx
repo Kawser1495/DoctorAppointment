@@ -1,10 +1,11 @@
 import { useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { FaHeartbeat } from "react-icons/fa";
 import AuthContext from "../context/AuthContext";
 import "./DoctorLayout.css";
 
-export default function DoctorLayout({ children }) {
-    const { user, logout } = useContext(AuthContext);
+function DoctorLayout({ children }) {
+    const { logout } = useContext(AuthContext);
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -47,6 +48,12 @@ export default function DoctorLayout({ children }) {
             id: "prescriptions",
         },
         {
+            label: "Medical Reports",
+            icon: "fas fa-file-medical",
+            path: "/doctor/medical-reports",
+            id: "medical-reports",
+        },
+        {
             label: "Notifications",
             icon: "fas fa-bell",
             path: "/doctor/notifications",
@@ -59,6 +66,12 @@ export default function DoctorLayout({ children }) {
             id: "analytics",
         },
         {
+            label: "Kaium",
+            icon: "fas fa-users",
+            path: "/doctor/Kaium",
+            id: "kaium",
+        },
+        {
             label: "Settings",
             icon: "fas fa-cog",
             path: "/doctor/settings",
@@ -66,18 +79,14 @@ export default function DoctorLayout({ children }) {
         },
     ];
 
-    const isActive = (path) => {
-        return window.location.pathname === path;
-    };
-
     return (
         <div className="doctor-layout">
             {/* Sidebar */}
             <aside className={`doctor-layout__sidebar ${sidebarOpen ? "open" : "collapsed"}`}>
                 <div className="doctor-layout__sidebar-header">
                     <h3 className="doctor-layout__logo">
-                        <i className="fas fa-clinic-medical me-2" />
-                        {sidebarOpen && "DocApp"}
+                        <span className="doctor-layout__logo-mark"><FaHeartbeat /></span>
+                        {sidebarOpen && <span><strong>MediCare</strong><small>Connect</small></span>}
                     </h3>
                     <button
                         className="doctor-layout__toggle"
@@ -87,35 +96,31 @@ export default function DoctorLayout({ children }) {
                     </button>
                 </div>
 
-                {/* Doctor Info */}
-                {sidebarOpen && user && (
-                    <div className="doctor-layout__user-info">
-                        <div className="doctor-layout__avatar">
-                            <i className="fas fa-user-circle" />
-                        </div>
-                        <div className="doctor-layout__user-details">
-                            <p className="doctor-layout__user-name">{user.first_name || "Doctor"}</p>
-                            <p className="doctor-layout__user-role">Doctor</p>
-                        </div>
-                    </div>
-                )}
-
                 {/* Navigation */}
-                <nav className="doctor-layout__nav">
+                <nav className="doctor-layout__nav" aria-label="Doctor dashboard navigation">
                     <ul className="doctor-layout__nav-list">
                         {navItems.map((item) => (
                             <li key={item.id} className="doctor-layout__nav-item">
-                                <a
-                                    href={item.path}
-                                    className={`doctor-layout__nav-link ${
-                                        isActive(item.path) ? "active" : ""
-                                    }`}
+                                <NavLink
+                                    to={item.path}
+                                    className={({ isActive: active }) =>
+                                        `doctor-layout__nav-link ${active ? "active" : ""}`
+                                    }
+
+                                    /* side ber click*/
+                                    onClick={(e) => {
+                                        if (item.label === "") {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                 >
+                                
                                     <i className={`${item.icon} doctor-layout__nav-icon`} />
                                     {sidebarOpen && (
                                         <span className="doctor-layout__nav-label">{item.label}</span>
                                     )}
-                                </a>
+                                </NavLink>
+                                
                             </li>
                         ))}
                     </ul>
@@ -124,12 +129,14 @@ export default function DoctorLayout({ children }) {
                 {/* Logout */}
                 <div className="doctor-layout__sidebar-footer">
                     <button
+                        type="button"
                         className="doctor-layout__logout-btn"
                         onClick={handleLogout}
                         title="Logout"
                     >
                         <i className="fas fa-sign-out-alt" />
                         {sidebarOpen && <span>Logout</span>}
+                        
                     </button>
                 </div>
             </aside>
@@ -143,3 +150,8 @@ export default function DoctorLayout({ children }) {
         </div>
     );
 }
+
+export { DoctorLayout };
+export default DoctorLayout;
+
+

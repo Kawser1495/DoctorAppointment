@@ -59,6 +59,7 @@ class TestBookingAdmin(admin.ModelAdmin):
         "diagnostic_test",
         "booking_date",
         "booking_time",
+        "report_available_at",
         "status",
     )
 

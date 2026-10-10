@@ -993,6 +993,29 @@ export default function DoctorAppointmentDetails() {
 
                                     </div>
 
+                                    {appointment.ai_report_shared && (
+                                        <div className="col-12 mt-3">
+                                            <div className="ai-report-review-card">
+                                                <div className="ai-report-review-card__heading">
+                                                    <div>
+                                                        <span>SHARED AI REPORT</span>
+                                                        <h5>Symptom analysis for consultation</h5>
+                                                    </div>
+                                                    <strong className={`ai-report-review-card__urgency ai-report-review-card__urgency--${String(appointment.ai_urgency || "low").toLowerCase()}`}>
+                                                        {appointment.ai_urgency || "Not rated"} urgency
+                                                    </strong>
+                                                </div>
+                                                <div className="ai-report-review-card__grid">
+                                                    <div><small>Health category</small><strong>{appointment.ai_category || "Not provided"}</strong></div>
+                                                    <div><small>Suggested specialist</small><strong>{appointment.ai_specialist || "Not provided"}</strong></div>
+                                                    <div><small>Patient symptoms</small><strong>{appointment.symptoms || "Not provided"}</strong></div>
+                                                </div>
+                                                <p>{appointment.ai_guidance || "Review the symptoms during consultation and make the final clinical decision."}</p>
+                                                <small className="ai-report-review-card__note">AI guidance is not a diagnosis or prescription. Add your clinical notes and treatment below.</small>
+                                            </div>
+                                        </div>
+                                    )}
+
                                 </div>
 
                             </div>
@@ -1314,6 +1337,10 @@ export default function DoctorAppointmentDetails() {
 
                         appointmentId={
                             appointment.id
+                        }
+
+                        appointment={
+                            appointment
                         }
 
                         onSuccess={

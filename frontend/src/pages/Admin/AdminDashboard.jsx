@@ -9,6 +9,7 @@ import {
     FaChartPie,
     FaCheckCircle,
     FaCheckDouble,
+    FaChevronDown,
     FaClock,
     FaCog,
     FaCreditCard,
@@ -30,6 +31,7 @@ import {
 
 import useAuth from "../../context/useAuth";
 import { getDashboardData } from "../../services/dashboardApi";
+import { getDiagnosticTests } from "../../services/diagnosticService";
 
 import "./AdminDashboard.css";
 
@@ -42,6 +44,7 @@ const dashboardIcons = {
     "fas fa-chart-pie": FaChartPie,
     "fas fa-check-circle": FaCheckCircle,
     "fas fa-check-double": FaCheckDouble,
+    "fas fa-chevron-down": FaChevronDown,
     "fas fa-clock": FaClock,
     "fas fa-cog": FaCog,
     "fas fa-credit-card": FaCreditCard,
@@ -72,8 +75,10 @@ export default function AdminDashboard() {
     const { user, logout } = useAuth();
 
     const [dashboard, setDashboard] = useState({});
+    const [diagnosticTestCount, setDiagnosticTestCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [showAdminMenu, setShowAdminMenu] = useState(false);
 
     const firstName =
         user?.first_name ||
@@ -97,13 +102,17 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         let mounted = true;
+        let loadedDate = new Date().toDateString();
 
         const loadDashboard = async () => {
             try {
                 setLoading(true);
                 setError("");
 
-                const response = await getDashboardData();
+                const [response, diagnosticResponse] = await Promise.all([
+                    getDashboardData(),
+                    getDiagnosticTests(),
+                ]);
 
                 if (!mounted) {
                     return;
@@ -116,6 +125,11 @@ export default function AdminDashboard() {
                     responseData.data ||
                     responseData
                 );
+
+                const diagnosticTests = Array.isArray(diagnosticResponse)
+                    ? diagnosticResponse
+                    : diagnosticResponse?.results || [];
+                setDiagnosticTestCount(diagnosticTests.length);
             } catch (err) {
                 console.error(
                     "Admin Dashboard Error:",
@@ -140,8 +154,18 @@ export default function AdminDashboard() {
 
         loadDashboard();
 
+        const refreshAtDateChange = window.setInterval(() => {
+            const currentDate = new Date().toDateString();
+
+            if (currentDate !== loadedDate) {
+                loadedDate = currentDate;
+                loadDashboard();
+            }
+        }, 60 * 1000);
+
         return () => {
             mounted = false;
+            window.clearInterval(refreshAtDateChange);
         };
     }, []);
 
@@ -194,15 +218,7 @@ export default function AdminDashboard() {
         },
 
         {
-            title: "Approved Doctors",
-            value: dashboard.approved_doctors,
-            icon: "fas fa-user-check",
-            className: "stat-teal",
-            link: "/admin/doctors",
-        },
-
-        {
-            title: "Total Appointments",
+            title: "Running Appointments",
             value: dashboard.total_appointments,
             icon: "fas fa-calendar-check",
             className: "stat-purple",
@@ -214,7 +230,7 @@ export default function AdminDashboard() {
             value: dashboard.today_appointments,
             icon: "fas fa-calendar-day",
             className: "stat-red",
-            link: "/admin/appointments",
+            link: `/admin/appointments?date=${(() => { const today = new Date(); return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`; })()}`,
         },
 
         {
@@ -222,7 +238,7 @@ export default function AdminDashboard() {
             value: dashboard.upcoming_appointments,
             icon: "fas fa-calendar-alt",
             className: "stat-indigo",
-            link: "/admin/appointments",
+            link: "/admin/appointments?upcoming=true",
         },
 
         {
@@ -237,16 +253,8 @@ export default function AdminDashboard() {
         },
 
         {
-            title: "Pending Payments",
-            value: dashboard.pending_payments,
-            icon: "fas fa-credit-card",
-            className: "stat-pink",
-            link: "/admin/payments",
-        },
-
-        {
-            title: "Diagnostic Bookings",
-            value: dashboard.total_diagnostic_bookings,
+            title: "Diagnostic Tests",
+            value: diagnosticTestCount,
             icon: "fas fa-vials",
             className: "stat-cyan",
             link: "/tests",
@@ -257,18 +265,25 @@ export default function AdminDashboard() {
             value: dashboard.total_medical_reports,
             icon: "fas fa-file-medical",
             className: "stat-dark",
-            link: "/reports",
+            link: "/admin/reports",
         },
 
         {
-            title: "Notifications",
-            value: dashboard.total_notifications,
+            title: "Unread Notifications",
+            value: dashboard.unread_notifications,
             icon: "fas fa-bell",
             className: "stat-yellow",
-            link: "/notifications",
+            link: "/admin/notifications",
+        },
+
+        {
+            title: "Payment History",
+            value: dashboard.payment_summary?.total ?? 0,
+            icon: "fas fa-credit-card",
+            className: "stat-teal",
+            link: "/admin/payments",
         },
     ];
-
 
     // ==========================================================
     // APPOINTMENT STATUS
@@ -304,6 +319,12 @@ export default function AdminDashboard() {
         },
     ];
 
+    const paymentOverview = [
+        { title: "All payments", value: dashboard.payment_summary?.total, icon: "fas fa-credit-card", className: "payment-summary-all" },
+        { title: "Paid", value: dashboard.payment_summary?.paid, icon: "fas fa-check-circle", className: "payment-summary-paid" },
+        { title: "Pending", value: dashboard.payment_summary?.pending, icon: "fas fa-clock", className: "payment-summary-pending" },
+        { title: "Refunded", value: dashboard.payment_summary?.refunded, icon: "fas fa-redo", className: "payment-summary-refunded" },
+    ];
 
     // ==========================================================
     // LOADING
@@ -488,6 +509,15 @@ export default function AdminDashboard() {
                         <span>Diagnostics</span>
                     </Link>
 
+
+                    <Link
+                        to="/admin/Sarzil"
+                        className="admin-nav-link"
+                    >
+                        <DashboardIcon name="fas fa-vials" />
+                        <span>Sarzil</span>
+                    </Link>
+
                     <Link
                         to="/admin/reports"
                         className="admin-nav-link"
@@ -578,7 +608,7 @@ export default function AdminDashboard() {
                     <div className="admin-header-right">
 
                         <Link
-                            to="/notifications"
+                            to="/admin/notifications"
                             className="header-icon"
                             title="Notifications"
                         >
@@ -594,24 +624,51 @@ export default function AdminDashboard() {
                         </Link>
 
 
-                        <div className="admin-user">
+                        <div className="admin-profile">
+                            <button
+                                type="button"
+                                className="admin-user"
+                                onClick={() => setShowAdminMenu((visible) => !visible)}
+                                aria-expanded={showAdminMenu}
+                                aria-haspopup="menu"
+                            >
+                                <div className="admin-avatar">
+                                    {firstName
+                                        .charAt(0)
+                                        .toUpperCase()}
+                                </div>
 
-                            <div className="admin-avatar">
-                                {firstName
-                                    .charAt(0)
-                                    .toUpperCase()}
-                            </div>
+                                <div className="admin-user-info">
+                                    <strong>
+                                        {firstName}
+                                    </strong>
 
-                            <div className="admin-user-info">
-                                <strong>
-                                    {firstName}
-                                </strong>
+                                    <span>
+                                        Administrator
+                                    </span>
+                                </div>
 
-                                <span>
-                                    Administrator
-                                </span>
-                            </div>
+                                <DashboardIcon name="fas fa-chevron-down" />
+                            </button>
 
+                            {showAdminMenu && (
+                                <div className="admin-profile-menu" role="menu">
+                                    <Link
+                                        to="/settings"
+                                        role="menuitem"
+                                        onClick={() => setShowAdminMenu(false)}
+                                    >
+                                        Settings
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={logout}
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                     </div>
@@ -714,8 +771,26 @@ export default function AdminDashboard() {
                             </Link>
                         ))}
 
-                    </section>
+                        <Link
+                            to="/doctors"
+                            className="stat-card"
+                        >
+                            <div className="stat-card-top">
+                                <div className="stat-content">
+                                    <p>Find a Doctor</p>
+                                    <h3>{Number(dashboard.total_doctors || 0).toLocaleString()}</h3>
+                                    <span className="stat-link-text">
+                                        View doctor list
+                                        <DashboardIcon name="fas fa-arrow-right" />
+                                    </span>
+                                </div>
+                                <div className="stat-icon stat-green">
+                                    <DashboardIcon name="fas fa-user-md" />
+                                </div>
+                            </div>
+                        </Link>
 
+                    </section>
 
                     {/* ==================================================
                         APPOINTMENT OVERVIEW
@@ -787,106 +862,26 @@ export default function AdminDashboard() {
 
                     </section>
 
-
-                    {/* ==================================================
-                        SYSTEM SUMMARY
-                    ================================================== */}
-
-                    <section className="section-card">
-
+                    <section className="section-card payment-overview-section">
                         <div className="section-header">
-
                             <div>
-
-                                <span className="section-eyebrow">
-                                    SYSTEM
-                                </span>
-
-                                <h4>
-                                    Healthcare Summary
-                                </h4>
-
-                                <p>
-                                    Quick overview of today's
-                                    healthcare operations.
-                                </p>
-
+                                <span className="section-eyebrow">FINANCIAL ACTIVITY</span>
+                                <h4>Payment Overview</h4>
+                                <p>Current payment status across all patient services.</p>
                             </div>
-
+                            <Link to="/admin/payments" className="view-all">
+                                View All
+                                <DashboardIcon name="fas fa-arrow-right" />
+                            </Link>
                         </div>
-
-
-                        <div className="summary-grid">
-
-                            <div className="summary-item">
-                                <DashboardIcon name="fas fa-calendar-day" />
-
-                                <div>
-                                    <span>
-                                        Today's Appointments
-                                    </span>
-
-                                    <strong>
-                                        {Number(
-                                            dashboard.today_appointments || 0
-                                        ).toLocaleString()}
-                                    </strong>
+                        <div className="summary-grid payment-summary-grid">
+                            {paymentOverview.map((item) => (
+                                <div className={`summary-item ${item.className}`} key={item.title}>
+                                    <div className="payment-summary-icon"><DashboardIcon name={item.icon} /></div>
+                                    <div><span>{item.title}</span><strong>{Number(item.value || 0).toLocaleString()}</strong></div>
                                 </div>
-                            </div>
-
-
-                            <div className="summary-item">
-                                <DashboardIcon name="fas fa-calendar-alt" />
-
-                                <div>
-                                    <span>
-                                        Upcoming Appointments
-                                    </span>
-
-                                    <strong>
-                                        {Number(
-                                            dashboard.upcoming_appointments || 0
-                                        ).toLocaleString()}
-                                    </strong>
-                                </div>
-                            </div>
-
-
-                            <div className="summary-item">
-                                <DashboardIcon name="fas fa-user-clock" />
-
-                                <div>
-                                    <span>
-                                        Doctor Requests
-                                    </span>
-
-                                    <strong>
-                                        {Number(
-                                            dashboard.pending_doctor_requests || 0
-                                        ).toLocaleString()}
-                                    </strong>
-                                </div>
-                            </div>
-
-
-                            <div className="summary-item">
-                                <DashboardIcon name="fas fa-money-bill-wave" />
-
-                                <div>
-                                    <span>
-                                        Pending Payments
-                                    </span>
-
-                                    <strong>
-                                        {Number(
-                                            dashboard.pending_payments || 0
-                                        ).toLocaleString()}
-                                    </strong>
-                                </div>
-                            </div>
-
+                            ))}
                         </div>
-
                     </section>
 
                 </div>

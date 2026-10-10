@@ -7,6 +7,7 @@ from .views import (
     FamilyMemberDetailView,
     AdminPatientListView,
     AdminPatientDetailView,
+    AdminDoctorPatientSummaryView,
 )
 
 
@@ -51,6 +52,12 @@ urlpatterns = [
         "admin/",
         AdminPatientListView.as_view(),
         name="admin-patient-list",
+    ),
+
+    path(
+        "admin/doctor-summary/",
+        AdminDoctorPatientSummaryView.as_view(),
+        name="admin-doctor-patient-summary",
     ),
 
     path(

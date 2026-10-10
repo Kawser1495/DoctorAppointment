@@ -15,6 +15,7 @@ import {
 
 import {
     createPayment,
+    createSSLCommerzPayment,
 } from "../../services/paymentService";
 
 import "../../styles/payment.css";
@@ -38,6 +39,9 @@ function DiagnosticPayment() {
         useState(true);
 
     const [paymentLoading, setPaymentLoading] =
+        useState(false);
+
+    const [sslLoading, setSslLoading] =
         useState(false);
 
     const [paymentMethod, setPaymentMethod] =
@@ -546,6 +550,28 @@ function DiagnosticPayment() {
 
     };
 
+    const handleSSLCommerzPayment = async () => {
+        if (!Number.isFinite(amount) || amount <= 0) {
+            alert("Invalid diagnostic test amount.");
+            return;
+        }
+        try {
+            setSslLoading(true);
+            const response = await createSSLCommerzPayment({
+                test_booking: Number(booking.id),
+                payment_mode: paymentMode,
+            });
+            window.location.assign(response.data.gateway_url);
+        } catch (error) {
+            alert(
+                error.response?.data?.detail ||
+                "Unable to start SSLCOMMERZ payment."
+            );
+        } finally {
+            setSslLoading(false);
+        }
+    };
+
 
     // ==========================================================
     // UI
@@ -596,6 +622,17 @@ function DiagnosticPayment() {
 
                         ← Back to Booking Details
 
+                    </button>
+
+                    <button
+                        type="button"
+                        className="btn btn-primary w-100 mt-3 d-none"
+                        onClick={handleSSLCommerzPayment}
+                        disabled={paymentLoading || sslLoading}
+                    >
+                        {sslLoading
+                            ? "Redirecting to SSLCOMMERZ..."
+                            : "Pay securely with SSLCOMMERZ"}
                     </button>
 
 
@@ -726,12 +763,23 @@ function DiagnosticPayment() {
 
                     </div>
 
+                    <button
+                        type="button"
+                        className="btn btn-primary w-100 mb-3"
+                        onClick={handleSSLCommerzPayment}
+                        disabled={paymentLoading || sslLoading}
+                    >
+                        {sslLoading
+                            ? "Redirecting to SSLCOMMERZ..."
+                            : "Pay securely with SSLCOMMERZ"}
+                    </button>
+
 
                     {/* ==================================================
                         Payment Method
                     ================================================== */}
 
-                    <div className="mb-3">
+                    <div className="mb-3 d-none">
 
                         <label className="form-label">
 
@@ -785,7 +833,7 @@ function DiagnosticPayment() {
                         Transaction ID
                     ================================================== */}
 
-                    <div className="mb-4">
+                    <div className="mb-4 d-none">
 
                         <label className="form-label">
 
@@ -832,7 +880,7 @@ function DiagnosticPayment() {
 
                         type="button"
 
-                        className="btn btn-success w-100"
+                        className="btn btn-success w-100 d-none"
 
                         onClick={handlePayment}
 

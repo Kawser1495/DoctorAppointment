@@ -19,6 +19,8 @@ import Sidebar from "../../components/Sidebar";
 
 import {
     getMyDiagnosticBookings,
+    cancelDiagnosticBooking,
+    requestDiagnosticRefund,
 } from "../../api/diagnosticBookingApi";
 
 import "../../styles/myDiagnosticBookings.css";
@@ -39,6 +41,10 @@ function MyDiagnosticBookings() {
     const [loading, setLoading] =
         useState(true);
 
+    const [cancellingId, setCancellingId] = useState(null);
+
+    const [refundPaymentId, setRefundPaymentId] = useState(null);
+
 
     // ==========================================================
     // Load Diagnostic Bookings
@@ -55,25 +61,14 @@ function MyDiagnosticBookings() {
                 await getMyDiagnosticBookings();
 
 
-            console.log(
-                "Diagnostic Bookings API Response:",
-                response
-            );
-
-
-            console.log(
-                "Diagnostic Bookings Data:",
-                response.data
-            );
-
-
             // ======================================================
             // Handle DRF Pagination
             // ======================================================
 
             const bookingData =
-                response.data?.results ||
-                response.data ||
+                response?.data?.results ||
+                response?.data?.data ||
+                response?.data ||
                 [];
 
 
@@ -149,6 +144,7 @@ function MyDiagnosticBookings() {
 
         if (
             paymentStatus === "paid" ||
+            paymentStatus === "partially paid" ||
             paymentStatus === "completed" ||
             paymentStatus === "success" ||
             paymentStatus === "successful"
@@ -205,6 +201,75 @@ function MyDiagnosticBookings() {
 
         return false;
 
+    };
+
+    const activeBookings = bookings.filter(
+        (booking) => booking.status !== "Cancelled"
+    );
+
+    const hasSuccessfulPayment = (booking) => (
+        ["paid", "partially paid"].includes(
+            String(booking?.payment_status || "").toLowerCase()
+        ) || booking?.is_paid === true
+    );
+
+    const getPaymentLabel = (booking) => (
+        String(booking?.payment_status || "").toLowerCase() === "partially paid"
+            ? "Partially Paid"
+            : "Paid"
+    );
+
+    const monthlyBookings = Object.entries(
+        bookings.reduce((months, booking) => {
+            const monthKey = String(booking.booking_date || "").slice(0, 7);
+            if (!monthKey) return months;
+            months[monthKey] = months[monthKey] || [];
+            months[monthKey].push(booking);
+            return months;
+        }, {})
+    ).sort(([first], [second]) => second.localeCompare(first));
+
+    const formatMonth = (monthKey) => new Date(`${monthKey}-01T00:00:00`).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+    });
+
+    const handleCancel = async (booking) => {
+        if (!window.confirm("Cancel this diagnostic booking?")) return;
+        try {
+            setCancellingId(booking.id);
+            await cancelDiagnosticBooking(booking.id);
+            setBookings((current) => current.map((item) => (
+                item.id === booking.id ? { ...item, status: "Cancelled" } : item
+            )));
+        } catch (error) {
+            window.alert(error.response?.data?.message || "Unable to cancel this booking.");
+        } finally {
+            setCancellingId(null);
+        }
+    };
+
+    const handleRefundRequest = async (booking) => {
+        const reason = window.prompt("Why are you requesting a refund?", "Refund requested for diagnostic booking");
+        if (reason === null) return;
+        if (!reason.trim()) {
+            window.alert("Please provide a refund reason.");
+            return;
+        }
+        try {
+            setRefundPaymentId(booking.refund_payment_id);
+            await requestDiagnosticRefund(booking.refund_payment_id, reason.trim());
+            setBookings((current) => current.map((item) => (
+                item.id === booking.id
+                    ? { ...item, can_request_refund: false, refund_request_status: "Pending" }
+                    : item
+            )));
+            window.alert("Refund request sent to admin for review.");
+        } catch (error) {
+            window.alert(error.response?.data?.detail || "Unable to submit refund request.");
+        } finally {
+            setRefundPaymentId(null);
+        }
     };
 
 
@@ -305,7 +370,7 @@ function MyDiagnosticBookings() {
 
 
                             <strong>
-                                {bookings.length}
+                                {activeBookings.length}
                             </strong>
 
                         </div>
@@ -352,7 +417,7 @@ function MyDiagnosticBookings() {
                             No Booking
                         ================================================== */}
 
-                        {bookings.length === 0 ? (
+                                {activeBookings.length === 0 ? (
 
                             <div className="no-diagnostic-booking">
 
@@ -439,7 +504,7 @@ function MyDiagnosticBookings() {
                                     <tbody>
 
 
-                                        {bookings.map(
+                                        {activeBookings.map(
                                             (booking) => {
 
                                                 const paid =
@@ -522,7 +587,8 @@ function MyDiagnosticBookings() {
                                                         <td>
 
                                                             {
-                                                                booking.family_member_name ||
+                                                                    booking.booking_person_name ||
+                                                                    booking.family_member_name ||
                                                                 booking.family_member?.name ||
                                                                 "Self"
                                                             }
@@ -596,33 +662,18 @@ function MyDiagnosticBookings() {
                                                         <td>
 
                                                             {paid ? (
-
                                                                 <span className="payment-paid-badge">
-
-                                                                    Paid
-
+                                                                    {getPaymentLabel(booking)}
                                                                 </span>
-
                                                             ) : (
-
                                                                 <button
                                                                     type="button"
                                                                     className="payment-button"
-                                                                    onClick={() =>
-                                                                        navigate(
-                                                                            `/diagnostic-payment/${booking.id}`
-                                                                        )
-                                                                    }
+                                                                    onClick={() => navigate(`/diagnostic-payment/${booking.id}`)}
                                                                 >
-
                                                                     <FaCreditCard />
-
-                                                                    <span>
-                                                                        Pay Now
-                                                                    </span>
-
+                                                                    <span>Pay Now</span>
                                                                 </button>
-
                                                             )}
 
                                                         </td>
@@ -632,9 +683,8 @@ function MyDiagnosticBookings() {
                                                             Actions
                                                         ========================== */}
 
-                                                        <td
-                                                            className="action-column"
-                                                        >
+                                                        <td className="action-column">
+                                                            <div className="diagnostic-action-stack">
 
                                                             <button
                                                                 type="button"
@@ -654,6 +704,33 @@ function MyDiagnosticBookings() {
 
                                                             </button>
 
+                                                            {booking.status !== "Completed" && !hasSuccessfulPayment(booking) && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="cancel-booking-btn"
+                                                                    disabled={cancellingId === booking.id}
+                                                                    onClick={() => handleCancel(booking)}
+                                                                >
+                                                                    {cancellingId === booking.id ? "Cancelling..." : "Cancel"}
+                                                                </button>
+                                                            )}
+
+                                                            {booking.can_request_refund && booking.refund_payment_id && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="refund-booking-btn"
+                                                                    disabled={refundPaymentId === booking.refund_payment_id}
+                                                                    onClick={() => handleRefundRequest(booking)}
+                                                                >
+                                                                    {refundPaymentId === booking.refund_payment_id ? "Sending..." : "Request Refund"}
+                                                                </button>
+                                                            )}
+
+                                                            {booking.refund_request_status === "Pending" && (
+                                                                <span className="refund-request-status">Refund pending</span>
+                                                            )}
+
+                                                            </div>
                                                         </td>
 
 
@@ -677,6 +754,37 @@ function MyDiagnosticBookings() {
 
 
                     </div>
+
+                    <details className="diagnostic-monthly-history">
+                        <summary>
+                            <strong>Monthly Diagnostic History</strong>
+                            <span>{new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+                        </summary>
+                        <div className="diagnostic-monthly-content">
+                            {monthlyBookings.length === 0 ? (
+                                <p>No diagnostic history yet.</p>
+                            ) : monthlyBookings.map(([monthKey, monthItems]) => (
+                                <details className="diagnostic-month" key={monthKey}>
+                                    <summary>
+                                        <span>{formatMonth(monthKey)}</span>
+                                        <strong>{monthItems.length} Bookings</strong>
+                                    </summary>
+                                    <div className="diagnostic-month-list">
+                                        {monthItems.map((booking) => (
+                                            <div className="diagnostic-month-row" key={booking.id}>
+                                                <span>{booking.booking_number}</span>
+                                                <span>{booking.test_name || "Diagnostic Test"}</span>
+                                                <span>{booking.booking_person_name || "Self"}</span>
+                                                <span className={`diagnostic-status ${String(booking.status || "").toLowerCase()}`}>
+                                                    {booking.status}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </details>
+                            ))}
+                        </div>
+                    </details>
 
 
                 </div>

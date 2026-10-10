@@ -1,8 +1,14 @@
+from django.db import transaction
+from django.db.models import Count
 from rest_framework import generics
+from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import NotFound, ValidationError
 
 from .models import PatientProfile, FamilyMember
+from appointments.models import Appointment
+from doctors.models import Doctor
 
 from .serializers import (
     AdminPatientSerializer,
@@ -248,12 +254,104 @@ class AdminPatientListView(generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return PatientProfile.objects.select_related("user").prefetch_related(
+        queryset = PatientProfile.objects.select_related("user").prefetch_related(
             "family_members"
+        )
+        search = self.request.query_params.get("search", "").strip()
+        doctor_id = self.request.query_params.get("doctor", "").strip()
+
+        if search:
+            queryset = queryset.filter(
+                user__first_name__icontains=search
+            ) | queryset.filter(
+                user__last_name__icontains=search
+            ) | queryset.filter(
+                user__username__icontains=search
+            ) | queryset.filter(
+                user__email__icontains=search
+            ) | queryset.filter(
+                user__phone__icontains=search
+            ) | queryset.filter(
+                appointments__doctor__user__first_name__icontains=search
+            ) | queryset.filter(
+                appointments__doctor__user__last_name__icontains=search
+            )
+
+        if doctor_id:
+            queryset = queryset.filter(appointments__doctor_id=doctor_id)
+
+        return queryset.distinct().order_by("user__first_name", "user__username")
+
+
+class AdminDoctorPatientSummaryView(generics.ListAPIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        doctors = Doctor.objects.select_related("user", "department").filter(
+            user__role="doctor",
         ).order_by("user__first_name", "user__username")
 
+        data = []
+        for doctor in doctors:
+            people = {}
+            appointments = Appointment.objects.filter(
+                doctor=doctor,
+                status__in=["Pending", "Confirmed", "Completed"],
+            ).select_related(
+                "patient__user",
+                "family_member",
+                "slot",
+            ).order_by("appointment_date", "slot__slot_time", "booking_number")
 
-class AdminPatientDetailView(generics.RetrieveAPIView):
+            for appointment in appointments:
+                family_member = appointment.family_member
+                if family_member:
+                    person_id = f"family_member:{family_member.id}"
+                    person_name = family_member.name
+                    person_type = "Family member"
+                    relation = family_member.relation or "Family member"
+                else:
+                    person_id = f"patient:{appointment.patient_id}"
+                    person_name = appointment.patient.user.get_full_name().strip() or appointment.patient.user.username
+                    person_type = "Patient"
+                    relation = "Account holder"
+
+                person = people.setdefault(person_id, {
+                    "id": person_id,
+                    "name": person_name,
+                    "person_type": person_type,
+                    "relation": relation,
+                    "patient_id": appointment.patient_id,
+                    "family_member_id": family_member.id if family_member else None,
+                    "appointment_count": 0,
+                    "appointments": [],
+                })
+                person["appointment_count"] += 1
+                person["appointments"].append({
+                    "id": appointment.id,
+                    "booking_number": appointment.booking_number,
+                    "appointment_date": appointment.appointment_date,
+                    "slot_time": appointment.slot.slot_time,
+                    "time_range": appointment.slot.time_range,
+                    "status": appointment.status,
+                })
+
+            people_data = sorted(people.values(), key=lambda person: person["name"].lower())
+            data.append({
+                "id": doctor.id,
+                "name": doctor.user.get_full_name().strip() or doctor.user.username,
+                "department": doctor.department.name if doctor.department else "Unassigned",
+                "patient_count": sum(person["person_type"] == "Patient" for person in people_data),
+                "person_count": len(people_data),
+                "appointment_count": sum(person["appointment_count"] for person in people_data),
+                "people": people_data,
+            })
+        return Response(data)
+
+
+class AdminPatientDetailView(generics.RetrieveDestroyAPIView):
 
     serializer_class = AdminPatientSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -261,4 +359,22 @@ class AdminPatientDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         return PatientProfile.objects.select_related("user").prefetch_related(
             "family_members"
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        patient = self.get_object()
+        patient_name = patient.user.get_full_name().strip() or patient.user.username
+
+        with transaction.atomic():
+            appointments = Appointment.objects.filter(patient=patient)
+            deleted_appointment_count = appointments.count()
+            appointments.delete()
+            patient.user.delete()
+
+        return Response(
+            {
+                "detail": f"Patient {patient_name} and all related records were deleted.",
+                "deleted_appointment_count": deleted_appointment_count,
+            },
+            status=status.HTTP_200_OK,
         )

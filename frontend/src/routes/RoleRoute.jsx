@@ -5,7 +5,7 @@ import {
 import useAuth from "../context/useAuth";
 
 
-export default function RoleRoute({
+function RoleRoute({
     children,
     allowedRoles = [],
 }) {
@@ -198,3 +198,5 @@ export default function RoleRoute({
     return children;
 
 }
+
+export default RoleRoute;

@@ -53,6 +53,21 @@ export const getAppointmentDetails =
 
     };
 
+export const shareAppointmentAIReport = async (id, report) => {
+    return await api.patch(`appointments/${id}/ai-report/`, report);
+};
+
+export const shareStandaloneAIReport = async (doctorId, report) => {
+    return await api.post("appointments/ai-reports/", {
+        doctor: doctorId,
+        ...report,
+    });
+};
+
+export const analyzeSymptomsWithAI = async (data) => {
+    return await api.post("appointments/symptom-analysis/", data);
+};
+
 
 // ==========================================================
 // Update Appointment
@@ -108,6 +123,10 @@ export const getDoctorAppointments =
 
     };
 
+export const getDoctorRatings = async () => {
+    return await api.get("doctors/ratings/");
+};
+
 
 // ==========================================================
 // Doctor Appointment Details
@@ -151,12 +170,17 @@ export const confirmDoctorAppointment =
 
 export const rejectDoctorAppointment =
     async (
-        id
+        id,
+        rejectionReason
     ) => {
 
         return await api.patch(
 
-            `appointments/doctor/${id}/reject/`
+            `appointments/doctor/${id}/reject/`,
+
+            {
+                rejection_reason: rejectionReason,
+            }
 
         );
 
@@ -186,27 +210,41 @@ export const completeDoctorAppointment =
 // ==========================================================
 
 export const getAdminAppointments =
-    async () => {
+    async (params = {}) => {
 
         return await api.get(
 
-            "appointments/admin/"
+            "appointments/admin/",
+            { params }
 
         );
 
     };
 
+export const getReceptionistAppointments = async (params = {}) => (
+    api.get("appointments/receptionist/", { params })
+);
+
+export const updateReceptionistAppointmentStatus = async (id, status) => (
+    api.patch(`appointments/receptionist/${id}/status/`, { status })
+);
+
 export const updateAdminAppointmentStatus = async (id, status) => {
     return await api.patch(`appointments/admin/${id}/status/`, { status });
 };
 
-export const getReceptionistAppointments = async () => {
-    return await api.get("appointments/receptionist/");
+export const deleteAdminAppointment = async (id) => {
+    return await api.delete(`appointments/admin/${id}/delete/`);
 };
 
-export const updateReceptionistAppointmentStatus = async (id, status) => {
-    return await api.patch(
-        `appointments/receptionist/${id}/status/`,
-        { status },
-    );
+export const getDoctorAIReports = async () => {
+    return await api.get("appointments/ai-reports/");
+};
+
+export const getPatientAIReports = async () => {
+    return await api.get("appointments/ai-reports/");
+};
+
+export const updateDoctorAIReport = async (id, doctorAssessment) => {
+    return await api.patch(`appointments/ai-reports/${id}/`, { doctor_assessment: doctorAssessment });
 };

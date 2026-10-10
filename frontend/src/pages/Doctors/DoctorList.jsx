@@ -17,14 +17,21 @@ import {
     FaTimes,
     FaGraduationCap,
     FaHospital,
+    FaStar,
+    FaClock,
 } from "react-icons/fa";
-import { BACKEND_URL } from "../../config";
 
 import {
     getDoctors,
     getDepartments,
     getDoctorById,
+    getDoctorSchedules,
+    getDoctorRatings,
+    getMyRatings,
+    createDoctorRating,
 } from "../../services/doctorService";
+
+import { getMyAppointments } from "../../services/appointmentService";
 
 import "./DoctorList.css";
 
@@ -56,6 +63,21 @@ const normalizeListResponse = (data) => {
 
 };
 
+const isRateableAppointment = (appointment) => (
+    ["pending", "confirmed", "completed", "complete"].includes(
+        String(
+            appointment?.status ||
+            appointment?.appointment_status ||
+            appointment?.status_display ||
+            ""
+        ).trim().toLowerCase()
+    )
+);
+
+const getAppointmentDoctorId = (appointment) => (
+    appointment?.doctor?.id ?? appointment?.doctor
+);
+
 
 // ==========================================================
 // Helper: Get Backend Base URL
@@ -63,7 +85,8 @@ const normalizeListResponse = (data) => {
 
 const getBackendUrl = () => {
 
-    const apiBaseUrl = BACKEND_URL;
+    const apiBaseUrl =
+        import.meta.env.VITE_API_BASE_URL;
 
 
     if (apiBaseUrl) {
@@ -86,7 +109,7 @@ const getBackendUrl = () => {
     }
 
 
-    return BACKEND_URL;
+    return "http://127.0.0.1:8000";
 
 };
 
@@ -176,6 +199,28 @@ const formatFee = (
 
 };
 
+const formatScheduleTime = (value) => {
+    if (!value) return "";
+
+    const [hours, minutes] = String(value).split(":");
+    const hour = Number(hours);
+    if (!Number.isFinite(hour) || !minutes) return value;
+
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes.slice(0, 2)} ${suffix}`;
+};
+
+const scheduleDayOrder = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+];
+
 
 function DoctorList() {
 
@@ -239,6 +284,14 @@ function DoctorList() {
         detailError,
         setDetailError,
     ] = useState("");
+
+    const [doctorSchedules, setDoctorSchedules] = useState([]);
+    const [doctorRatings, setDoctorRatings] = useState([]);
+    const [rateableAppointments, setRateableAppointments] = useState([]);
+    const [selectedRatingAppointment, setSelectedRatingAppointment] = useState(null);
+    const [ratingValue, setRatingValue] = useState(5);
+    const [ratingReview, setRatingReview] = useState("");
+    const [ratingSaving, setRatingSaving] = useState(false);
 
 
     // ======================================================
@@ -536,14 +589,60 @@ function DoctorList() {
             setSelectedDoctor(null);
 
 
-            const response =
-                await getDoctorById(
-                    doctorId
-                );
+            const [response, scheduleResponse, ratingsResponse, appointmentsResponse, myRatingsResponse] = await Promise.all([
+                getDoctorById(doctorId),
+                getDoctorSchedules(doctorId),
+                getDoctorRatings(doctorId),
+                getMyAppointments(),
+                getMyRatings(),
+            ]);
 
 
             setSelectedDoctor(
                 response?.data || null
+            );
+
+            const schedules = normalizeListResponse(scheduleResponse?.data)
+                .filter((schedule) => schedule?.is_active)
+                .sort((left, right) => (
+                    scheduleDayOrder.indexOf(left.day) - scheduleDayOrder.indexOf(right.day)
+                ));
+            setDoctorSchedules(schedules);
+
+            const ratingsData = ratingsResponse?.data;
+            setDoctorRatings(
+                Array.isArray(ratingsData)
+                    ? ratingsData
+                    : ratingsData?.results || []
+            );
+
+            const appointmentData = appointmentsResponse?.data;
+            const appointments = Array.isArray(appointmentData)
+                ? appointmentData
+                : appointmentData?.results || appointmentData?.data || [];
+            const ratedIds = new Set(
+                (Array.isArray(ratingsData) ? ratingsData : ratingsData?.results || [])
+                    .map((rating) => String(rating.appointment))
+            );
+            const myRatingsData = myRatingsResponse?.data;
+            const myRatings = Array.isArray(myRatingsData)
+                ? myRatingsData
+                : myRatingsData?.results || [];
+            const alreadyReviewedDoctor = myRatings.some(
+                (rating) => String(rating.doctor) === String(doctorId)
+            );
+            const availableAppointments = appointments.filter((appointment) => (
+                String(getAppointmentDoctorId(appointment)) === String(doctorId) &&
+                isRateableAppointment(appointment) &&
+                !ratedIds.has(String(appointment.id))
+            ));
+            setRateableAppointments(
+                availableAppointments
+            );
+            setSelectedRatingAppointment(
+                alreadyReviewedDoctor
+                    ? null
+                    : availableAppointments[0] || { doctor: doctorId, standalone: true }
             );
 
 
@@ -625,6 +724,59 @@ function DoctorList() {
 
         setDetailError("");
 
+        setDoctorSchedules([]);
+        setDoctorRatings([]);
+        setRateableAppointments([]);
+        setSelectedRatingAppointment(null);
+        setRatingReview("");
+        setRatingValue(5);
+    };
+
+    const handleRatingSubmit = async () => {
+
+        if (!selectedRatingAppointment || !selectedDoctor?.id) return;
+
+        try {
+            setRatingSaving(true);
+            const ratingPayload = {
+                doctor: selectedDoctor.id,
+                rating: ratingValue,
+                review: ratingReview.trim(),
+            };
+            if (selectedRatingAppointment.id) {
+                ratingPayload.appointment = selectedRatingAppointment.id;
+            }
+            await createDoctorRating(ratingPayload);
+            const newRating = {
+                doctor: selectedDoctor.id,
+                appointment: selectedRatingAppointment.id || null,
+                patient_name: "You",
+                rating: ratingValue,
+                review: ratingReview.trim(),
+            };
+            setDoctorRatings((previous) => [
+                ...previous,
+                newRating,
+            ]);
+            setRateableAppointments((previous) => previous.filter((item) => item.id !== selectedRatingAppointment.id));
+            setSelectedDoctor((previous) => previous ? {
+                ...previous,
+                average_rating: previous.rating_count
+                    ? ((Number(previous.average_rating || 0) * Number(previous.rating_count) + ratingValue) / (Number(previous.rating_count) + 1)).toFixed(1)
+                    : Number(ratingValue).toFixed(1),
+                rating_count: Number(previous.rating_count || 0) + 1,
+            } : previous);
+            setSelectedRatingAppointment(null);
+            setRatingReview("");
+            setRatingValue(5);
+        } catch (ratingError) {
+            setDetailError(
+                ratingError?.response?.data?.detail ||
+                "Unable to submit rating."
+            );
+        } finally {
+            setRatingSaving(false);
+        }
     };
 
 
@@ -1017,6 +1169,12 @@ function DoctorList() {
 
                                                 </div>
 
+                                                <div className="doctor-card-rating" aria-label={`${Number(doctor.average_rating || 0).toFixed(1)} out of 5 from ${doctor.rating_count || 0} reviews`}>
+                                                    <FaStar />
+                                                    <strong>{Number(doctor.average_rating || 0).toFixed(1)}</strong>
+                                                    <span>({doctor.rating_count || 0} review{doctor.rating_count === 1 ? "" : "s"})</span>
+                                                </div>
+
 
                                             </div>
 
@@ -1228,6 +1386,22 @@ function DoctorList() {
 
                         </p>
 
+
+                        <button
+
+                            type="button"
+
+                            className="doctor-retry-btn"
+
+                            onClick={
+                                () => window.location.reload()
+                            }
+
+                        >
+
+                            Try Again
+
+                        </button>
 
                         <button
 
@@ -1565,6 +1739,108 @@ function DoctorList() {
 
                                             </p>
 
+                                        </div>
+
+                                        <section className="doctor-modal-schedule-section">
+                                            <div className="doctor-modal-section-heading">
+                                                <div className="doctor-modal-section-icon">
+                                                    <FaClock />
+                                                </div>
+                                                <div>
+                                                    <h3>Available Schedules</h3>
+                                                    <p>Choose a time that works for your visit.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="doctor-modal-schedule-list">
+                                                {scheduleDayOrder.map((day) => {
+                                                    const schedule = doctorSchedules.find((item) => item.day === day);
+
+                                                    return (
+                                                        <div className="doctor-modal-schedule-row" key={day}>
+                                                            <strong>{day}</strong>
+                                                            {schedule ? (
+                                                                <span>
+                                                                    <FaClock />
+                                                                    {formatScheduleTime(schedule.start_time)} - {formatScheduleTime(schedule.end_time)}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="doctor-modal-schedule-off-day">Off Day</span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </section>
+
+                                        <div className="doctor-modal-rating-section">
+                                            <div className="doctor-modal-rating-heading">
+                                                <div>
+                                                    <h3>Patient Ratings</h3>
+                                                    <p className="doctor-modal-rating-score">
+                                                        <FaStar /> {Number(selectedDoctor.average_rating || 0).toFixed(1)} / 5
+                                                        <span>({selectedDoctor.rating_count || doctorRatings.length} reviews)</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {selectedRatingAppointment ? (
+                                                <div className="doctor-modal-rate-box">
+                                                    <strong>Share your experience</strong>
+                                                    {rateableAppointments.length > 1 && (
+                                                        <select
+                                                            value={selectedRatingAppointment?.id || ""}
+                                                            onChange={(event) => setSelectedRatingAppointment(
+                                                                rateableAppointments.find((appointment) => String(appointment.id) === event.target.value) || null
+                                                            )}
+                                                        >
+                                                            {rateableAppointments.map((appointment) => (
+                                                                <option key={appointment.id} value={appointment.id}>
+                                                                    Appointment {appointment.booking_number || `#${appointment.id}`}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    )}
+                                                    <div className="doctor-modal-stars">
+                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                            <button
+                                                                type="button"
+                                                                key={star}
+                                                                className={star <= ratingValue ? "selected" : ""}
+                                                                onClick={() => setRatingValue(star)}
+                                                                aria-label={`${star} star rating`}
+                                                            >
+                                                                <FaStar />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <textarea
+                                                        rows="2"
+                                                        value={ratingReview}
+                                                        onChange={(event) => setRatingReview(event.target.value)}
+                                                        placeholder="Optional review"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="doctor-modal-rating-submit"
+                                                        disabled={ratingSaving}
+                                                        onClick={handleRatingSubmit}
+                                                    >
+                                                        {ratingSaving ? "Submitting..." : "Submit rating"}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <p className="doctor-modal-rating-hint">
+                                                    You have already reviewed this doctor.
+                                                </p>
+                                            )}
+
+                                            {doctorRatings.slice(0, 3).map((rating) => (
+                                                <div className="doctor-modal-review" key={rating.id || rating.appointment}>
+                                                    <span>{"★".repeat(Number(rating.rating || 0))}{"☆".repeat(5 - Number(rating.rating || 0))}</span>
+                                                    <p>{rating.review || "No written review."}</p>
+                                                </div>
+                                            ))}
                                         </div>
 
 

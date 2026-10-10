@@ -28,6 +28,11 @@ function PaymentDetails() {
     const [error, setError] =
         useState("");
 
+    const paymentStatus =
+        payment?.payment_status ||
+        payment?.status ||
+        "Pending";
+
 
     // ==========================================================
     // Status Badge
@@ -36,18 +41,18 @@ function PaymentDetails() {
     const getStatusClass =
         (status) => {
 
-            switch (status) {
+            switch (String(status || "").trim().toLowerCase()) {
 
-                case "Paid":
+                case "paid":
                     return "bg-success";
 
-                case "Pending":
+                case "pending":
                     return "bg-warning text-dark";
 
-                case "Failed":
+                case "failed":
                     return "bg-danger";
 
-                case "Refunded":
+                case "refunded":
                     return "bg-secondary";
 
                 default:
@@ -56,8 +61,6 @@ function PaymentDetails() {
             }
 
         };
-
-
     // ==========================================================
     // Load Payment
     // ==========================================================
@@ -519,14 +522,13 @@ function PaymentDetails() {
                             <p className="mb-0">
 
                                 <span
-                                    className={`badge ${getStatusClass(
-                                        payment.payment_status
+                                    className={`payment-status-badge ${getStatusClass(
+                                        paymentStatus
                                     )}`}
                                 >
 
                                     {
-                                        payment.payment_status ||
-                                        "Pending"
+                                        paymentStatus
                                     }
 
                                 </span>

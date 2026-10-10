@@ -142,8 +142,18 @@ export default function DoctorAppointments() {
 
             else if (status === "Rejected") {
 
+                const rejectionReason = window.prompt(
+                    "Please provide a reason for rejecting this appointment:"
+                );
+
+                if (!rejectionReason?.trim()) {
+                    setError("A rejection reason is required.");
+                    return;
+                }
+
                 await rejectDoctorAppointment(
-                    id
+                    id,
+                    rejectionReason.trim()
                 );
 
             }

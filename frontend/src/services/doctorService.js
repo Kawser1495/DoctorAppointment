@@ -32,6 +32,18 @@ export const getDoctorDetails = async (id) => {
 
 };
 
+export const getAdminDoctorDetails = async (id) => {
+    return await api.get(`doctors/admin/${id}/`);
+};
+
+export const updateAdminDoctorDepartment = async (id, departmentId) => {
+    return await api.patch(`doctors/admin/${id}/`, { department: departmentId || null });
+};
+
+export const deleteAdminDoctor = async (id) => {
+    return await api.delete(`doctors/admin/${id}/`);
+};
+
 
 // ==========================================================
 // Get Doctor By ID
@@ -119,6 +131,71 @@ export const getDoctorSchedules = async (
 
     return await api.get(
         `doctors/doctors/${doctorId}/schedules/`
+    );
+
+};
+
+export const getMyDoctorSchedules = async () => {
+
+    return await api.get(
+        "doctors/schedules/"
+    );
+
+};
+
+export const getDoctorAnalytics = async () => {
+
+    return await api.get(
+        "doctors/analytics/"
+    );
+
+};
+
+export const getDoctorRatings = async (doctorId) => {
+    return await api.get(
+        `doctors/ratings/?doctor=${doctorId}`
+    );
+};
+
+export const getMyRatings = async () => {
+    return await api.get("doctors/ratings/");
+};
+
+export const createDoctorRating = async (ratingData) => {
+    return await api.post("doctors/ratings/", ratingData);
+};
+
+export const createDoctorSchedule = async (scheduleData) => {
+
+    return await api.post(
+        "doctors/schedules/",
+        scheduleData
+    );
+
+};
+
+export const updateDoctorSchedule = async (scheduleId, scheduleData) => {
+
+    return await api.patch(
+        `doctors/schedules/${scheduleId}/`,
+        scheduleData
+    );
+
+};
+
+export const deleteDoctorSchedule = async (scheduleId) => {
+
+    return await api.delete(
+        `doctors/schedules/${scheduleId}/`
+    );
+
+};
+
+export const updateDoctorTimeSlot = async (slotId, slotData) => {
+
+    return await api.patch(
+        `doctors/schedules/slots/${slotId}/`,
+        slotData
     );
 
 };
@@ -264,6 +341,7 @@ export const setDoctorAvailability = async (doctorId, isAvailable) => {
 };
 
 export const getAdminSchedules = async () => api.get("doctors/admin/schedules/");
+export const createAdminSchedule = async (data) => api.post("doctors/admin/schedules/", data);
 export const updateAdminSchedule = async (id, data) => api.patch(`doctors/admin/schedules/${id}/`, data);
 export const deleteAdminSchedule = async (id) => api.delete(`doctors/admin/schedules/${id}/`);
 export const setAdminSlotAvailability = async (id, isActive) => api.patch(`doctors/admin/time-slots/${id}/availability/`, { is_active: isActive });

@@ -6,7 +6,17 @@ from .views import (
     PaymentDetailView,
     PaymentStatusUpdateView,
     AdminPaymentListView,
+    AdminPaymentDeleteView,
+    AdminDiagnosticReportInfoView,
     PaymentRefundView,
+    DoctorPaymentListView,
+    DoctorPaymentRefundView,
+    PatientRefundRequestView,
+    RefundRequestListView,
+    RefundRequestStatusView,
+    SSLCommerzCreateView,
+    SSLCommerzAIReportCreateView,
+    SSLCommerzCallbackView,
 )
 
 
@@ -14,6 +24,10 @@ app_name = "payments"
 
 
 urlpatterns = [
+
+    path("sslcommerz/create/", SSLCommerzCreateView.as_view(), name="sslcommerz-create"),
+    path("sslcommerz/ai-report/create/", SSLCommerzAIReportCreateView.as_view(), name="sslcommerz-ai-report-create"),
+    path("sslcommerz/<str:callback_status>/", SSLCommerzCallbackView.as_view(), name="sslcommerz-callback"),
 
     # ==========================================
     # Create Payment
@@ -50,6 +64,23 @@ urlpatterns = [
         name="admin-payment-list",
     ),
 
+    path(
+        "admin/<int:pk>/",
+        AdminPaymentDeleteView.as_view(),
+        name="admin-payment-delete",
+    ),
+
+    path(
+        "admin/<int:pk>/diagnostic-report/",
+        AdminDiagnosticReportInfoView.as_view(),
+        name="admin-diagnostic-report-info",
+    ),
+
+    path("doctor/", DoctorPaymentListView.as_view(), name="doctor-payment-list"),
+    path("doctor/<int:pk>/refund/", DoctorPaymentRefundView.as_view(), name="doctor-payment-refund"),
+    path("refund-requests/", RefundRequestListView.as_view(), name="refund-request-list"),
+    path("refund-requests/<int:pk>/status/", RefundRequestStatusView.as_view(), name="refund-request-status"),
+
 
     # ==========================================
     # Payment Details
@@ -85,5 +116,6 @@ urlpatterns = [
         PaymentRefundView.as_view(),
         name="payment-refund",
     ),
+    path("<int:pk>/refund-request/", PatientRefundRequestView.as_view(), name="payment-refund-request"),
 
 ]

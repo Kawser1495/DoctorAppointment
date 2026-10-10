@@ -507,74 +507,8 @@ class RegisterSerializer(serializers.ModelSerializer):
                 }
             )
 
-        # ==================================================
-        # Doctor Validation
-        # ==================================================
-
-        if role == "doctor":
-
-            department = attrs.get("department")
-            specialization = attrs.get("specialization")
-            qualification = attrs.get("qualification")
-            schedules = attrs.get("schedules", [])
-
-            # --------------------------------------------------
-            # Department
-            # --------------------------------------------------
-
-            if not department:
-
-                raise serializers.ValidationError(
-                    {
-                        "department":
-                        "Department is required for doctors."
-                    }
-                )
-
-            # --------------------------------------------------
-            # Specialization
-            # --------------------------------------------------
-
-            if (
-                not specialization
-                or not specialization.strip()
-            ):
-
-                raise serializers.ValidationError(
-                    {
-                        "specialization":
-                        "Specialization is required for doctors."
-                    }
-                )
-
-            # --------------------------------------------------
-            # Qualification
-            # --------------------------------------------------
-
-            if (
-                not qualification
-                or not qualification.strip()
-            ):
-
-                raise serializers.ValidationError(
-                    {
-                        "qualification":
-                        "Qualification is required for doctors."
-                    }
-                )
-
-            # --------------------------------------------------
-            # Schedule
-            # --------------------------------------------------
-
-            if not schedules:
-
-                raise serializers.ValidationError(
-                    {
-                        "schedules":
-                        "At least one weekly schedule is required."
-                    }
-                )
+        # Doctor professional details and schedules are completed from the
+        # doctor's dashboard after registration.
 
         return attrs
 
@@ -735,8 +669,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             # Role
             role="doctor",
 
-            # Doctor can register but requires approval
-            is_active=True,
+            # Doctor accounts remain inactive until admin approval.
+            is_active=False,
 
             # Doctor is not verified before admin approval
             is_verified=False,
@@ -824,6 +758,11 @@ class UserSettingsSerializer(
             "username",
             "email",
             "phone",
+            "profile_visibility",
+            "allow_direct_messages",
+            "notification_new_appointment",
+            "notification_cancellation",
+            "notification_reminder",
             "first_name",
             "last_name",
             "full_name",
@@ -1071,6 +1010,24 @@ class CustomTokenObtainPairSerializer(
         return token
 
     def validate(self, attrs):
+
+        pending_user = CustomUser.objects.filter(
+            username=attrs.get("username"),
+            role="doctor",
+        ).first()
+        if pending_user:
+            doctor_profile = getattr(pending_user, "doctor_profile", None)
+            is_approved = (
+                pending_user.doctor_status == "approved"
+                and pending_user.is_verified
+                and pending_user.is_active
+                and doctor_profile is not None
+                and doctor_profile.approval_status == "approved"
+            )
+            if not is_approved:
+                raise serializers.ValidationError(
+                    "Your doctor account is awaiting admin approval."
+                )
 
         data = super().validate(attrs)
 

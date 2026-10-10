@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.utils import timezone
+from datetime import timedelta
 
 from rest_framework import serializers
 
@@ -20,6 +21,8 @@ class AppointmentSerializer(
 
     doctor_name = serializers.SerializerMethodField()
 
+    doctor_profile = serializers.SerializerMethodField()
+
     department_name = serializers.CharField(
         source="doctor.department.name",
         read_only=True,
@@ -33,6 +36,12 @@ class AppointmentSerializer(
     patient_profile = serializers.SerializerMethodField()
 
     family_member_details = serializers.SerializerMethodField()
+
+    family_member = serializers.PrimaryKeyRelatedField(
+        queryset=FamilyMember.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     appointment_time = serializers.SerializerMethodField()
 
@@ -67,6 +76,20 @@ class AppointmentSerializer(
     # ======================================================
 
     family_member_name = serializers.SerializerMethodField()
+
+    payment_status = serializers.SerializerMethodField()
+
+    is_paid = serializers.SerializerMethodField()
+
+    is_today = serializers.SerializerMethodField()
+
+    booked_today = serializers.SerializerMethodField()
+
+    refund_request_status = serializers.SerializerMethodField()
+
+    can_request_refund = serializers.SerializerMethodField()
+
+    refund_approved = serializers.SerializerMethodField()
 
     # ======================================================
     # Meta
@@ -106,6 +129,8 @@ class AppointmentSerializer(
 
             "doctor_name",
 
+            "doctor_profile",
+
             "department_name",
 
             "specialization",
@@ -130,7 +155,37 @@ class AppointmentSerializer(
 
             "symptoms",
 
+            "ai_category",
+
+            "ai_urgency",
+
+            "ai_specialist",
+
+            "ai_guidance",
+
+            "ai_report_shared",
+
+            "payment_status",
+            "is_paid",
+            "is_today",
+            "booked_today",
+            "refund_request_status",
+            "can_request_refund",
+            "refund_approved",
+
             "status",
+
+            "rejection_reason",
+
+            "ai_category",
+
+            "ai_urgency",
+
+            "ai_specialist",
+
+            "ai_guidance",
+
+            "ai_report_shared",
 
             "patient_profile",
 
@@ -161,6 +216,8 @@ class AppointmentSerializer(
             "family_member_name",
 
             "status",
+
+            "rejection_reason",
 
             "consultation_fee",
 
@@ -193,6 +250,19 @@ class AppointmentSerializer(
             return f"Dr. {full_name}"
 
         return f"Dr. {obj.doctor.user.username}"
+
+    def get_doctor_profile(self, obj):
+        doctor = obj.doctor
+        return {
+            "name": self.get_doctor_name(obj),
+            "qualification": doctor.qualification or "Medical Consultant",
+            "designation": doctor.specialization or "Consultant Physician",
+            "department": doctor.department.name if doctor.department else "General Medicine",
+            "clinic_name": "MediCare Connect Clinic",
+            "phone": doctor.user.phone or "N/A",
+            "email": doctor.user.email or "N/A",
+            "registration_no": doctor.license_number or "N/A",
+        }
 
     # ==========================================================
     # Patient Name
@@ -235,6 +305,44 @@ class AppointmentSerializer(
             return obj.family_member.name
 
         return None
+
+    def get_payment_status(self, obj):
+        payment = obj.payments.order_by("-payment_date", "-id").first()
+        return payment.payment_status if payment else "Unpaid"
+
+    def get_is_paid(self, obj):
+        return obj.payments.filter(
+            payment_status__in=["Paid", "Partially Paid"]
+        ).exists()
+
+    def get_is_today(self, obj):
+        return obj.appointment_date == timezone.localdate()
+
+    def get_booked_today(self, obj):
+        return timezone.localtime(obj.created_at).date() == timezone.localdate()
+
+    def get_refund_request_status(self, obj):
+        return obj.payments.filter(
+            refund_requests__isnull=False,
+        ).order_by(
+            "-refund_requests__requested_at",
+        ).values_list(
+            "refund_requests__refund_status",
+            flat=True,
+        ).first()
+
+    def get_can_request_refund(self, obj):
+        return obj.payments.filter(
+            payment_status="Paid",
+            payment_mode="Full",
+            is_refundable=True,
+            payment_date__gte=timezone.now() - timedelta(hours=24),
+        ).exclude(
+            refund_requests__refund_status__in=["Pending", "Approved", "Completed"],
+        ).exists()
+
+    def get_refund_approved(self, obj):
+        return obj.payments.filter(payment_status="Refunded").exists()
 
     # ==========================================================
     # Patient Details
@@ -357,6 +465,27 @@ class AppointmentSerializer(
                 "Please select an appointment date."
 
             })
+
+        request = self.context.get("request")
+        patient = getattr(request.user, "patient_profile", None) if request else None
+
+        if patient and slot:
+            conflicting_appointment = Appointment.objects.filter(
+                patient=patient,
+                appointment_date=appointment_date,
+                slot__slot_time=slot.slot_time,
+                status__in=["Pending", "Confirmed"],
+            ).first()
+
+            if conflicting_appointment:
+                raise serializers.ValidationError({
+                    "appointment_date": (
+                        "You already have an active appointment on "
+                        f"{appointment_date} at "
+                        f"{slot.slot_time.strftime('%I:%M %p')}. "
+                        "Please choose another date or time."
+                    ),
+                })
 
         # ======================================================
         # Appointment date cannot be in the past

@@ -37,6 +37,12 @@ class PatientProfile(models.Model):
         related_name="patient_profile",
     )
 
+    profile_image = models.ImageField(
+        upload_to="patient_profiles/",
+        blank=True,
+        null=True,
+    )
+
     # ------------------------------------------------------
     # Gender
     # ------------------------------------------------------

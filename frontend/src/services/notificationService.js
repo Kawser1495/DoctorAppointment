@@ -5,7 +5,7 @@ import {
     markAllNotificationsReadApi,
     deleteNotificationApi,
 } from "../api/notificationApi";
-import { API_BASE_URL } from "../config";
+import api from "../api/axios";
 
 
 // ==========================================================
@@ -45,6 +45,7 @@ export const markNotificationRead = async (id) => {
     const response =
         await markNotificationReadApi(id);
 
+    window.dispatchEvent(new Event("notifications-updated"));
     return response.data;
 
 };
@@ -59,6 +60,7 @@ export const markAllNotificationsRead = async () => {
     const response =
         await markAllNotificationsReadApi();
 
+    window.dispatchEvent(new Event("notifications-updated"));
     return response.data;
 
 };
@@ -73,39 +75,27 @@ export const deleteNotification = async (id) => {
     const response =
         await deleteNotificationApi(id);
 
+    window.dispatchEvent(new Event("notifications-updated"));
     return response.data;
 
 };
 
 export const getAdminNotifications = async (params = {}) => {
-    const response = await fetch(
-        `${API_BASE_URL}notifications/admin/?${new URLSearchParams(params)}`,
-        {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("access")}`,
-            },
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error("Unable to load admin notifications.");
-    }
-
-    return response.json();
+    const response = await api.get("notifications/admin/", { params });
+    return response.data;
 };
 
 export const markAdminNotificationRead = async (id) => {
-    const response = await fetch(
-        `${API_BASE_URL}notifications/admin/${id}/read/`,
-        { method: "PATCH", headers: { Authorization: `Bearer ${localStorage.getItem("access")}` } }
-    );
-    return response.json();
+    const response = await api.patch(`notifications/admin/${id}/read/`);
+    return response.data;
+};
+
+export const markAllAdminNotificationsRead = async () => {
+    const response = await api.patch("notifications/admin/read-all/");
+    return response.data;
 };
 
 export const deleteAdminNotification = async (id) => {
-    const response = await fetch(
-        `${API_BASE_URL}notifications/admin/${id}/delete/`,
-        { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("access")}` } }
-    );
-    return response.ok;
+    await api.delete(`notifications/admin/${id}/delete/`);
+    return true;
 };

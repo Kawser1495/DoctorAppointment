@@ -41,10 +41,15 @@ export default function DoctorProfile() {
         email: "",
         phone: "",
 
+        gender: "",
+        date_of_birth: "",
+        address: "",
+
         department: "",
 
         specialization: "",
         qualification: "",
+        license_number: "",
         experience: "",
         consultation_fee: "",
 
@@ -101,6 +106,15 @@ export default function DoctorProfile() {
                 phone:
                     data.phone || "",
 
+                gender:
+                    data.gender || "",
+
+                date_of_birth:
+                    data.date_of_birth || "",
+
+                address:
+                    data.address || "",
+
                 department:
                     data.department || "",
 
@@ -109,6 +123,9 @@ export default function DoctorProfile() {
 
                 qualification:
                     data.qualification || "",
+
+                license_number:
+                    data.license_number || "",
 
                 experience:
                     data.experience ?? "",
@@ -284,6 +301,25 @@ export default function DoctorProfile() {
                 formData.phone
             );
 
+            data.append(
+                "gender",
+                formData.gender
+            );
+
+            if (formData.date_of_birth) {
+
+                data.append(
+                    "date_of_birth",
+                    formData.date_of_birth
+                );
+
+            }
+
+            data.append(
+                "address",
+                formData.address
+            );
+
 
             data.append(
                 "department",
@@ -300,6 +336,11 @@ export default function DoctorProfile() {
             data.append(
                 "qualification",
                 formData.qualification
+            );
+
+            data.append(
+                "license_number",
+                formData.license_number
             );
 
 
@@ -415,6 +456,15 @@ export default function DoctorProfile() {
             phone:
                 profile?.phone || "",
 
+            gender:
+                profile?.gender || "",
+
+            date_of_birth:
+                profile?.date_of_birth || "",
+
+            address:
+                profile?.address || "",
+
             department:
                 profile?.department || "",
 
@@ -423,6 +473,9 @@ export default function DoctorProfile() {
 
             qualification:
                 profile?.qualification || "",
+
+            license_number:
+                profile?.license_number || "",
 
             experience:
                 profile?.experience ?? "",
@@ -639,6 +692,12 @@ export default function DoctorProfile() {
 
                             </p>
 
+                            <div className="doctor-profile-rating-summary">
+                                <span className="doctor-profile-stars">★★★★★</span>
+                                <strong>{Number(profile?.average_rating || 0).toFixed(1)}</strong>
+                                <span>{profile?.rating_count || 0} patient review{profile?.rating_count === 1 ? "" : "s"}</span>
+                            </div>
+
 
                             <div className="doctor-profile-meta">
 
@@ -816,6 +875,56 @@ export default function DoctorProfile() {
 
                                     </div>
 
+                                    <div className="doctor-form-group">
+
+                                        <label>
+                                            Gender
+                                        </label>
+
+                                        <select
+                                            name="gender"
+                                            value={formData.gender}
+                                            onChange={handleChange}
+                                        >
+                                            <option value="">Select gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+
+                                    </div>
+
+                                    <div className="doctor-form-group">
+
+                                        <label>
+                                            Date of Birth
+                                        </label>
+
+                                        <input
+                                            type="date"
+                                            name="date_of_birth"
+                                            value={formData.date_of_birth}
+                                            onChange={handleChange}
+                                        />
+
+                                    </div>
+
+                                    <div className="doctor-form-group full-width">
+
+                                        <label>
+                                            Address
+                                        </label>
+
+                                        <textarea
+                                            name="address"
+                                            rows="3"
+                                            value={formData.address}
+                                            onChange={handleChange}
+                                            placeholder="Clinic or residential address"
+                                        />
+
+                                    </div>
+
                                 </div>
 
                             ) : (
@@ -885,6 +994,42 @@ export default function DoctorProfile() {
 
                                     </div>
 
+                                    <div className="doctor-info-item">
+
+                                        <span className="doctor-info-label">
+                                            Gender
+                                        </span>
+
+                                        <span className="doctor-info-value">
+                                            {profile?.gender || "Not available"}
+                                        </span>
+
+                                    </div>
+
+                                    <div className="doctor-info-item">
+
+                                        <span className="doctor-info-label">
+                                            Date of Birth
+                                        </span>
+
+                                        <span className="doctor-info-value">
+                                            {profile?.date_of_birth || "Not available"}
+                                        </span>
+
+                                    </div>
+
+                                    <div className="doctor-info-item">
+
+                                        <span className="doctor-info-label">
+                                            Address
+                                        </span>
+
+                                        <span className="doctor-info-value">
+                                            {profile?.address || "Not available"}
+                                        </span>
+
+                                    </div>
+
                                 </div>
 
                             )}
@@ -927,18 +1072,18 @@ export default function DoctorProfile() {
                                     <div className="doctor-form-group">
 
                                         <label>
-                                            Department ID
+                                            Department
                                         </label>
 
                                         <input
-                                            type="number"
+                                            type="text"
                                             name="department"
                                             value={
-                                                formData.department
+                                                profile?.department_name ||
+                                                "Assigned by administration"
                                             }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            readOnly
+                                            className="doctor-readonly"
                                         />
 
                                     </div>
@@ -979,6 +1124,22 @@ export default function DoctorProfile() {
                                             onChange={
                                                 handleChange
                                             }
+                                        />
+
+                                    </div>
+
+                                    <div className="doctor-form-group">
+
+                                        <label>
+                                            License Number
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            name="license_number"
+                                            value={formData.license_number}
+                                            onChange={handleChange}
+                                            placeholder="Medical license number"
                                         />
 
                                     </div>
@@ -1104,6 +1265,18 @@ export default function DoctorProfile() {
                                             {profile?.qualification ||
                                                 "Not available"}
 
+                                        </span>
+
+                                    </div>
+
+                                    <div className="doctor-info-item">
+
+                                        <span className="doctor-info-label">
+                                            License Number
+                                        </span>
+
+                                        <span className="doctor-info-value">
+                                            {profile?.license_number || "Not available"}
                                         </span>
 
                                     </div>

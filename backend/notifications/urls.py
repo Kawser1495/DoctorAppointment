@@ -8,6 +8,7 @@ from .views import (
     NotificationDeleteView,
     AdminNotificationListView,
     AdminNotificationReadView,
+    AdminNotificationMarkAllReadView,
     AdminNotificationDeleteView,
 )
 
@@ -27,6 +28,12 @@ urlpatterns = [
         "admin/<int:pk>/read/",
         AdminNotificationReadView.as_view(),
         name="admin-notification-read",
+    ),
+
+    path(
+        "admin/read-all/",
+        AdminNotificationMarkAllReadView.as_view(),
+        name="admin-notification-read-all",
     ),
 
     path(

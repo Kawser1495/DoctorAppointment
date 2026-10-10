@@ -4,14 +4,42 @@ import {
     getMyAppointments,
     cancelAppointment,
 } from "../../services/appointmentService";
+import { createRefundRequest, getMyPayments } from "../../services/paymentService";
 
 import "../../styles/appointment.css";
+
+const normalizeAppointments = (responseData) => {
+    if (Array.isArray(responseData)) return responseData;
+    if (Array.isArray(responseData?.results)) return responseData.results;
+    if (Array.isArray(responseData?.data)) return responseData.data;
+    if (Array.isArray(responseData?.data?.results)) return responseData.data.results;
+    return [];
+};
+
+const getMonthKey = (appointment) => (
+    String(appointment?.appointment_date || "").slice(0, 7)
+);
+
+const formatMonth = (monthKey) => {
+    if (!/^\d{4}-\d{2}$/.test(monthKey)) return "Unknown month";
+    return new Date(`${monthKey}-01T00:00:00`).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+    });
+};
+
+const getCurrentMonthKey = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+};
 
 function MyAppointments() {
     const navigate = useNavigate();
 
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [payments, setPayments] = useState([]);
+    const [requestingRefundId, setRequestingRefundId] = useState(null);
 
     // Search & Filter
     const [search, setSearch] = useState("");
@@ -27,16 +55,20 @@ function MyAppointments() {
     // ==========================================
 
     useEffect(() => {
-
         const fetchAppointments = async () => {
 
             try {
 
-                const response = await getMyAppointments();
+                const [response, paymentResponse] = await Promise.all([
+                    getMyAppointments(),
+                    getMyPayments(),
+                ]);
 
                 console.log("Appointments Response:", response.data);
 
-                setAppointments(response.data.results || []);
+                setAppointments(normalizeAppointments(response.data));
+                const paymentData = paymentResponse.data?.results || paymentResponse.data?.data || paymentResponse.data || [];
+                setPayments(Array.isArray(paymentData) ? paymentData : []);
 
             } catch (error) {
 
@@ -85,10 +117,7 @@ function MyAppointments() {
             setAppointments((previousAppointments) =>
                 previousAppointments.map((appointment) =>
                     appointment.id === id
-                        ? {
-                            ...appointment,
-                            status: "Cancelled",
-                        }
+                        ? { ...appointment, status: "Cancelled" }
                         : appointment
                 )
             );
@@ -105,6 +134,66 @@ function MyAppointments() {
 
     };
 
+    const handleRefundRequest = async (appointment) => {
+        const payment = payments.find((item) => item.appointment === appointment.id && item.can_request_refund);
+        if (!payment) return;
+        const reason = window.prompt("Why are you requesting a refund?", "I need to cancel this appointment.");
+        if (!reason?.trim()) return;
+        try {
+            setRequestingRefundId(appointment.id);
+            await createRefundRequest(payment.id, reason.trim());
+            setAppointments((current) => current.map((item) => item.id === appointment.id
+                ? { ...item, refund_request_status: "Pending", can_request_refund: false }
+                : item));
+            setPayments((current) => current.map((item) => item.id === payment.id
+                ? { ...item, refund_request_status: "Pending", can_request_refund: false }
+                : item));
+            alert("Refund request sent to the doctor and admin.");
+        } catch (requestError) {
+            const responseData = requestError.response?.data;
+            const serverMessage = responseData?.detail || responseData?.message || Object.values(responseData || {}).flat().join(" ");
+            alert(serverMessage || "Unable to send refund request.");
+        } finally {
+            setRequestingRefundId(null);
+        }
+    };
+
+    const visibleAppointments = appointments.filter(
+        (appointment) => !appointment.refund_approved
+    );
+
+    const statusSummary = [
+        "Pending",
+        "Confirmed",
+        "Completed",
+        "Rejected",
+        "Cancelled",
+    ].reduce((summary, status) => ({
+        ...summary,
+        [status]: visibleAppointments.filter((appointment) => appointment.status === status).length,
+    }), {});
+
+    const activeAppointments = visibleAppointments.filter(
+        (appointment) => appointment.status !== "Cancelled"
+    );
+
+    const monthlyAppointments = Object.entries(
+        visibleAppointments.reduce((months, appointment) => {
+            const monthKey = getMonthKey(appointment);
+            if (!monthKey) return months;
+            months[monthKey] = months[monthKey] || [];
+            months[monthKey].push(appointment);
+            return months;
+        }, {})
+    ).sort(([firstMonth], [secondMonth]) => secondMonth.localeCompare(firstMonth));
+
+    const getMonthlySummary = (monthAppointments) => (
+        ["Completed", "Pending", "Cancelled"].reduce((summary, status) => ({
+            ...summary,
+            [status]: monthAppointments.filter((appointment) => appointment.status === status).length,
+        }), {})
+    );
+
     // ==========================================
     // Loading
     // ==========================================
@@ -114,20 +203,12 @@ function MyAppointments() {
         return (
 
             <div className="appointment-loading">
-
                 Loading Appointment History...
-
             </div>
-
         );
-
     }
 
-    // ==========================================
-    // Search & Filter
-    // ==========================================
-
-    const filteredAppointments = appointments.filter((appointment) => {
+    const filteredAppointments = activeAppointments.filter((appointment) => {
 
         const matchesSearch =
 
@@ -190,6 +271,22 @@ function MyAppointments() {
 
             </div>
 
+            <section className="appointment-overview" aria-label="Appointment overview">
+                <h3>Overview</h3>
+                <div className="appointment-summary-grid">
+                    <div className="appointment-summary-card total">
+                        <span>Total Appointments</span>
+                        <strong>{activeAppointments.length}</strong>
+                    </div>
+                    {Object.entries(statusSummary).map(([status, count]) => (
+                        <div className={`appointment-summary-card ${status.toLowerCase()}`} key={status}>
+                            <span>{status}</span>
+                            <strong>{count}</strong>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
             {/* Search & Filter */}
 
             <div className="history-filter">
@@ -226,10 +323,6 @@ function MyAppointments() {
                         Completed
                     </option>
 
-                    <option value="Cancelled">
-                        Cancelled
-                    </option>
-
                     <option value="Rejected">
                         Rejected
                     </option>
@@ -261,6 +354,7 @@ function MyAppointments() {
                             <tr>
 
                                 <th>Booking</th>
+                                <th>Patient</th>
                                 <th>Doctor</th>
                                 <th>Department</th>
                                 <th>Date</th>
@@ -283,11 +377,17 @@ function MyAppointments() {
                                     </td>
 
                                     <td>
+                                        {appointment.family_member_name ||
+                                            appointment.patient_name ||
+                                            "Self"}
+                                    </td>
+
+                                    <td>
                                         {appointment.doctor_name}
                                     </td>
 
                                     <td>
-                                        {appointment.department}
+                                        {appointment.department_name || "-"}
                                     </td>
 
                                     <td>
@@ -308,46 +408,71 @@ function MyAppointments() {
                                             {appointment.status}
                                         </span>
 
+                                        {appointment.status === "Rejected" &&
+                                            appointment.rejection_reason && (
+                                                <small className="d-block text-danger mt-1">
+                                                    Reason: {appointment.rejection_reason}
+                                                </small>
+                                            )}
+
                                     </td>
                                     
                                     <td>
 
-                                        <Link
-                                            to={`/appointments/details/${appointment.id}`}
-                                            className="view-btn"
-                                        >
-                                            View
-                                        </Link>
+                                        <div className="appointment-actions">
+                                            <Link
+                                                to={`/appointments/details/${appointment.id}`}
+                                                className="view-btn"
+                                            >
+                                                View
+                                            </Link>
 
-                                        {" "}
+                                            {["Pending", "Confirmed", "Rejected"].includes(appointment.status) && !appointment.is_paid && !appointment.refund_approved && (
+                                                <>
+                                                    {appointment.status !== "Rejected" && (
+                                                        <button
+                                                            className="pay-btn"
+                                                            onClick={() =>
+                                                                navigate("/payment", {
+                                                                    state: appointment,
+                                                                })
+                                                            }
+                                                        >
+                                                            Pay Now
+                                                        </button>
+                                                    )}
 
-                                        {appointment.status === "Pending" && (
-
-                                            <>
-                                                <button
-                                                    className="pay-btn"
-                                                    onClick={() =>
-                                                        navigate("/payment", {
-                                                            state: appointment,
-                                                        })
-                                                    }
-                                                >
-                                                    Pay Now
-                                                </button>
-
-                                                {" "}
-
+                                                    <button
+                                                        className="cancel-btn"
+                                                        onClick={() =>
+                                                            handleCancel(appointment.id)
+                                                        }
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </>
+                                            )}
+                                            {appointment.refund_approved && appointment.status !== "Cancelled" && (
                                                 <button
                                                     className="cancel-btn"
-                                                    onClick={() =>
-                                                        handleCancel(appointment.id)
-                                                    }
+                                                    onClick={() => handleCancel(appointment.id)}
                                                 >
                                                     Cancel
                                                 </button>
-                                            </>
-
-                                        )}
+                                            )}
+                                            {appointment.is_paid && !appointment.refund_approved && appointment.can_request_refund && (
+                                                <button
+                                                    className="pay-btn"
+                                                    disabled={requestingRefundId === appointment.id}
+                                                    onClick={() => handleRefundRequest(appointment)}
+                                                >
+                                                    {requestingRefundId === appointment.id ? "Sending..." : "Request Refund"}
+                                                </button>
+                                            )}
+                                            {appointment.is_paid && appointment.refund_request_status === "Pending" && (
+                                                <span className="status-badge pending">Refund Pending</span>
+                                            )}
+                                        </div>
 
                                     </td>
 
@@ -395,6 +520,50 @@ function MyAppointments() {
                 </>
 
             )}
+
+            <details className="appointment-months" aria-label="Monthly appointment history">
+                <summary className="monthly-history-toggle">
+                    <span>Monthly History</span>
+                    <span>{formatMonth(getCurrentMonthKey())}</span>
+                </summary>
+                <div className="monthly-history-content">
+                    {monthlyAppointments.length === 0 ? (
+                        <p className="monthly-empty">No monthly appointment history yet.</p>
+                    ) : (
+                        monthlyAppointments.map(([monthKey, monthAppointments]) => {
+                            const monthSummary = getMonthlySummary(monthAppointments);
+                            return (
+                                <details className="appointment-month" key={monthKey}>
+                                    <summary>
+                                        <span>{formatMonth(monthKey)}</span>
+                                        <strong>{monthAppointments.length} Appointments</strong>
+                                        <span className="month-counts">
+                                            Completed: {monthSummary.Completed} | Pending: {monthSummary.Pending} | Cancelled: {monthSummary.Cancelled}
+                                        </span>
+                                    </summary>
+                                    <div className="monthly-appointment-list">
+                                        {monthAppointments.map((appointment) => (
+                                            <div className="monthly-appointment-row" key={appointment.id}>
+                                                <span>{appointment.booking_number}</span>
+                                                <span>
+                                                    {appointment.family_member_name ||
+                                                        appointment.patient_name ||
+                                                        "Self"}
+                                                </span>
+                                                <span>{appointment.doctor_name || "Doctor"}</span>
+                                                <span>{appointment.appointment_date}</span>
+                                                <span className={`status-badge ${String(appointment.status || "").toLowerCase().replace(/\s+/g, "-")}`}>
+                                                    {appointment.status}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </details>
+                            );
+                        })
+                    )}
+                </div>
+            </details>
 
         </div>
 

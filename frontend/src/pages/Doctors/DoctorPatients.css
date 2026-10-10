@@ -1,6 +1,16 @@
 .doctor-patients {
     max-width: 1400px;
     margin: 0 auto;
+    color: #17333a;
+}
+
+.doctor-patients__eyebrow {
+    margin: 0 0 6px;
+    color: #0d8f86;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
 }
 
 .doctor-patients__header {
@@ -31,4 +41,376 @@
 
 .doctor-patients__filters .card-body {
     padding: 1.25rem;
+}
+
+.doctor-patients__filters,
+.doctor-patients > .card {
+    border: 1px solid #dce9e7 !important;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(30, 77, 77, 0.06);
+}
+
+.doctor-patients__filters .form-control,
+.doctor-patients__filters .form-select {
+    min-height: 43px;
+    border-color: #d2e2df;
+    border-radius: 7px;
+}
+
+.doctor-patients__filters .form-control:focus,
+.doctor-patients__filters .form-select:focus {
+    border-color: #0d9b91;
+    box-shadow: 0 0 0 3px rgba(13, 155, 145, 0.12);
+}
+
+.doctor-patients .table {
+    color: #31555b;
+}
+
+.doctor-patients .table thead th {
+    padding: 14px 16px;
+    border-bottom: 1px solid #dce9e7;
+    color: #6d8589;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.doctor-patients .table tbody td {
+    padding: 16px;
+    border-color: #edf3f2;
+    vertical-align: middle;
+}
+
+.doctor-patients .table tbody tr:hover {
+    background: #f4fbfa;
+}
+
+.doctor-patients .table tbody td:first-child strong {
+    color: #17333a;
+}
+
+.doctor-patient-status {
+    display: inline-flex;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.doctor-patient-status.confirmed,
+.doctor-patient-status.completed {
+    background: #e4f7ef;
+    color: #16805c;
+}
+
+.doctor-patient-status.pending {
+    background: #fff5dc;
+    color: #9a6b16;
+}
+
+.doctor-patient-status.cancelled,
+.doctor-patient-status.rejected,
+.doctor-patient-status.no-show {
+    background: #fff0ef;
+    color: #a04444;
+}
+
+.doctor-patient-view-button {
+    padding: 7px 10px;
+    border: 1px solid #b9d8ed;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #24709b;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.doctor-patient-view-button:hover {
+    background: #eff8fc;
+}
+
+.doctor-patient-modal-backdrop {
+    position: fixed;
+    z-index: 1050;
+    inset: 0;
+    display: flex;
+    justify-content: flex-end;
+    background: rgba(15, 39, 43, 0.38);
+}
+
+.doctor-patient-modal {
+    width: min(650px, 100%);
+    height: 100%;
+    overflow-y: auto;
+    background: #f7fbfa;
+    box-shadow: -20px 0 45px rgba(20, 51, 54, 0.16);
+    animation: doctor-patient-slide-in 180ms ease-out;
+}
+
+@keyframes doctor-patient-slide-in {
+    from { transform: translateX(18px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.doctor-patient-modal__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 28px 30px 23px;
+    background: linear-gradient(120deg, #e7f7f4, #ffffff);
+    border-bottom: 1px solid #dce9e7;
+}
+
+.doctor-patient-modal__header h2 {
+    margin: 0;
+    color: #17333a;
+    font-size: 27px;
+    font-weight: 800;
+}
+
+.doctor-patient-modal__header p:last-child {
+    margin: 6px 0 0;
+    color: #6c8589;
+    font-size: 13px;
+}
+
+.doctor-patient-modal__close {
+    align-self: flex-start;
+    width: 34px;
+    height: 34px;
+    border: 1px solid #c9dcda;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #527075;
+    cursor: pointer;
+    font-size: 23px;
+    line-height: 1;
+}
+
+.doctor-patient-modal__body {
+    padding: 24px 30px 36px;
+}
+
+.doctor-patient-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.doctor-patient-detail-grid > div {
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid #dce9e7;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.doctor-patient-detail-grid > div.full {
+    grid-column: 1 / -1;
+}
+
+.doctor-patient-detail-grid span {
+    display: block;
+    margin-bottom: 5px;
+    color: #81979a;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.doctor-patient-detail-grid strong {
+    display: block;
+    overflow-wrap: anywhere;
+    color: #31555b;
+    font-size: 14px;
+}
+
+.doctor-patient-history-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 14px;
+}
+
+.doctor-patient-history-heading h3 {
+    margin: 0;
+    color: #17333a;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.doctor-patient-history-heading > span {
+    color: #6f888c;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.doctor-patient-records-heading {
+    margin-top: 30px;
+}
+
+.doctor-patient-history {
+    display: grid;
+    gap: 10px;
+}
+
+.doctor-patient-history__item {
+    display: grid;
+    grid-template-columns: 112px 1fr;
+    gap: 14px;
+    padding: 15px;
+    border: 1px solid #dce9e7;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.doctor-patient-history__date strong,
+.doctor-patient-history__date span {
+    display: block;
+}
+
+.doctor-patient-history__date strong {
+    color: #276b68;
+    font-size: 13px;
+}
+
+.doctor-patient-history__date span {
+    margin-top: 4px;
+    color: #82989c;
+    font-size: 12px;
+}
+
+.doctor-patient-history__topline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.doctor-patient-history__topline > span:last-child {
+    color: #789095;
+    font-size: 11px;
+}
+
+.doctor-patient-history__content p {
+    margin: 5px 0 0;
+    color: #557176;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.doctor-patient-history__content p b {
+    color: #31555b;
+}
+
+.doctor-patient-records {
+    display: grid;
+    gap: 10px;
+}
+
+.doctor-patient-record,
+.doctor-patient-records-empty {
+    padding: 15px;
+    border: 1px solid #dce9e7;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.doctor-patient-records-empty {
+    color: #789095;
+    font-size: 13px;
+}
+
+.doctor-patient-record__topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.doctor-patient-record__topline strong {
+    color: #276b68;
+    font-size: 14px;
+}
+
+.doctor-patient-record__topline span {
+    color: #82989c;
+    font-size: 11px;
+}
+
+.doctor-patient-record__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.doctor-patient-record__grid > div {
+    padding: 10px;
+    border-radius: 6px;
+    background: #f4faf9;
+}
+
+.doctor-patient-record__grid span {
+    display: block;
+    margin-bottom: 4px;
+    color: #789095;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.doctor-patient-record__grid p {
+    margin: 0;
+    color: #31555b;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+@media (max-width: 760px) {
+    .doctor-patients__header {
+        flex-direction: column;
+    }
+
+    .doctor-patients__header .btn {
+        width: 100%;
+    }
+
+    .doctor-patients .table {
+        min-width: 760px;
+    }
+
+    .doctor-patient-modal__header,
+    .doctor-patient-modal__body {
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .doctor-patient-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .doctor-patient-detail-grid > div.full {
+        grid-column: auto;
+    }
+
+    .doctor-patient-history__item {
+        grid-template-columns: 1fr;
+        gap: 9px;
+    }
+
+    .doctor-patient-record__grid {
+        grid-template-columns: 1fr;
+    }
 }

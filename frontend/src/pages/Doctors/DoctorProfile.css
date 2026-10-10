@@ -5,7 +5,9 @@
 .doctor-profile-page {
     min-height: 100vh;
     padding: 32px;
-    background: #f5f7fb;
+    background:
+        radial-gradient(circle at 8% 0%, rgba(14, 165, 164, 0.12), transparent 28%),
+        linear-gradient(135deg, #f4f8f8 0%, #f8fafc 52%, #eef5f5 100%);
 }
 
 
@@ -128,7 +130,7 @@
    ========================================================= */
 
 .doctor-profile-hero {
-    background: white;
+    background: linear-gradient(115deg, #ffffff 0%, #f3fbfa 100%);
     border: 1px solid #e6eaf0;
     border-radius: 16px;
     padding: 28px;
@@ -265,7 +267,7 @@
 }
 
 .doctor-profile-card {
-    background: white;
+    background: rgba(255, 255, 255, 0.94);
     border: 1px solid #e6eaf0;
     border-radius: 14px;
     padding: 24px;
@@ -289,8 +291,8 @@
     width: 38px;
     height: 38px;
     border-radius: 9px;
-    background: #eff6ff;
-    color: #2563eb;
+    background: #e6f7f5;
+    color: #0f766e;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -391,8 +393,8 @@
 .doctor-form-group input:focus,
 .doctor-form-group select:focus,
 .doctor-form-group textarea:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: #0f9f98;
+    box-shadow: 0 0 0 3px rgba(15, 159, 152, 0.12);
 }
 
 .doctor-form-group textarea {
@@ -517,6 +519,47 @@
         align-items: flex-start;
     }
 
+    .doctor-profile-hero-left {
+        align-items: flex-start;
+    }
+
+    .doctor-profile-page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .doctor-profile-actions,
+    .doctor-profile-save-area {
+        width: 100%;
+    }
+
+    .doctor-profile-actions .doctor-btn,
+    .doctor-profile-save-area .doctor-btn {
+        flex: 1;
+    }
+
+}
+
+@media (max-width: 560px) {
+
+    .doctor-profile-page {
+        padding: 16px;
+    }
+
+    .doctor-profile-hero,
+    .doctor-profile-card {
+        padding: 18px;
+    }
+
+    .doctor-profile-hero-left {
+        flex-direction: column;
+    }
+
+    .doctor-info-grid,
+    .doctor-form-grid {
+        grid-template-columns: 1fr;
+    }
+
 }
 
 
@@ -545,4 +588,24 @@
         padding: 18px;
     }
 
+}
+
+.doctor-profile-rating-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    color: #71868a;
+    font-size: 12px;
+}
+
+.doctor-profile-rating-summary strong {
+    color: #31555b;
+    font-size: 14px;
+}
+
+.doctor-profile-stars {
+    color: #f3a623;
+    font-size: 15px;
+    letter-spacing: 1px;
 }
